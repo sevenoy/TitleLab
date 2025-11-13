@@ -1,8 +1,21 @@
 // assets/app-title.js
 
+// 默认分类
+const DEFAULT_CATEGORIES = [
+  '全部',
+  '亲子',
+  '情侣',
+  '闺蜜',
+  '单人',
+  '家庭',
+  '街拍',
+  '烟花',
+  '夜景',
+];
+
 // 全局状态
 let state = {
-  categories: ['全部', '亲子', '情侣', '闺蜜', '单人', '家庭', '街拍', '烟花', '夜景'],
+  categories: [...DEFAULT_CATEGORIES],
   currentCategory: '全部',
   titles: [],
   filters: {
@@ -17,6 +30,7 @@ let toastTimer = null;
 
 // 入口
 document.addEventListener('DOMContentLoaded', () => {
+  loadCategoriesFromStorage();   // ① 先从 localStorage 读取分类
   initCategoryList();
   bindToolbarEvents();
   bindCategoryButton();
@@ -24,6 +38,42 @@ document.addEventListener('DOMContentLoaded', () => {
   bindImportEvents();
   loadTitles();
 });
+
+/* ========== 分类持久化 ========== */
+
+// 从 localStorage 加载分类
+function loadCategoriesFromStorage() {
+  try {
+    const raw = localStorage.getItem('titleCategories');
+    if (!raw) {
+      // 没存过，用默认分类
+      state.categories = [...DEFAULT_CATEGORIES];
+      return;
+    }
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr) || arr.length === 0) {
+      state.categories = [...DEFAULT_CATEGORIES];
+      return;
+    }
+
+    // 确保“全部”在第一个，其余去重
+    const set = new Set(arr);
+    set.delete('全部');
+    state.categories = ['全部', ...Array.from(set)];
+  } catch (e) {
+    console.error('读取分类失败，使用默认分类:', e);
+    state.categories = [...DEFAULT_CATEGORIES];
+  }
+}
+
+// 保存分类到 localStorage
+function saveCategoriesToStorage() {
+  try {
+    localStorage.setItem('titleCategories', JSON.stringify(state.categories));
+  } catch (e) {
+    console.error('保存分类失败:', e);
+  }
+}
 
 /* ========== 分类列表 ========== */
 
@@ -81,6 +131,7 @@ function bindCategoryButton() {
 
     // “全部”永远在第一位，新分类插在后面
     state.categories.push(trimmed);
+    saveCategoriesToStorage();  // ⭐ 新增后立刻持久化
     initCategoryList();
     showToast('已新增分类：' + trimmed);
   });
@@ -229,7 +280,7 @@ function renderTitles() {
     const tdActions = document.createElement('td');
     tdActions.className = 'actions-cell';
 
-    // ⭐ 用一个容器包起来，强制一排显示
+    // 一排显示操作按钮
     const actionsWrap = document.createElement('div');
     actionsWrap.className = 'action-group';
 
@@ -367,7 +418,7 @@ function openTitleModal(item) {
     return;
   }
 
-  // 填充分类下拉
+  // 填充分类下拉（不含“全部”）
   fieldCat.innerHTML = '';
   state.categories
     .filter((c) => c !== '全部')
