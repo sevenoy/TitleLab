@@ -27,6 +27,28 @@
 #titleTable td:nth-child(5) {
   display: none;
 }
+/* 搜索框宽度缩小为 1/2 */
+.search-input {
+  min-width: 200px;
+  max-width: 50%;
+}
+
+/* 筛选下拉宽度为原来的 1/3 */
+.filter-select {
+  min-width: 120px;
+  max-width: 33%;
+}
+
+/* 工具按钮统一样式 */
+.extra-actions .function-btn {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+/* 按钮不换行，一排显示 */
+.extra-actions {
+  white-space: nowrap;
+}
 
 
 /* 操作按钮的单元格不换行 */
