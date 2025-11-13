@@ -14,6 +14,20 @@
   --zebra: #f9fafb;
 }
 
+
+/* 操作按钮一排显示 */
+.actions-cell {
+  white-space: nowrap;
+}
+
+.action-group {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+
+
 /* 基础布局 */
 
 body.bg-page {
