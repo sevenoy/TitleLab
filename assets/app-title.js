@@ -812,3 +812,7 @@ function showToast(msg, type = 'info') {
     el.classList.add('hidden');
   }, 1800);
 }
+
+// 让 HTML 里的 onclick 能调用到
+window.openTitleModal = openTitleModal;
+window.openImportModal = openImportModal;
