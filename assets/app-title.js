@@ -9,6 +9,7 @@ const supabase = window.supabaseClient || null;
 
 const DEFAULT_CATEGORIES = ['全部', '亲子', '情侣', '闺蜜', '单人', '烟花', '夜景'];
 const CATEGORY_LS_KEY = 'title_categories_v1';
+const TITLE_LS_KEY = 'title_titles_v1'; // 新增：本地持久化标题
 
 const SNAPSHOT_TABLE = 'title_snapshots';
 const SNAPSHOT_DEFAULT_KEY = 'default';
@@ -42,14 +43,17 @@ document.addEventListener('DOMContentLoaded', () => {
   bindCloudButtons();
   bindGlobalNavButtons();
 
+  // 先尝试从本地恢复标题（兜底，防止云端失败全丢）
+  loadTitlesFromLocal();
+  renderTitles();
+
   if (!supabase) {
     console.warn('[TitleApp] supabaseClient 不存在，云端功能不可用');
   } else {
     console.log('[TitleApp] supabaseClient 已就绪');
+    // 再从云端拉一遍最新
+    loadTitlesFromCloud();
   }
-
-  // 初始从云端加载一遍
-  loadTitlesFromCloud();
 });
 
 // --------- 2. 分类逻辑 ---------
@@ -161,7 +165,31 @@ function bindCategoryButtons() {
   }
 }
 
-// --------- 3. 工具栏：搜索 / 场景筛选 / 按钮 ---------
+// --------- 3. 标题本地持久化 ---------
+
+function loadTitlesFromLocal() {
+  const raw = localStorage.getItem(TITLE_LS_KEY);
+  if (!raw) return;
+  try {
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr)) {
+      state.titles = arr;
+      console.log('[TitleApp] 从 localStorage 加载标题条数：', state.titles.length);
+    }
+  } catch (e) {
+    console.error('[TitleApp] loadTitlesFromLocal error', e);
+  }
+}
+
+function saveTitlesToLocal() {
+  try {
+    localStorage.setItem(TITLE_LS_KEY, JSON.stringify(state.titles));
+  } catch (e) {
+    console.error('[TitleApp] saveTitlesToLocal error', e);
+  }
+}
+
+// --------- 4. 工具栏：搜索 / 场景筛选 / 按钮 ---------
 
 function bindToolbar() {
   const searchInput = document.getElementById('searchInput');
@@ -202,24 +230,28 @@ function bindToolbar() {
   if (btnClearAll) {
     btnClearAll.addEventListener('click', async () => {
       if (!confirm('确定清空全部标题？此操作不可恢复')) return;
+
+      // 先清本地
+      state.titles = [];
+      saveTitlesToLocal();
+      renderTitles();
+
       if (!supabase) {
-        showToast('Supabase 未配置，无法清空云端', 'error');
+        showToast('Supabase 未配置，仅清空本地', 'error');
         return;
       }
       try {
         await supabase.from('titles').delete().neq('id', null);
-        state.titles = [];
-        renderTitles();
         showToast('已清空全部标题');
       } catch (e) {
         console.error('[TitleApp] 清空全部失败', e);
-        showToast('清空失败', 'error');
+        showToast('清空云端失败', 'error');
       }
     });
   }
 }
 
-// --------- 4. 加载 & 过滤 & 渲染列表 ---------
+// --------- 5. 加载 & 过滤 & 渲染列表 ---------
 
 async function loadTitlesFromCloud() {
   if (!supabase) {
@@ -235,6 +267,7 @@ async function loadTitlesFromCloud() {
     if (error) throw error;
     state.titles = data || [];
     console.log('[TitleApp] 从云端加载标题条数：', state.titles.length);
+    saveTitlesToLocal();
     renderTitles();
   } catch (e) {
     console.error('[TitleApp] loadTitlesFromCloud error', e);
@@ -374,7 +407,7 @@ function renderTitles() {
   }
 }
 
-// --------- 5. 标题操作：复制 / 删除 ---------
+// --------- 6. 标题操作：复制 / 删除 ---------
 
 async function copyTitle(item) {
   try {
@@ -403,6 +436,7 @@ async function deleteTitle(item) {
 
   // 先在前端删掉，保证界面立即更新
   state.titles = state.titles.filter((t) => t.id !== item.id);
+  saveTitlesToLocal();
   renderTitles();
 
   if (!supabase || !item.id) return;
@@ -416,7 +450,7 @@ async function deleteTitle(item) {
   }
 }
 
-// --------- 6. 标题弹窗：打开 / 保存 / 关闭 ---------
+// --------- 7. 标题弹窗：打开 / 保存 / 关闭 ---------
 
 function bindTitleModal() {
   const btnClose = document.getElementById('btnCloseModal');
@@ -514,7 +548,7 @@ async function saveTitleFromModal() {
 
   console.log('[TitleApp] 保存标题 payload =', payload, 'editingId =', state.editingId);
 
-  // ---- 本地先更新一份（兜底）
+  // ---- 本地先更新一份（兜底） ----
   if (state.editingId) {
     state.titles = state.titles.map((t) =>
       t.id === state.editingId ? { ...t, ...payload } : t
@@ -527,6 +561,7 @@ async function saveTitleFromModal() {
       ...payload
     });
   }
+  saveTitlesToLocal();
   renderTitles();
   closeTitleModal();
   showToast('已保存（本地）');
@@ -554,6 +589,7 @@ async function saveTitleFromModal() {
           ? data
           : t
       );
+      saveTitlesToLocal();
       renderTitles();
     }
     showToast('已同步到云端');
@@ -563,7 +599,7 @@ async function saveTitleFromModal() {
   }
 }
 
-// --------- 7. 批量导入弹窗 ---------
+// --------- 8. 批量导入弹窗 ---------
 
 function bindImportModal() {
   const btnClose = document.getElementById('btnCloseImport');
@@ -635,6 +671,7 @@ async function runImport() {
       ...p
     });
   });
+  saveTitlesToLocal();
   renderTitles();
   closeImportModal();
   showToast('已导入（本地）');
@@ -665,7 +702,7 @@ async function runImport() {
   }
 }
 
-// --------- 8. 云端快照：保存 / 加载 / 列表 ---------
+// --------- 9. 云端快照：保存 / 加载 / 列表 ---------
 
 function collectSnapshotPayload() {
   return {
@@ -687,6 +724,7 @@ function applySnapshotPayload(payload) {
   state.viewSettings = payload.viewSettings || {};
 
   saveCategoriesToLocal();
+  saveTitlesToLocal();
   renderCategoryList();
   renderTitles();
 }
@@ -848,7 +886,7 @@ function bindCloudButtons() {
   if (btnLoad) btnLoad.addEventListener('click', toggleCloudHistoryPanel);
 }
 
-// --------- 9. 管理页面 / 设置页面 占位 ---------
+// --------- 10. 管理页面 / 设置页面 占位 ---------
 
 function bindGlobalNavButtons() {
   const btnSettings = document.getElementById('btnSettings');
@@ -862,12 +900,12 @@ function bindGlobalNavButtons() {
 
   if (btnManage) {
     btnManage.addEventListener('click', () => {
-      alert('管理页面（占位），后续可跳转到 admin.html');
+      alert('管理页面（占位），后续可跳转到 admin-center.html');
     });
   }
 }
 
-// --------- 10. Toast ---------
+// --------- 11. Toast ---------
 
 function showToast(msg, type = 'info') {
   const el = document.getElementById('toast');
@@ -886,7 +924,7 @@ function showToast(msg, type = 'info') {
   }, 1800);
 }
 
-// --------- 11. 暴露给 HTML 的全局函数（双保险） ---------
+// --------- 12. 暴露给 HTML 的全局函数 ---------
 
 window.openTitleModal = openTitleModal;
 window.openImportModal = openImportModal;
