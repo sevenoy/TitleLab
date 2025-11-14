@@ -4,6 +4,7 @@
 // 1. 所有标题数据本地优先，存 localStorage
 // 2. “清除全部”只清本地，不再从云端自动恢复
 // 3. 云端只用于快照备份（title_snapshots），不再直接操作 titles 表
+// 4. 保存快照时记录每一行的顺序(_orderIndex)，读取快照时按这个顺序还原
 
 console.log('[TitleApp] app-title.js loaded');
 
@@ -604,11 +605,17 @@ function runImport() {
 // ================================
 
 function collectSnapshotPayload() {
+  // 关键：保存时候把当前顺序一起记录下来
+  const titlesWithOrder = state.titles.map((t, idx) => ({
+    ...t,
+    _orderIndex: idx
+  }));
+
   return {
-    ver: 1,
+    ver: 2, // 新版本快照
     snapshot_label: '',
     updated_at: Date.now(),
-    titles: state.titles,
+    titles: titlesWithOrder,
     categories: state.categories,
     viewSettings: state.viewSettings
   };
@@ -616,7 +623,29 @@ function collectSnapshotPayload() {
 
 function applySnapshotPayload(payload) {
   if (!payload) return;
-  state.titles = Array.isArray(payload.titles) ? payload.titles : [];
+
+  let titles = Array.isArray(payload.titles) ? payload.titles.slice() : [];
+
+  // 按 _orderIndex 排序，保证读取时顺序 = 保存时顺序
+  titles.sort((a, b) => {
+    const ai =
+      typeof a._orderIndex === 'number'
+        ? a._orderIndex
+        : 0;
+    const bi =
+      typeof b._orderIndex === 'number'
+        ? b._orderIndex
+        : 0;
+    return ai - bi;
+  });
+
+  // 去掉内部字段 _orderIndex
+  titles = titles.map((t) => {
+    const { _orderIndex, ...rest } = t;
+    return rest;
+  });
+
+  state.titles = titles;
   state.categories = Array.isArray(payload.categories)
     ? payload.categories
     : [...DEFAULT_CATEGORIES];
@@ -729,7 +758,7 @@ async function renderCloudHistoryList() {
     });
   } catch (e) {
     console.error('[TitleApp] renderCloudHistoryList error', e);
-    panel.innerHTML =
+  panel.innerHTML =
       '<div style="padding:8px 10px;color:#f43f5e;">加载云端快照失败</div>';
   }
 }
