@@ -1,5 +1,9 @@
 // assets/app-title.js
 // 标题管理主逻辑（桌面表格 + 手机卡片）
+// 本版逻辑：
+// 1. 所有标题数据本地优先，存 localStorage
+// 2. “清除全部”只清本地，不再从云端自动恢复
+// 3. 云端只用于快照备份（title_snapshots），不再直接操作 titles 表
 
 console.log('[TitleApp] app-title.js loaded');
 
@@ -7,15 +11,19 @@ console.log('[TitleApp] app-title.js loaded');
 
 const supabase = window.supabaseClient || null;
 
+// 分类默认值 + 本地键名
 const DEFAULT_CATEGORIES = ['全部', '亲子', '情侣', '闺蜜', '单人', '烟花', '夜景'];
 const CATEGORY_LS_KEY = 'title_categories_v1';
-const TITLE_LS_KEY = 'title_titles_v1'; // 新增：本地持久化标题
 
+// 标题本地存储键名
+const TITLE_LS_KEY = 'title_titles_v1';
+
+// 云端快照相关表
 const SNAPSHOT_TABLE = 'title_snapshots';
 const SNAPSHOT_DEFAULT_KEY = 'default';
 
 const state = {
-  titles: [],             // 当前所有标题记录
+  titles: [],             // 当前所有标题记录 [{id,text,main_category,content_type,scene_tags[],usage_count}]
   categories: [...DEFAULT_CATEGORIES],
   currentCategory: '全部',
   filters: {
@@ -33,30 +41,34 @@ let toastTimer = null;
 document.addEventListener('DOMContentLoaded', () => {
   console.log('[TitleApp] DOMContentLoaded: init');
 
+  // 分类
   loadCategoriesFromLocal();
   renderCategoryList();
   bindCategoryButtons();
 
+  // 工具栏 & 弹窗 & 云端按钮
   bindToolbar();
   bindTitleModal();
   bindImportModal();
   bindCloudButtons();
   bindGlobalNavButtons();
 
-  // 先尝试从本地恢复标题（兜底，防止云端失败全丢）
+  // 先尝试从本地恢复标题（唯一自动来源）
   loadTitlesFromLocal();
   renderTitles();
 
   if (!supabase) {
-    console.warn('[TitleApp] supabaseClient 不存在，云端功能不可用');
+    console.warn('[TitleApp] supabaseClient 不存在，云端快照不可用');
   } else {
-    console.log('[TitleApp] supabaseClient 已就绪');
-    // 再从云端拉一遍最新
-    loadTitlesFromCloud();
+    console.log('[TitleApp] supabaseClient 已就绪（仅用于 title_snapshots 快照）');
   }
+
+  // 注意：这里不再自动从云端任何表加载标题
 });
 
-// --------- 2. 分类逻辑 ---------
+// ================================
+// 2. 分类逻辑（本地）
+// ================================
 
 function loadCategoriesFromLocal() {
   const raw = localStorage.getItem(CATEGORY_LS_KEY);
@@ -80,7 +92,11 @@ function loadCategoriesFromLocal() {
 }
 
 function saveCategoriesToLocal() {
-  localStorage.setItem(CATEGORY_LS_KEY, JSON.stringify(state.categories));
+  try {
+    localStorage.setItem(CATEGORY_LS_KEY, JSON.stringify(state.categories));
+  } catch (e) {
+    console.error('[TitleApp] saveCategoriesToLocal error', e);
+  }
 }
 
 function renderCategoryList() {
@@ -129,7 +145,7 @@ function bindCategoryButtons() {
   }
 
   if (btnDelete) {
-    btnDelete.addEventListener('click', async () => {
+    btnDelete.addEventListener('click', () => {
       const cat = state.currentCategory;
       if (cat === '全部') {
         showToast('不能删除“全部”分类', 'error');
@@ -140,32 +156,20 @@ function bindCategoryButtons() {
         return;
       }
 
-      if (!confirm(`确定删除分类「${cat}」？`)) return;
+      if (!confirm(`确定删除分类「${cat}」？仅影响本地数据`)) return;
 
       state.categories = state.categories.filter((c) => c !== cat);
       saveCategoriesToLocal();
       state.currentCategory = '全部';
       renderCategoryList();
-
-      // 云端里把该分类的 main_category 置空
-      if (supabase) {
-        try {
-          await supabase
-            .from('titles')
-            .update({ main_category: null })
-            .eq('main_category', cat);
-        } catch (e) {
-          console.error('[TitleApp] 删除分类时更新 titles 出错', e);
-        }
-      }
-
-      await loadTitlesFromCloud();
-      showToast('分类已删除');
+      showToast('分类已删除（本地）');
     });
   }
 }
 
-// --------- 3. 标题本地持久化 ---------
+// ================================
+// 3. 标题本地持久化
+// ================================
 
 function loadTitlesFromLocal() {
   const raw = localStorage.getItem(TITLE_LS_KEY);
@@ -189,7 +193,9 @@ function saveTitlesToLocal() {
   }
 }
 
-// --------- 4. 工具栏：搜索 / 场景筛选 / 按钮 ---------
+// ================================
+// 4. 工具栏：搜索 / 场景筛选 / 按钮
+// ================================
 
 function bindToolbar() {
   const searchInput = document.getElementById('searchInput');
@@ -215,65 +221,31 @@ function bindToolbar() {
 
   if (btnNewTitle) {
     btnNewTitle.addEventListener('click', () => {
-      console.log('[TitleApp] 点击 新增标题');
       openTitleModal();
     });
   }
 
   if (btnBatchImport) {
     btnBatchImport.addEventListener('click', () => {
-      console.log('[TitleApp] 点击 批量导入');
       openImportModal();
     });
   }
 
+  // ⚠ 清除全部：只清本地，不动云端
   if (btnClearAll) {
-    btnClearAll.addEventListener('click', async () => {
-      if (!confirm('确定清空全部标题？此操作不可恢复')) return;
-
-      // 先清本地
+    btnClearAll.addEventListener('click', () => {
+      if (!confirm('确定清空当前所有标题？仅清除本地数据，不影响云端快照。')) return;
       state.titles = [];
       saveTitlesToLocal();
       renderTitles();
-
-      if (!supabase) {
-        showToast('Supabase 未配置，仅清空本地', 'error');
-        return;
-      }
-      try {
-        await supabase.from('titles').delete().neq('id', null);
-        showToast('已清空全部标题');
-      } catch (e) {
-        console.error('[TitleApp] 清空全部失败', e);
-        showToast('清空云端失败', 'error');
-      }
+      showToast('本地标题已清空');
     });
   }
 }
 
-// --------- 5. 加载 & 过滤 & 渲染列表 ---------
-
-async function loadTitlesFromCloud() {
-  if (!supabase) {
-    console.warn('[TitleApp] supabaseClient 不存在，跳过云端加载');
-    return;
-  }
-  try {
-    const { data, error } = await supabase
-      .from('titles')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    state.titles = data || [];
-    console.log('[TitleApp] 从云端加载标题条数：', state.titles.length);
-    saveTitlesToLocal();
-    renderTitles();
-  } catch (e) {
-    console.error('[TitleApp] loadTitlesFromCloud error', e);
-    showToast('加载标题失败', 'error');
-  }
-}
+// ================================
+// 5. 加载 & 过滤 & 渲染列表（完全本地）
+// ================================
 
 function applyFilters(list) {
   const cat = state.currentCategory;
@@ -299,7 +271,6 @@ function renderTitles() {
   const mobileList = document.getElementById('mobileList');
   if (!tbody || !mobileList) return;
 
-  // 清空原有内容
   tbody.innerHTML = '';
   mobileList.innerHTML = '';
 
@@ -362,19 +333,16 @@ function renderTitles() {
     const card = document.createElement('div');
     card.className = 'panel mobile-card';
 
-    // 标题行：横向多行显示
     const cTitle = document.createElement('div');
     cTitle.className = 'text-sm font-medium mb-1';
     cTitle.textContent = item.text || '';
 
-    // 分类 + 使用 次数
     const cMeta = document.createElement('div');
     cMeta.className = 'text-xs text-gray-500 mb-2';
     const catText = item.main_category ? item.main_category : '未分类';
     const usageText = item.usage_count || 0;
     cMeta.textContent = `分类：${catText} ｜ 使用：${usageText}`;
 
-    // 按钮区：复制 / 修改 / 删除
     const actions = document.createElement('div');
     actions.className = 'flex gap-2';
 
@@ -407,7 +375,9 @@ function renderTitles() {
   }
 }
 
-// --------- 6. 标题操作：复制 / 删除 ---------
+// ================================
+// 6. 标题操作：复制 / 删除（本地）
+// ================================
 
 async function copyTitle(item) {
   try {
@@ -418,39 +388,26 @@ async function copyTitle(item) {
     showToast('复制失败', 'error');
   }
 
-  if (!supabase || !item.id) return;
-
-  try {
-    await supabase
-      .from('titles')
-      .update({ usage_count: (item.usage_count || 0) + 1 })
-      .eq('id', item.id);
-    await loadTitlesFromCloud();
-  } catch (e) {
-    console.error('[TitleApp] 更新 usage_count 失败', e);
-  }
+  // 只在本地增加使用次数
+  state.titles = state.titles.map((t) =>
+    t.id === item.id ? { ...t, usage_count: (t.usage_count || 0) + 1 } : t
+  );
+  saveTitlesToLocal();
+  renderTitles();
 }
 
-async function deleteTitle(item) {
+function deleteTitle(item) {
   if (!confirm('确定删除该标题？')) return;
 
-  // 先在前端删掉，保证界面立即更新
   state.titles = state.titles.filter((t) => t.id !== item.id);
   saveTitlesToLocal();
   renderTitles();
-
-  if (!supabase || !item.id) return;
-
-  try {
-    await supabase.from('titles').delete().eq('id', item.id);
-    showToast('已删除');
-  } catch (e) {
-    console.error('[TitleApp] 删除失败', e);
-    showToast('删除失败（云端）', 'error');
-  }
+  showToast('已删除');
 }
 
-// --------- 7. 标题弹窗：打开 / 保存 / 关闭 ---------
+// ================================
+// 7. 标题弹窗：打开 / 保存 / 关闭
+// ================================
 
 function bindTitleModal() {
   const btnClose = document.getElementById('btnCloseModal');
@@ -463,7 +420,6 @@ function bindTitleModal() {
 }
 
 function openTitleModal(item) {
-  console.log('[TitleApp] openTitleModal', item);
   const modal = document.getElementById('titleModal');
   const titleEl = document.getElementById('titleModalTitle');
   const fieldText = document.getElementById('fieldText');
@@ -501,7 +457,9 @@ function openTitleModal(item) {
     titleEl.textContent = '新增标题';
     fieldText.value = '';
     fieldCat.value =
-      state.currentCategory !== '全部' ? state.currentCategory : '';
+      state.currentCategory !== '全部' && state.currentCategory !== '未分类'
+        ? state.currentCategory
+        : '';
     fieldType.value = '';
     fieldScene.value = '';
   }
@@ -517,7 +475,11 @@ function closeTitleModal() {
   modal.style.display = 'none';
 }
 
-async function saveTitleFromModal() {
+function genId() {
+  return 't_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+function saveTitleFromModal() {
   const fieldText = document.getElementById('fieldText');
   const fieldCat = document.getElementById('fieldMainCategory');
   const fieldType = document.getElementById('fieldContentType');
@@ -546,60 +508,27 @@ async function saveTitleFromModal() {
     scene_tags: sceneTags
   };
 
-  console.log('[TitleApp] 保存标题 payload =', payload, 'editingId =', state.editingId);
-
-  // ---- 本地先更新一份（兜底） ----
   if (state.editingId) {
     state.titles = state.titles.map((t) =>
       t.id === state.editingId ? { ...t, ...payload } : t
     );
   } else {
-    const fakeId = 'local_' + Date.now();
     state.titles.unshift({
-      id: fakeId,
+      id: genId(),
       usage_count: 0,
       ...payload
     });
   }
+
   saveTitlesToLocal();
   renderTitles();
   closeTitleModal();
-  showToast('已保存（本地）');
-
-  // ---- 再尝试云端写入 ----
-  if (!supabase) {
-    console.warn('[TitleApp] supabase 不存在，只保存本地状态');
-    return;
-  }
-
-  try {
-    if (state.editingId && !String(state.editingId).startsWith('local_')) {
-      await supabase.from('titles').update(payload).eq('id', state.editingId);
-    } else {
-      const { data, error } = await supabase
-        .from('titles')
-        .insert(payload)
-        .select()
-        .single();
-
-      if (error) throw error;
-      // 用云端返回的真实 id 替换本地 fake
-      state.titles = state.titles.map((t) =>
-        t.id && String(t.id).startsWith('local_') && t.text === payload.text
-          ? data
-          : t
-      );
-      saveTitlesToLocal();
-      renderTitles();
-    }
-    showToast('已同步到云端');
-  } catch (e) {
-    console.error('[TitleApp] 保存到云端失败', e);
-    showToast('云端保存失败（本地已保存）', 'error');
-  }
+  showToast('已保存');
 }
 
-// --------- 8. 批量导入弹窗 ---------
+// ================================
+// 8. 批量导入弹窗（本地）
+// ================================
 
 function bindImportModal() {
   const btnClose = document.getElementById('btnCloseImport');
@@ -612,7 +541,6 @@ function bindImportModal() {
 }
 
 function openImportModal() {
-  console.log('[TitleApp] openImportModal');
   const modal = document.getElementById('importModal');
   const input = document.getElementById('importRawInput');
   const preview = document.getElementById('importPreview');
@@ -630,7 +558,7 @@ function closeImportModal() {
   modal.style.display = 'none';
 }
 
-async function runImport() {
+function runImport() {
   const input = document.getElementById('importRawInput');
   if (!input) return;
 
@@ -653,56 +581,27 @@ async function runImport() {
   const currentCat =
     state.currentCategory !== '全部' ? state.currentCategory : null;
 
-  const payloads = lines.map((text) => ({
-    text,
-    main_category: currentCat,
-    content_type: null,
-    scene_tags: []
-  }));
-
-  console.log('[TitleApp] 批量导入 payloads =', payloads.length);
-
-  // ---- 本地兜底：先加到 state.titles 里 ----
   const now = Date.now();
-  payloads.forEach((p, idx) => {
+  lines.forEach((text, idx) => {
     state.titles.unshift({
-      id: 'local_' + (now + idx),
-      usage_count: 0,
-      ...p
+      id: genId() + '_' + idx,
+      text,
+      main_category: currentCat,
+      content_type: null,
+      scene_tags: [],
+      usage_count: 0
     });
   });
+
   saveTitlesToLocal();
   renderTitles();
   closeImportModal();
-  showToast('已导入（本地）');
-
-  // ---- 再尝试云端写入 ----
-  if (!supabase) {
-    console.warn('[TitleApp] supabase 不存在，只保存本地状态（批量导入）');
-    return;
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from('titles')
-      .insert(payloads)
-      .select();
-
-    if (error) throw error;
-
-    // 简单策略：重新拉一次云端列表
-    if (Array.isArray(data) && data.length > 0) {
-      await loadTitlesFromCloud();
-    }
-
-    showToast('批量导入已同步云端');
-  } catch (e) {
-    console.error('[TitleApp] 批量导入云端失败', e);
-    showToast('云端导入失败（本地已导入）', 'error');
-  }
+  showToast(`已导入 ${lines.length} 条标题`);
 }
 
-// --------- 9. 云端快照：保存 / 加载 / 列表 ---------
+// ================================
+// 9. 云端快照：保存 / 加载 / 列表（title_snapshots）
+// ================================
 
 function collectSnapshotPayload() {
   return {
@@ -731,7 +630,7 @@ function applySnapshotPayload(payload) {
 
 async function saveCloudSnapshot() {
   if (!supabase) {
-    alert('未配置 Supabase');
+    alert('未配置 Supabase，无法保存云端快照');
     return;
   }
 
@@ -744,6 +643,7 @@ async function saveCloudSnapshot() {
   const nowIso = new Date(payload.updated_at).toISOString();
 
   try {
+    // 默认键覆盖
     await supabase
       .from(SNAPSHOT_TABLE)
       .upsert({
@@ -752,6 +652,7 @@ async function saveCloudSnapshot() {
         updated_at: nowIso
       });
 
+    // 历史记录一条
     const histKey = 'snap_' + payload.updated_at;
     await supabase.from(SNAPSHOT_TABLE).insert({
       key: histKey,
@@ -759,7 +660,7 @@ async function saveCloudSnapshot() {
       updated_at: nowIso
     });
 
-    showToast('已保存到云端');
+    showToast('已保存云端快照');
     await renderCloudHistoryList();
   } catch (e) {
     console.error('[TitleApp] saveCloudSnapshot error', e);
@@ -773,7 +674,7 @@ async function renderCloudHistoryList() {
 
   if (!supabase) {
     panel.innerHTML =
-      '<div style="padding:8px 10px;color:#888;">未配置 Supabase</div>';
+      '<div style="padding:8px 10px;color:#888;">未配置 Supabase，无法使用云端快照</div>';
     return;
   }
 
@@ -821,7 +722,7 @@ async function renderCloudHistoryList() {
       el.addEventListener('click', async () => {
         const key = el.getAttribute('data-key');
         if (!key) return;
-        const ok = confirm('确定使用此快照覆盖当前数据？');
+        const ok = confirm('确定使用此快照覆盖当前本地数据？');
         if (!ok) return;
         await loadCloudSnapshot(key);
       });
@@ -852,7 +753,7 @@ async function loadCloudSnapshot(key) {
     }
 
     applySnapshotPayload(data.payload);
-    showToast('云端数据已加载');
+    showToast('云端快照已加载');
     const panel = document.getElementById('cloudHistoryPanel');
     if (panel) {
       panel.classList.add('hidden');
@@ -886,7 +787,9 @@ function bindCloudButtons() {
   if (btnLoad) btnLoad.addEventListener('click', toggleCloudHistoryPanel);
 }
 
-// --------- 10. 管理页面 / 设置页面 占位 ---------
+// ================================
+// 10. 管理页面 / 设置页面 占位
+// ================================
 
 function bindGlobalNavButtons() {
   const btnSettings = document.getElementById('btnSettings');
@@ -894,18 +797,22 @@ function bindGlobalNavButtons() {
 
   if (btnSettings) {
     btnSettings.addEventListener('click', () => {
-      alert('设置页面（占位），后续可跳转到 settings.html');
+      // 之后你可以改成 window.location.href='settings.html'
+      alert('设置页面（占位），后续可跳转 settings.html');
     });
   }
 
   if (btnManage) {
     btnManage.addEventListener('click', () => {
-      alert('管理页面（占位），后续可跳转到 admin-center.html');
+      // 之后你可以改成 window.location.href='admin-center.html'
+      alert('管理页面（占位），后续可跳转 admin-center.html');
     });
   }
 }
 
-// --------- 11. Toast ---------
+// ================================
+// 11. Toast
+// ================================
 
 function showToast(msg, type = 'info') {
   const el = document.getElementById('toast');
@@ -924,7 +831,9 @@ function showToast(msg, type = 'info') {
   }, 1800);
 }
 
-// --------- 12. 暴露给 HTML 的全局函数 ---------
+// ================================
+// 12. 暴露给 HTML 的全局函数（给 onclick 用）
+// ================================
 
 window.openTitleModal = openTitleModal;
 window.openImportModal = openImportModal;
