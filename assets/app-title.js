@@ -1,222 +1,164 @@
-// assets/app-title.js
+// assets/app-title.js — 完整版
+
+// --------------- 0. 基础配置 ---------------
+
+// Supabase 客户端（在 supabase.js 里创建并挂到 window）
+const supabase = window.supabaseClient;
+
+// 快照表 & 默认 key
+const SNAPSHOT_TABLE = 'title_snapshots';
+const SNAPSHOT_DEFAULT_KEY = 'default';
+
+// 分类存储 key
+const CATEGORY_LS_KEY = 'title_categories_v1';
 
 // 默认分类
-const DEFAULT_CATEGORIES = [
-  '全部',
-  '亲子',
-  '情侣',
-  '闺蜜',
-  '单人',
-  '烟花',
-  '夜景'
-];
-
-// 分类持久化 key（沿用之前的 titleCategories）
-const CATEGORY_LS_KEY = 'titleCategories';
+const DEFAULT_CATEGORIES = ['全部', '亲子', '情侣', '闺蜜', '单人', '烟花', '夜景'];
 
 // 全局状态
-let state = {
+const state = {
+  titles: [],
   categories: [...DEFAULT_CATEGORIES],
   currentCategory: '全部',
-  titles: [],
   filters: {
     search: '',
+    scene: '',
     contentType: '',
-    scene: ''
   },
-  editingId: null
+  editingId: null,
+  viewSettings: {},
 };
 
 let toastTimer = null;
 
-// 入口
+// --------------- 1. 初始化入口 ---------------
+
 document.addEventListener('DOMContentLoaded', () => {
-  loadCategoriesFromStorage();
-  initCategoryList();
+  loadCategoriesFromLocal();
+  renderCategoryList();
+  bindCategoryButtons();
 
-  bindToolbarEvents();
-  bindExtraActions();
-  bindCategoryButton();
-  bindCategoryDeleteButton();
-  bindModalEvents();
-  bindImportEvents();
+  bindToolbar();
+  bindTitleModal();
+  bindImportModal();
+  bindCloudButtons();
+  bindGlobalNavButtons();
 
-  loadTitles();
+  loadTitlesFromCloud();
 });
 
-/* ========== 工具：统一获取 supabaseClient ========== */
+// --------------- 2. 分类逻辑 ---------------
 
-function getDb() {
-  if (typeof supabaseClient === 'undefined' || !supabaseClient) {
-    console.error('supabaseClient 未定义，请检查 supabase.js');
-    showToast('Supabase 未初始化', 'error');
-    return null;
+function loadCategoriesFromLocal() {
+  const raw = localStorage.getItem(CATEGORY_LS_KEY);
+  if (!raw) {
+    state.categories = [...DEFAULT_CATEGORIES];
+    return;
   }
-  return supabaseClient;
-}
-
-/* ========== 分类持久化 ========== */
-
-function loadCategoriesFromStorage() {
   try {
-    const raw = localStorage.getItem(CATEGORY_LS_KEY);
-    if (!raw) {
-      state.categories = [...DEFAULT_CATEGORIES];
-      return;
-    }
     const arr = JSON.parse(raw);
     if (!Array.isArray(arr) || arr.length === 0) {
       state.categories = [...DEFAULT_CATEGORIES];
-      return;
+    } else {
+      const set = new Set(arr);
+      set.delete('全部');
+      state.categories = ['全部', ...set];
     }
-    // 确保「全部」一直在第一个
-    const set = new Set(arr);
-    set.delete('全部');
-    state.categories = ['全部', ...Array.from(set)];
-  } catch (e) {
-    console.error('读取分类失败，使用默认分类:', e);
+  } catch {
     state.categories = [...DEFAULT_CATEGORIES];
   }
 }
 
-function saveCategoriesToStorage() {
-  try {
-    localStorage.setItem(CATEGORY_LS_KEY, JSON.stringify(state.categories));
-  } catch (e) {
-    console.error('保存分类失败:', e);
-  }
+function saveCategoriesToLocal() {
+  localStorage.setItem(CATEGORY_LS_KEY, JSON.stringify(state.categories));
 }
 
-/* ========== 分类列表渲染 ========== */
-
-function initCategoryList() {
+function renderCategoryList() {
   const list = document.getElementById('categoryList');
-  if (!list) {
-    console.error('找不到 #categoryList');
-    return;
-  }
+  if (!list) return;
   list.innerHTML = '';
 
-  state.categories.forEach((name) => {
+  state.categories.forEach((cat) => {
     const li = document.createElement('li');
     li.className =
-      'category-item' + (name === state.currentCategory ? ' active' : '');
-    li.textContent = name;
-    li.dataset.cat = name;
+      'category-item' + (cat === state.currentCategory ? ' active' : '');
+    li.textContent = cat;
+    li.dataset.cat = cat;
     li.addEventListener('click', () => {
-      state.currentCategory = name;
-      document
-        .querySelectorAll('.category-item')
-        .forEach((el) => el.classList.remove('active'));
-      li.classList.add('active');
+      state.currentCategory = cat;
+      renderCategoryList();
       renderTitles();
     });
     list.appendChild(li);
   });
 }
 
-/* ========== 新增 / 删除分类按钮 ========== */
+function bindCategoryButtons() {
+  const btnAdd = document.getElementById('btnAddCategory');
+  const btnDelete = document.getElementById('btnDeleteCategory');
 
-function bindCategoryButton() {
-  const btnAddCategory = document.getElementById('btnAddCategory');
-  if (!btnAddCategory) return;
-
-  btnAddCategory.addEventListener('click', () => {
-    const name = prompt('请输入新分类名称（例如：港迪城堡 / 烟花 / 夜景）：');
-    if (!name) return;
-
-    const trimmed = name.trim();
-    if (!trimmed) return;
-
-    if (trimmed === '全部') {
-      showToast('不能使用“全部”作为分类名', 'error');
-      return;
-    }
-    if (state.categories.includes(trimmed)) {
-      showToast('该分类已存在', 'error');
-      return;
-    }
-
-    state.categories.push(trimmed);
-    saveCategoriesToStorage();
-    initCategoryList();
-    showToast('已新增分类：' + trimmed);
-  });
-}
-
-function bindCategoryDeleteButton() {
-  const btnDeleteCategory = document.getElementById('btnDeleteCategory');
-  if (!btnDeleteCategory) return;
-
-  btnDeleteCategory.addEventListener('click', async () => {
-    const current = state.currentCategory;
-    if (current === '全部') {
-      showToast('不能删除“全部”分类', 'error');
-      return;
-    }
-    if (!state.categories.includes(current)) {
-      showToast('当前分类不存在', 'error');
-      return;
-    }
-
-    const ok = confirm(
-      `确定要删除分类「${current}」吗？\n该分类下的标题主分类将被清空，但标题本身不会删除。`
-    );
-    if (!ok) return;
-
-    // 先本地删分类
-    state.categories = state.categories.filter((c) => c !== current);
-    saveCategoriesToStorage();
-    state.currentCategory = '全部';
-    initCategoryList();
-
-    // 同步到 Supabase：把这个分类的 main_category 清空
-    const db = getDb();
-    if (!db) return;
-
-    try {
-      const { error } = await db
-        .from('titles')
-        .update({ main_category: null })
-        .eq('main_category', current);
-
-      if (error) {
-        console.error('清空 main_category 失败:', error);
-        showToast('删除分类成功，但云端更新失败', 'error');
-      } else {
-        showToast('分类已删除');
-        await loadTitles();
+  if (btnAdd) {
+    btnAdd.addEventListener('click', () => {
+      const name = prompt('请输入新分类名称：');
+      if (!name) return;
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      if (trimmed === '全部') {
+        showToast('不能使用“全部”作为分类名', 'error');
+        return;
       }
-    } catch (e) {
-      console.error(e);
-      showToast('删除分类时发生异常', 'error');
-    }
-  });
+      if (state.categories.includes(trimmed)) {
+        showToast('该分类已存在', 'error');
+        return;
+      }
+      state.categories.push(trimmed);
+      saveCategoriesToLocal();
+      renderCategoryList();
+      showToast('已新增分类：' + trimmed);
+    });
+  }
+
+  if (btnDelete) {
+    btnDelete.addEventListener('click', async () => {
+      const cat = state.currentCategory;
+      if (cat === '全部') {
+        showToast('不能删除“全部”分类', 'error');
+        return;
+      }
+      if (!state.categories.includes(cat)) {
+        showToast('当前分类不存在', 'error');
+        return;
+      }
+      if (!confirm(`确定删除分类「${cat}」？`)) return;
+
+      // 本地删除分类
+      state.categories = state.categories.filter((c) => c !== cat);
+      saveCategoriesToLocal();
+      state.currentCategory = '全部';
+      renderCategoryList();
+
+      // 云端将该分类置空（不删除标题）
+      if (supabase) {
+        await supabase.from('titles').update({ main_category: null }).eq('main_category', cat);
+      }
+      await loadTitlesFromCloud();
+      showToast('分类已删除');
+    });
+  }
 }
 
-/* ========== 顶部工具栏（搜索、筛选、按钮） ========== */
+// --------------- 3. 工具栏：搜索 / 筛选 / 新增 / 导入 ---------------
 
-function bindToolbarEvents() {
+function bindToolbar() {
   const searchInput = document.getElementById('searchInput');
-  const filterContentType = document.getElementById('filterContentType');
   const filterScene = document.getElementById('filterScene');
+  const filterType = document.getElementById('filterContentType');
   const btnNewTitle = document.getElementById('btnNewTitle');
   const btnBatchImport = document.getElementById('btnBatchImport');
 
   if (searchInput) {
-    let timer;
     searchInput.addEventListener('input', (e) => {
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        state.filters.search = e.target.value.trim();
-        renderTitles();
-      }, 250);
-    });
-  }
-
-  if (filterContentType) {
-    filterContentType.addEventListener('change', (e) => {
-      state.filters.contentType = e.target.value;
+      state.filters.search = e.target.value.trim();
       renderTitles();
     });
   }
@@ -228,133 +170,60 @@ function bindToolbarEvents() {
     });
   }
 
+  if (filterType) {
+    filterType.addEventListener('change', (e) => {
+      state.filters.contentType = e.target.value;
+      renderTitles();
+    });
+  }
+
   if (btnNewTitle) {
     btnNewTitle.addEventListener('click', () => openTitleModal());
   }
 
   if (btnBatchImport) {
-    btnBatchImport.addEventListener('click', openImportModal);
+    btnBatchImport.addEventListener('click', () => openImportModal());
   }
 }
 
-/* 顶部五个按钮 */
+// --------------- 4. 加载 & 渲染标题列表 ---------------
 
-function bindExtraActions() {
-  const btnClearAll = document.getElementById('btnClearAll');
-  const btnSettings = document.getElementById('btnSettings');
-  const btnSaveCloud = document.getElementById('btnSaveCloud');
-  const btnLoadCloud = document.getElementById('btnLoadCloud');
-  const btnManagePage = document.getElementById('btnManagePage');
-
-  if (btnClearAll) {
-    btnClearAll.addEventListener('click', async () => {
-      const db = getDb();
-      if (!db) return;
-
-      const ok = confirm('确定要清空所有标题吗？此操作会删除 Supabase 中的全部记录。');
-      if (!ok) return;
-
-      try {
-        const { error } = await db.from('titles').delete().neq('id', null);
-        if (error) {
-          console.error(error);
-          showToast('清空失败：' + error.message, 'error');
-          return;
-        }
-        state.titles = [];
-        renderTitles();
-        showToast('已清空全部标题');
-      } catch (e) {
-        console.error(e);
-        showToast('清空失败（前端异常）', 'error');
-      }
-    });
+async function loadTitlesFromCloud() {
+  if (!supabase) {
+    showToast('Supabase 未初始化', 'error');
+    return;
   }
-
-  if (btnSettings) {
-    btnSettings.addEventListener('click', () => {
-      // 设置中心占位页面
-      window.location.href = 'settings.html';
-    });
-  }
-
-  if (btnSaveCloud) {
-    btnSaveCloud.addEventListener('click', () => {
-      // 当前架构本身就是实时写 Supabase，这里给一个明确提示
-      showToast('当前所有修改已实时保存到 Supabase');
-    });
-  }
-
-  if (btnLoadCloud) {
-    btnLoadCloud.addEventListener('click', () => {
-      loadTitles(true);
-    });
-  }
-
-  if (btnManagePage) {
-    btnManagePage.addEventListener('click', () => {
-      // 管理中心占位页面
-      window.location.href = 'admin-center.html';
-    });
-  }
-}
-
-/* ========== 从 Supabase 加载标题 ========== */
-
-async function loadTitles(showToastAfter = false) {
-  const db = getDb();
-  if (!db) return;
-
   try {
-    const { data, error } = await db
+    const { data, error } = await supabase
       .from('titles')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('加载 titles 失败:', error);
-      showToast('加载标题失败：' + error.message, 'error');
-      return;
-    }
-
+    if (error) throw error;
     state.titles = data || [];
     renderTitles();
-
-    if (showToastAfter) {
-      showToast('已从云端加载最新数据');
-    }
   } catch (e) {
-    console.error('loadTitles 异常:', e);
-    showToast('加载标题异常', 'error');
+    console.error('loadTitlesFromCloud error', e);
+    showToast('加载标题失败', 'error');
   }
 }
 
-/* ========== 渲染 & 过滤 ========== */
+function applyFilters(list) {
+  const cat = state.currentCategory;
+  const q = state.filters.search.toLowerCase();
+  const scene = state.filters.scene;
+  const type = state.filters.contentType;
 
-function applyFilters(items) {
-  const { currentCategory, filters } = state;
-  const { search, contentType, scene } = filters;
-  const q = (search || '').toLowerCase();
-
-  return items.filter((item) => {
-    if (currentCategory !== '全部' && item.main_category !== currentCategory) {
-      return false;
-    }
-
-    if (contentType && item.content_type !== contentType) {
-      return false;
-    }
+  return list.filter((item) => {
+    if (cat !== '全部' && item.main_category !== cat) return false;
+    if (q && !(item.text || '').toLowerCase().includes(q)) return false;
 
     if (scene) {
-      const tags = item.scene_tags || [];
-      if (!Array.isArray(tags) || !tags.includes(scene)) return false;
+      const tags = Array.isArray(item.scene_tags) ? item.scene_tags : [];
+      if (!tags.includes(scene)) return false;
     }
 
-    if (q) {
-      const text = (item.text || '').toLowerCase();
-      const kw = JSON.stringify(item.keywords || []).toLowerCase();
-      if (!text.includes(q) && !kw.includes(q)) return false;
-    }
+    if (type && item.content_type !== type) return false;
 
     return true;
   });
@@ -363,52 +232,47 @@ function applyFilters(items) {
 function renderTitles() {
   const tbody = document.getElementById('titleTableBody');
   const mobileList = document.getElementById('mobileList');
-
-  if (!tbody || !mobileList) {
-    console.error('找不到 #titleTableBody 或 #mobileList');
-    return;
-  }
+  if (!tbody || !mobileList) return;
 
   tbody.innerHTML = '';
   mobileList.innerHTML = '';
 
-  const items = applyFilters(state.titles);
+  const list = applyFilters(state.titles);
 
-  items.forEach((item, idx) => {
-    // 桌面表格
+  list.forEach((item, index) => {
+    // 桌面表格行
     const tr = document.createElement('tr');
 
-    const tdIndex = document.createElement('td');
-    tdIndex.textContent = idx + 1;
-    tr.appendChild(tdIndex);
+    const idxTd = document.createElement('td');
+    idxTd.textContent = index + 1;
+    tr.appendChild(idxTd);
 
-    const tdText = document.createElement('td');
-    tdText.textContent = item.text;
-    tr.appendChild(tdText);
+    const textTd = document.createElement('td');
+    textTd.textContent = item.text || '';
+    tr.appendChild(textTd);
 
-    const tdMain = document.createElement('td');
-    tdMain.textContent = item.main_category || '';
-    tr.appendChild(tdMain);
+    const catTd = document.createElement('td');
+    catTd.textContent = item.main_category || '';
+    tr.appendChild(catTd);
 
-    const tdScene = document.createElement('td');
-    tdScene.textContent = Array.isArray(item.scene_tags)
+    const sceneTd = document.createElement('td');
+    sceneTd.textContent = Array.isArray(item.scene_tags)
       ? item.scene_tags.join(', ')
       : '';
-    tr.appendChild(tdScene);
+    tr.appendChild(sceneTd);
 
-    const tdType = document.createElement('td');
-    tdType.textContent = item.content_type || '';
-    tr.appendChild(tdType);
+    const typeTd = document.createElement('td');
+    typeTd.textContent = item.content_type || '';
+    tr.appendChild(typeTd);
 
-    const tdUsage = document.createElement('td');
-    tdUsage.textContent = item.usage_count || 0;
-    tr.appendChild(tdUsage);
+    const usageTd = document.createElement('td');
+    usageTd.textContent = item.usage_count || 0;
+    tr.appendChild(usageTd);
 
-    const tdActions = document.createElement('td');
-    tdActions.className = 'actions-cell';
-
-    const actionsWrap = document.createElement('div');
-    actionsWrap.className = 'action-group';
+    const actionsTd = document.createElement('td');
+    actionsTd.className = 'actions-cell';
+    const group = document.createElement('div');
+    group.className = 'action-group';
 
     const btnCopy = document.createElement('button');
     btnCopy.className = 'function-btn ghost text-xs';
@@ -423,35 +287,32 @@ function renderTitles() {
     const btnDel = document.createElement('button');
     btnDel.className = 'function-btn ghost text-xs';
     btnDel.textContent = '删除';
-    btnDel.addEventListener('click', () => deleteTitleRow(item));
+    btnDel.addEventListener('click', () => deleteTitle(item));
 
-    actionsWrap.append(btnCopy, btnEdit, btnDel);
-    tdActions.appendChild(actionsWrap);
-    tr.appendChild(tdActions);
+    group.append(btnCopy, btnEdit, btnDel);
+    actionsTd.appendChild(group);
+    tr.appendChild(actionsTd);
 
     tbody.appendChild(tr);
 
-    // 移动端卡片
+    // 手机版卡片
     const card = document.createElement('div');
     card.className = 'panel mobile-card';
 
     const t = document.createElement('div');
     t.className = 'text-sm font-medium mb-1';
-    t.textContent = item.text;
+    t.textContent = item.text || '';
     card.appendChild(t);
 
     const meta = document.createElement('div');
-    meta.className = 'text-xs text-gray-500 flex flex-wrap gap-2';
-    meta.innerHTML = `
-      <span>[${item.main_category || '未分类'}]</span>
-      <span>${Array.isArray(item.scene_tags) ? item.scene_tags.join(', ') : ''}</span>
-      <span>${item.content_type || ''}</span>
-      <span>使用 ${item.usage_count || 0}</span>
-    `;
+    meta.className = 'text-xs text-gray-500 mb-2';
+    meta.textContent =
+      '[' + (item.main_category || '未分类') + '] ' +
+      (Array.isArray(item.scene_tags) ? item.scene_tags.join(', ') : '');
     card.appendChild(meta);
 
     const actions = document.createElement('div');
-    actions.className = 'mt-2 flex gap-2';
+    actions.className = 'flex gap-2';
 
     const mCopy = document.createElement('button');
     mCopy.className = 'function-btn ghost text-xs';
@@ -466,89 +327,80 @@ function renderTitles() {
     const mDel = document.createElement('button');
     mDel.className = 'function-btn ghost text-xs';
     mDel.textContent = '删除';
-    mDel.addEventListener('click', () => deleteTitleRow(item));
+    mDel.addEventListener('click', () => deleteTitle(item));
 
     actions.append(mCopy, mEdit, mDel);
     card.appendChild(actions);
 
     mobileList.appendChild(card);
   });
+
+  if (list.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'text-xs text-gray-500 py-2';
+    empty.textContent = '暂无标题，请先添加。';
+    mobileList.appendChild(empty);
+  }
 }
 
-/* ========== 复制 / 删除 ========== */
+// --------------- 5. 标题增删改复制 ---------------
 
 async function copyTitle(item) {
   try {
     await navigator.clipboard.writeText(item.text || '');
-    showToast('标题已复制');
+    showToast('已复制');
   } catch (e) {
     console.error(e);
     showToast('复制失败', 'error');
   }
 
-  const db = getDb();
-  if (!db) return;
-
+  if (!supabase || !item.id) return;
   try {
-    const { error } = await db
+    await supabase
       .from('titles')
       .update({ usage_count: (item.usage_count || 0) + 1 })
       .eq('id', item.id);
-
-    if (error) {
-      console.error('更新 usage_count 失败:', error);
-    } else {
-      await loadTitles();
-    }
+    await loadTitlesFromCloud();
   } catch (e) {
-    console.error(e);
+    console.error('update usage_count error', e);
   }
 }
 
-async function deleteTitleRow(item) {
-  if (!confirm('确认删除这条标题？')) return;
-
-  const db = getDb();
-  if (!db) return;
-
+async function deleteTitle(item) {
+  if (!confirm('确定删除该标题？')) return;
+  if (!supabase || !item.id) return;
   try {
-    const { error } = await db.from('titles').delete().eq('id', item.id);
-    if (error) {
-      console.error('删除失败:', error);
-      showToast('删除失败：' + error.message, 'error');
-      return;
-    }
+    await supabase.from('titles').delete().eq('id', item.id);
     showToast('已删除');
-    state.titles = state.titles.filter((x) => x.id !== item.id);
-    renderTitles();
+    await loadTitlesFromCloud();
   } catch (e) {
-    console.error(e);
+    console.error('deleteTitle error', e);
     showToast('删除失败', 'error');
   }
 }
 
-/* ========== 弹窗：新增 / 修改 ========== */
+// --------------- 6. 标题弹窗：打开 / 关闭 / 保存 ---------------
 
-function bindModalEvents() {
-  const btnCloseModal = document.getElementById('btnCloseModal');
-  const btnCancelModal = document.getElementById('btnCancelModal');
-  const btnSaveTitle = document.getElementById('btnSaveTitle');
+function bindTitleModal() {
+  const btnClose = document.getElementById('btnCloseModal');
+  const btnCancel = document.getElementById('btnCancelModal');
+  const btnSave = document.getElementById('btnSaveTitle');
 
-  if (btnCloseModal) btnCloseModal.addEventListener('click', closeTitleModal);
-  if (btnCancelModal) btnCancelModal.addEventListener('click', closeTitleModal);
-  if (btnSaveTitle) btnSaveTitle.addEventListener('click', saveTitleFromModal);
+  if (btnClose) btnClose.addEventListener('click', closeTitleModal);
+  if (btnCancel) btnCancel.addEventListener('click', closeTitleModal);
+  if (btnSave) btnSave.addEventListener('click', saveTitleFromModal);
 }
 
 function openTitleModal(item) {
   const modal = document.getElementById('titleModal');
-  const title = document.getElementById('titleModalTitle');
+  const titleEl = document.getElementById('titleModalTitle');
   const fieldText = document.getElementById('fieldText');
   const fieldCat = document.getElementById('fieldMainCategory');
   const fieldType = document.getElementById('fieldContentType');
   const fieldScene = document.getElementById('fieldSceneTags');
 
-  if (!modal || !title || !fieldText || !fieldCat || !fieldType || !fieldScene) {
-    console.error('标题弹窗相关元素缺失');
+  if (!modal || !titleEl || !fieldText || !fieldCat || !fieldType || !fieldScene) {
+    console.error('title modal elements missing');
     return;
   }
 
@@ -556,16 +408,16 @@ function openTitleModal(item) {
   fieldCat.innerHTML = '';
   state.categories
     .filter((c) => c !== '全部')
-    .forEach((cat) => {
+    .forEach((c) => {
       const opt = document.createElement('option');
-      opt.value = cat;
-      opt.textContent = cat;
+      opt.value = c;
+      opt.textContent = c;
       fieldCat.appendChild(opt);
     });
 
   if (item) {
     state.editingId = item.id;
-    title.textContent = '修改标题';
+    titleEl.textContent = '修改标题';
     fieldText.value = item.text || '';
     fieldCat.value = item.main_category || '';
     fieldType.value = item.content_type || '';
@@ -574,7 +426,7 @@ function openTitleModal(item) {
       : '';
   } else {
     state.editingId = null;
-    title.textContent = '新增标题';
+    titleEl.textContent = '新增标题';
     fieldText.value = '';
     fieldCat.value =
       state.currentCategory !== '全部' ? state.currentCategory : '';
@@ -582,25 +434,12 @@ function openTitleModal(item) {
     fieldScene.value = '';
   }
 
-  modal.classList.remove('hidden');
   modal.style.display = 'flex';
-
-  if (window.gsap) {
-    const box = modal.querySelector('.modal');
-    if (box) {
-      gsap.fromTo(
-        box,
-        { y: 30, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.2 }
-      );
-    }
-  }
 }
 
 function closeTitleModal() {
   const modal = document.getElementById('titleModal');
   if (!modal) return;
-  modal.classList.add('hidden');
   modal.style.display = 'none';
 }
 
@@ -610,14 +449,11 @@ async function saveTitleFromModal() {
   const fieldType = document.getElementById('fieldContentType');
   const fieldScene = document.getElementById('fieldSceneTags');
 
-  if (!fieldText || !fieldCat || !fieldType || !fieldScene) {
-    showToast('保存失败：表单元素缺失', 'error');
-    return;
-  }
+  if (!fieldText || !fieldCat || !fieldType || !fieldScene) return;
 
   const text = fieldText.value.trim();
-  const mainCategory = fieldCat.value || null;
-  const contentType = fieldType.value || null;
+  const cat = fieldCat.value || null;
+  const type = fieldType.value || null;
   const sceneRaw = fieldScene.value.trim();
 
   if (!text) {
@@ -625,189 +461,339 @@ async function saveTitleFromModal() {
     return;
   }
 
-  // 场景标签处理
-  const sceneTags =
-    sceneRaw.length > 0
-      ? sceneRaw
-          .split(/[，,、]/)
-          .map((s) => s.trim())
-          .filter(Boolean)
-      : [];
+  const sceneTags = sceneRaw
+    ? sceneRaw.split(/[，,、]/).map((s) => s.trim()).filter(Boolean)
+    : [];
 
   const payload = {
     text,
-    main_category: mainCategory,
-    content_type: contentType,
+    main_category: cat,
+    content_type: type,
     scene_tags: sceneTags,
-    keywords: [],
   };
 
-  const db = getDb();
-  if (!db) return;
+  if (!supabase) {
+    showToast('Supabase 未初始化', 'error');
+    return;
+  }
 
   try {
-    let error;
     if (state.editingId) {
-      const res = await db
-        .from('titles')
-        .update(payload)
-        .eq('id', state.editingId);
-      error = res.error;
+      await supabase.from('titles').update(payload).eq('id', state.editingId);
     } else {
-      const res = await db.from('titles').insert(payload);
-      error = res.error;
+      await supabase.from('titles').insert(payload);
     }
-
-    if (error) {
-      console.error('保存标题失败:', error);
-      showToast('保存失败：' + error.message, 'error');
-      return;
-    }
-
-    showToast('已保存');
     closeTitleModal();
-    await loadTitles();
-  } catch (err) {
-    console.error('saveTitleFromModal 异常:', err);
-    showToast('保存异常', 'error');
+    showToast('已保存');
+    await loadTitlesFromCloud();
+  } catch (e) {
+    console.error('saveTitleFromModal error', e);
+    showToast('保存失败', 'error');
   }
 }
 
-/* ========== 批量导入 ========== */
+// --------------- 7. 批量导入 ---------------
 
-function bindImportEvents() {
-  const btnCloseImport = document.getElementById('btnCloseImport');
-  const btnCancelImport = document.getElementById('btnCancelImport');
-  const btnRunImport = document.getElementById('btnRunImport');
+function bindImportModal() {
+  const btnClose = document.getElementById('btnCloseImport');
+  const btnCancel = document.getElementById('btnCancelImport');
+  const btnRun = document.getElementById('btnRunImport');
 
-  if (btnCloseImport)
-    btnCloseImport.addEventListener('click', closeImportModal);
-  if (btnCancelImport)
-    btnCancelImport.addEventListener('click', closeImportModal);
-  if (btnRunImport) btnRunImport.addEventListener('click', runImport);
+  if (btnClose) btnClose.addEventListener('click', closeImportModal);
+  if (btnCancel) btnCancel.addEventListener('click', closeImportModal);
+  if (btnRun) btnRun.addEventListener('click', runImport);
 }
 
 function openImportModal() {
   const modal = document.getElementById('importModal');
-  const rawInput = document.getElementById('importRawInput');
+  const input = document.getElementById('importRawInput');
   const preview = document.getElementById('importPreview');
-
   if (!modal) return;
-
-  if (rawInput) rawInput.value = '';
+  if (input) input.value = '';
   if (preview) preview.innerHTML = '';
-
-  modal.classList.remove('hidden');
   modal.style.display = 'flex';
-
-  if (window.gsap) {
-    const box = modal.querySelector('.modal');
-    if (box) {
-      gsap.fromTo(
-        box,
-        { y: 30, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.2 }
-      );
-    }
-  }
 }
 
 function closeImportModal() {
   const modal = document.getElementById('importModal');
   if (!modal) return;
-  modal.classList.add('hidden');
   modal.style.display = 'none';
 }
 
-function buildImportPreview(lines) {
-  const container = document.getElementById('importPreview');
-  if (!container) return;
-
-  container.innerHTML = '';
-
-  lines.forEach((line, idx) => {
-    const row = document.createElement('div');
-    row.className = 'import-row';
-    row.innerHTML = `
-      <div class="truncate">${idx + 1}. ${line}</div>
-      <div class="text-gray-500 text-xs">主分类: 自动识别</div>
-      <div class="text-gray-500 text-xs">类型: 自动识别</div>
-    `;
-    container.appendChild(row);
-  });
-}
-
 async function runImport() {
+  const input = document.getElementById('importRawInput');
+  if (!input) return;
+  const raw = input.value.trim();
+  if (!raw) {
+    showToast('请输入要导入的标题', 'error');
+    return;
+  }
+
+  const lines = raw
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) {
+    showToast('没有有效的行', 'error');
+    return;
+  }
+
+  const currentCat =
+    state.currentCategory !== '全部' ? state.currentCategory : null;
+
+  const payloads = lines.map((text) => ({
+    text,
+    main_category: currentCat,
+    content_type: null,
+    scene_tags: [],
+  }));
+
+  if (!supabase) {
+    showToast('Supabase 未初始化', 'error');
+    return;
+  }
+
   try {
-    const rawEl = document.getElementById('importRawInput');
-    if (!rawEl) {
-      showToast('导入失败：找不到输入框', 'error');
-      return;
-    }
-
-    const raw = rawEl.value.trim();
-    if (!raw) {
-      showToast('请先粘贴标题', 'error');
-      return;
-    }
-
-    const lines = raw
-      .split('\n')
-      .map((l) => l.trim())
-      .filter(Boolean);
-
-    if (lines.length === 0) {
-      showToast('没有有效行', 'error');
-      return;
-    }
-
-    buildImportPreview(lines);
-
-    if (!confirm(`共 ${lines.length} 条标题，确认导入 Supabase 吗？`)) {
-      return;
-    }
-
-    const payloads = lines.map((text) => ({
-      text,
-      main_category:
-        state.currentCategory !== '全部' ? state.currentCategory : null,
-      content_type: null,
-      scene_tags: [],
-      keywords: [],
-    }));
-
-    const db = getDb();
-    if (!db) return;
-
-    const { error } = await db.from('titles').insert(payloads);
-
-    if (error) {
-      console.error('Supabase insert error:', error);
-      showToast('导入失败：' + error.message, 'error');
-      return;
-    }
-
-    showToast('导入完成');
+    await supabase.from('titles').insert(payloads);
     closeImportModal();
-    await loadTitles();
-  } catch (err) {
-    console.error('runImport 异常:', err);
+    showToast('导入完成');
+    await loadTitlesFromCloud();
+  } catch (e) {
+    console.error('runImport error', e);
     showToast('导入失败', 'error');
   }
 }
 
-/* ========== Toast ========== */
+// --------------- 8. 云端快照：保存 / 加载 / 历史列表 ---------------
+
+function collectSnapshotPayload() {
+  return {
+    ver: 1,
+    snapshot_label: '',
+    updated_at: Date.now(),
+    titles: state.titles,
+    categories: state.categories,
+    viewSettings: state.viewSettings,
+  };
+}
+
+function applySnapshotPayload(payload) {
+  if (!payload) return;
+  state.titles = Array.isArray(payload.titles) ? payload.titles : [];
+  state.categories = Array.isArray(payload.categories)
+    ? payload.categories
+    : [...DEFAULT_CATEGORIES];
+  state.viewSettings = payload.viewSettings || {};
+
+  saveCategoriesToLocal();
+  renderCategoryList();
+  renderTitles();
+}
+
+async function saveCloudSnapshot() {
+  if (!supabase) {
+    alert('未配置 Supabase');
+    return;
+  }
+
+  let payload = collectSnapshotPayload();
+  const name = prompt('请输入快照名称：');
+  if (!name) return;
+
+  payload.snapshot_label = name.trim() || '快照';
+  payload.updated_at = Date.now();
+  const nowIso = new Date(payload.updated_at).toISOString();
+
+  try {
+    // 覆盖默认快照
+    await supabase
+      .from(SNAPSHOT_TABLE)
+      .upsert({
+        key: SNAPSHOT_DEFAULT_KEY,
+        payload,
+        updated_at: nowIso,
+      });
+
+    // 插入历史快照
+    const histKey = 'snap_' + payload.updated_at;
+    await supabase.from(SNAPSHOT_TABLE).insert({
+      key: histKey,
+      payload,
+      updated_at: nowIso,
+    });
+
+    showToast('已保存到云端');
+    await renderCloudHistoryList();
+  } catch (e) {
+    console.error('saveCloudSnapshot error', e);
+    alert('保存云端失败：' + (e.message || String(e)));
+  }
+}
+
+async function renderCloudHistoryList() {
+  const panel = document.getElementById('cloudHistoryPanel');
+  if (!panel) return;
+
+  if (!supabase) {
+    panel.innerHTML =
+      '<div style="padding:8px 10px;color:#888;">未配置 Supabase</div>';
+    return;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from(SNAPSHOT_TABLE)
+      .select('key,payload,updated_at')
+      .order('updated_at', { ascending: false })
+      .limit(50);
+
+    if (error) throw error;
+
+    if (!Array.isArray(data) || data.length === 0) {
+      panel.innerHTML =
+        '<div style="padding:8px 10px;color:#888;">暂无云端快照</div>';
+      return;
+    }
+
+    let html = '';
+
+    data.forEach((row) => {
+      const t = new Date(row.updated_at).toLocaleString('zh-CN', {
+        hour12: false,
+      });
+      const label =
+        (row.payload && row.payload.snapshot_label) || row.key;
+      const count = Array.isArray(row.payload?.titles)
+        ? row.payload.titles.length
+        : 0;
+
+      html += `
+        <div class="cloud-item" data-key="${row.key}">
+          <div class="cloud-item-main">
+            <div class="cloud-item-name">${label}</div>
+            <div class="cloud-item-meta">${count} 条标题</div>
+          </div>
+          <div class="cloud-item-time">${t}</div>
+        </div>
+      `;
+    });
+
+    panel.innerHTML = html;
+
+    panel.querySelectorAll('.cloud-item').forEach((el) => {
+      el.addEventListener('click', async () => {
+        const key = el.getAttribute('data-key');
+        if (!key) return;
+        const ok = confirm('确定使用此快照覆盖当前数据？');
+        if (!ok) return;
+        await loadCloudSnapshot(key);
+      });
+    });
+  } catch (e) {
+    console.error('renderCloudHistoryList error', e);
+    panel.innerHTML =
+      '<div style="padding:8px 10px;color:#f43f5e;">加载云端快照失败</div>';
+  }
+}
+
+async function loadCloudSnapshot(key) {
+  if (!supabase) {
+    alert('未配置 Supabase');
+    return;
+  }
+  try {
+    const { data, error } = await supabase
+      .from(SNAPSHOT_TABLE)
+      .select('payload')
+      .eq('key', key)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data || !data.payload) {
+      alert('找不到该快照');
+      return;
+    }
+
+    applySnapshotPayload(data.payload);
+    showToast('云端数据已加载');
+    const panel = document.getElementById('cloudHistoryPanel');
+    if (panel) panel.style.display = 'none';
+  } catch (e) {
+    console.error('loadCloudSnapshot error', e);
+    alert('加载云端失败：' + (e.message || String(e)));
+  }
+}
+
+async function toggleCloudHistoryPanel() {
+  const panel = document.getElementById('cloudHistoryPanel');
+  if (!panel) return;
+
+  if (panel.style.display === 'none' || !panel.style.display) {
+    panel.style.display = 'block';
+    await renderCloudHistoryList();
+  } else {
+    panel.style.display = 'none';
+  }
+}
+
+function bindCloudButtons() {
+  const btnSave = document.getElementById('btnSaveCloud');
+  const btnLoad = document.getElementById('btnLoadCloud');
+  const btnClearAll = document.getElementById('btnClearAll');
+
+  if (btnSave) btnSave.addEventListener('click', saveCloudSnapshot);
+  if (btnLoad) btnLoad.addEventListener('click', toggleCloudHistoryPanel);
+  if (btnClearAll) {
+    btnClearAll.addEventListener('click', async () => {
+      if (!confirm('确定清空所有标题？此操作不可恢复')) return;
+      if (!supabase) {
+        showToast('Supabase 未初始化', 'error');
+        return;
+      }
+      try {
+        await supabase.from('titles').delete().neq('id', null);
+        showToast('已清空全部标题');
+        await loadTitlesFromCloud();
+      } catch (e) {
+        console.error('clearAll error', e);
+        showToast('清空失败', 'error');
+      }
+    });
+  }
+}
+
+// --------------- 9. 管理页面 / 设置页面 导航占位 ---------------
+
+function bindGlobalNavButtons() {
+  const btnSettings = document.getElementById('btnSettings');
+  const btnManage = document.getElementById('btnManagePage');
+
+  if (btnSettings) {
+    btnSettings.addEventListener('click', () => {
+      window.location.href = 'settings.html';
+    });
+  }
+
+  if (btnManage) {
+    btnManage.addEventListener('click', () => {
+      window.location.href = 'admin-center.html';
+    });
+  }
+}
+
+// --------------- 10. Toast ---------------
 
 function showToast(msg, type = 'info') {
   const el = document.getElementById('toast');
   if (!el) {
-    console.warn('Toast 元素缺失，消息：', msg);
+    alert(msg);
     return;
   }
   el.textContent = msg;
   el.classList.remove('hidden');
   el.style.background =
-    type === 'error' ? 'rgba(220, 38, 38, 0.9)' : 'rgba(17, 24, 39, 0.9)';
+    type === 'error' ? 'rgba(220,38,38,0.9)' : 'rgba(17,24,39,0.9)';
 
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
