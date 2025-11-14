@@ -133,25 +133,25 @@
             </div>
           </div>
 
-          <!-- 桌面表格 -->
-          <div class="panel ">
-          <table class="basic-table w-full">
-  <thead>
-    <tr>
-      <th class="w-12">#</th>
-      <th class="text-left">标题</th>
-      <th class="w-28 text-left">主分类</th>
-      <th class="w-16 text-center">使用</th>
-      <th class="w-40 text-center">操作</th>
-    </tr>
-  </thead>
-  <tbody id="titleTableBody"></tbody>
-</table>
+         <!-- 桌面表格：仅在 md 及以上设备显示 -->
+<div class="panel hidden md:block">
+  <table class="basic-table w-full">
+    <thead>
+      <tr>
+        <th class="w-12">#</th>
+        <th class="text-left">标题</th>
+        <th class="w-28 text-left">主分类</th>
+        <th class="w-16 text-center">使用</th>
+        <th class="w-40 text-center">操作</th>
+      </tr>
+    </thead>
+    <tbody id="titleTableBody"></tbody>
+  </table>
+</div>
 
-          </div>
+<!-- 移动端卡片列表：仅在小屏显示 -->
+<div class="md:hidden flex flex-col gap-2" id="mobileList"></div>
 
-          <!-- 移动端卡片列表 -->
-          <div class="md:hidden flex flex-col gap-2" id="mobileList"></div>
         </section>
       </main>
 
