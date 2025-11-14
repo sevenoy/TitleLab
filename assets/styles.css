@@ -1,71 +1,39 @@
-/* ============= 全局基础 ============= */
-
-:root {
-  --bg-page: #f3f4f8;
-  --bg-panel: #ffffff;
-  --border-subtle: #e5e7f0;
-  --radius-lg: 18px;
-  --radius-pill: 999px;
-  --shadow-soft: 0 10px 30px rgba(15, 23, 42, 0.06);
-
-  --text-main: #111827;
-  --text-muted: #6b7280;
-
-  --accent: #1990ff;
-  --accent-soft: #e2f0ff;
-  --accent-ghost: #eef1f7;
-}
-
-/* Tailwind 的 hidden 在某些环境里没生效，这里强制一次 */
-.hidden {
-  display: none !important;
-}
+/* =============================
+   通用基础布局
+=============================== */
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, system-ui, -system-ui,
-    "SF Pro Text", "Helvetica Neue", Arial, "PingFang SC", "Microsoft Yahei",
+  background: #f5f6fa;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei",
     sans-serif;
-  color: var(--text-main);
-  background: var(--bg-page);
-}
-
-.bg-page {
-  background: var(--bg-page);
 }
 
 .wrap {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 16px 16px 32px;
+  padding: 20px;
+  max-width: 1280px;
+  margin: auto;
 }
 
-/* ============= 顶部栏 ============= */
-/* 让标题列占据最大宽度、不换行 */
-.basic-table td:nth-child(2),
-.basic-table th:nth-child(2) {
-  white-space: nowrap;
-  max-width: none !important;
-  width: auto !important;
-}
-
-/* 隐藏“场景 / 内容类型” */
-.basic-table th:nth-child(4),
-.basic-table td:nth-child(4),
-.basic-table th:nth-child(5),
-.basic-table td:nth-child(5) {
-  display: none !important;
-}
-
-/* 保证行内容不会挤压，自动等比例排布 */
-.basic-table td {
-  vertical-align: middle;
-}
+/* =============================
+   顶部栏
+=============================== */
 
 .topbar {
+  background: white;
+  border-radius: 10px;
+  padding: 12px 20px;
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.logo-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #3b82f6;
 }
 
 .topbar-left {
@@ -73,347 +41,298 @@ body {
   align-items: center;
 }
 
-.logo-dot {
-  width: 24px;
-  height: 24px;
-  border-radius: 999px;
-  background: radial-gradient(circle at 30% 30%, #60a5fa, #2563eb);
-  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.2);
-}
-
-/* Supabase 状态 pill */
-
-.pill,
 .pill-muted {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 10px;
-  border-radius: 999px;
+  padding: 4px 10px;
+  background: #e5e7eb;
+  border-radius: 20px;
   font-size: 12px;
-}
-
-.pill-muted {
-  background: #eef1f7;
-  color: var(--text-muted);
+  color: #555;
 }
 
 .pill {
-  background: #dcfce7;
-  color: #166534;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
 }
 
-/* ============= 顶部 Tab ============= */
+/* =============================
+   页面导航 Tab
+=============================== */
 
 .nav-tab {
-  padding: 6px 20px;
-  min-width: 96px;
-  text-align: center;
-  border-radius: var(--radius-pill);
-  font-size: 14px;
-  color: var(--text-muted);
-  border: 1px solid transparent;
-  background: transparent;
-  cursor: pointer;
-  transition: 0.15s ease-in-out;
+  padding: 6px 18px;
+  border-radius: 18px;
+  background: #eef2ff;
+  color: #6366f1;
+  border: none;
 }
 
 .nav-tab-active {
-  color: var(--accent);
-  background: var(--accent-soft);
-  border-color: rgba(25, 144, 255, 0.35);
+  background: #3b82f6;
+  color: white;
 }
 
-/* ============= 面板 / 布局 ============= */
-
-.layout {
-  display: flex;
-  gap: 16px;
-  margin-top: 4px;
-}
+/* =============================
+   分类面板
+=============================== */
 
 .panel {
-  background: var(--bg-panel);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-soft);
-  padding: 16px 18px;
+  background: white;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 }
-
-@media (max-width: 768px) {
-  .layout {
-    flex-direction: column;
-  }
-
-  .panel {
-    padding: 14px;
-  }
-}
-
-/* ============= 左侧分类列表 ============= */
 
 .category-list {
   list-style: none;
-  padding: 0;
   margin: 0;
+  padding: 0;
 }
 
 .category-item {
-  padding: 6px 10px;
-  border-radius: 10px;
-  font-size: 13px;
-  color: var(--text-muted);
+  padding: 8px 12px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: 0.15s;
+  font-size: 14px;
 }
 
 .category-item:hover {
-  background: #f3f4ff;
+  background: #f1f5f9;
 }
 
 .category-item.active {
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: #dbeafe;
+  color: #1d4ed8;
 }
 
-/* ============= 输入框统一风格 ============= */
-
-.field-label {
-  display: block;
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-bottom: 4px;
-}
-
-.field-input {
-  width: 100%;
-  border-radius: var(--radius-pill);
-  border: 1px solid transparent;
-  background: #f5f7fb;
-  padding: 7px 12px;
-  font-size: 14px;
-  color: var(--text-main);
-  outline: none;
-  box-sizing: border-box;
-  transition: 0.15s ease-in-out;
-  appearance: none;
-}
-
-.field-input:focus {
-  background: #ffffff;
-  border-color: rgba(25, 144, 255, 0.7);
-  box-shadow: 0 0 0 1px rgba(25, 144, 255, 0.12);
-}
-
-/* textarea 用圆角矩形而不是药丸 */
-
-textarea.field-input {
-  border-radius: 14px;
-  resize: vertical;
-}
-
-/* ============= 工具栏区域（你截图那一块） ============= */
+/* =============================
+   工具栏
+=============================== */
 
 .toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
 }
 
-/* 搜索框：占一半宽度，仍然使用 field-input 风格 */
+.field-input {
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 14px;
+}
+
 .search-input {
-  flex: 1 1 50%;
-  min-width: 220px;
-  max-width: 640px;
+  width: 45%;
 }
 
-/* 场景下拉：大约占 1/3 左右 */
 .filter-select {
-  flex: 0 0 180px;
-  min-width: 140px;
+  width: 20%;
 }
-
-/* 顶部五个功能按钮组 */
-
-.extra-actions {
-  margin-left: auto;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-@media (max-width: 768px) {
-  .extra-actions {
-    margin-left: 0;
-  }
-}
-
-/* ============= 功能按钮样式 ============= */
 
 .function-btn {
-  border-radius: var(--radius-pill);
+  background: #3b82f6;
+  color: white;
   border: none;
   padding: 6px 14px;
-  font-size: 13px;
-  cursor: pointer;
-  background: var(--accent);
-  color: #ffffff;
-  white-space: nowrap;
-  transition: 0.15s;
-}
-
-.function-btn:hover {
-  filter: brightness(1.05);
+  border-radius: 18px;
+  font-size: 14px;
 }
 
 .function-btn.ghost {
-  background: var(--accent-ghost);
-  color: var(--text-muted);
+  background: #f3f4f6;
+  color: #374151;
 }
 
-.function-btn.ghost:hover {
-  background: #e0e4ee;
+.function-btn:hover {
+  opacity: 0.85;
 }
 
-/* 图标按钮（弹窗关闭用） */
-
-.icon-btn {
-  border: none;
-  background: transparent;
-  font-size: 18px;
-  cursor: pointer;
-  padding: 0 4px;
-  color: var(--text-muted);
-}
-
-/* ============= 表格样式 ============= */
+/* =============================
+   表格（全新 5 列结构）
+=============================== */
 
 .basic-table {
-  border-collapse: collapse;
   width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
 }
 
-.basic-table th,
-.basic-table td {
-  padding: 8px 10px;
+/* 表头样式 */
+.basic-table thead th {
+  padding: 10px 12px;
   font-size: 13px;
-  border-bottom: 1px solid #eef0f7;
+  font-weight: 600;
+  color: #6b7280;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
 }
 
-.basic-table th {
-  text-align: left;
-  color: var(--text-muted);
-  font-weight: 500;
+/* 单元格 */
+.basic-table tbody td {
+  padding: 12px 12px;
+  font-size: 14px;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
 }
 
-.basic-table tbody tr:hover {
-  background: #f7f8fc;
+/* 隔行配色 */
+.basic-table tbody tr:nth-child(even) {
+  background: #f9fafb;
 }
 
-/* 隐藏“内容类型”列，如果你不需要显示 */
-#titleTable th:nth-child(5),
-#titleTable td:nth-child(5) {
-  display: none;
+/* # 序号列 */
+.basic-table thead th:nth-child(1),
+.basic-table tbody td:nth-child(1) {
+  width: 40px;
+  text-align: center;
 }
 
-/* 操作按钮一排显示 */
+/* 标题列（占最大空间） */
+.basic-table thead th:nth-child(2),
+.basic-table tbody td:nth-child(2) {
+  width: auto !important;
+  max-width: none !important;
+  white-space: normal;
+  word-break: break-word;
+}
 
-.actions-cell {
+/* 主分类列 */
+.basic-table thead th:nth-child(3),
+.basic-table tbody td:nth-child(3) {
+  width: 120px;
   white-space: nowrap;
 }
 
-.action-group {
-  display: inline-flex;
-  gap: 4px;
-  align-items: center;
+/* 使用次数列 */
+.basic-table thead th:nth-child(4),
+.basic-table tbody td:nth-child(4) {
+  width: 60px;
+  text-align: center;
+  white-space: nowrap;
 }
 
-/* 移动端卡片 */
+/* 操作列 */
+.basic-table thead th:nth-child(5),
+.basic-table tbody td:nth-child(5) {
+  width: 200px;
+  text-align: center;
+}
+
+/* 操作按钮组 */
+.actions-cell {
+  text-align: center;
+}
+
+.action-group {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+}
+
+/* =============================
+   移动端卡片
+=============================== */
 
 .mobile-card {
-  border-radius: 14px;
+  background: white;
+  border-radius: 10px;
+  padding: 12px;
 }
 
-/* ============= 弹窗 ============= */
+/* =============================
+   弹窗
+=============================== */
 
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.25);
-  display: flex;
+  background: rgba(0,0,0,0.35);
+  display: none;
   align-items: center;
   justify-content: center;
-  z-index: 40;
+  z-index: 999;
 }
 
 .modal {
-  background: #ffffff;
-  border-radius: 20px;
-  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
-  padding: 16px 18px 14px;
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  width: 95%;
   max-width: 520px;
-  width: 100%;
 }
 
 .modal-lg {
-  max-width: 780px;
+  max-width: 720px;
 }
 
 .modal-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  align-items: center;
 }
 
 .modal-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
 }
 
-.modal-body {
-  max-height: 70vh;
-  overflow: auto;
+.icon-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
 }
 
-.modal-footer {
-  margin-top: 12px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-/* 批量导入预览区 */
-
-.preview-box {
-  border-radius: 14px;
-  background: #f5f7fb;
-  padding: 8px 10px;
-  font-size: 12px;
-  color: var(--text-muted);
-  max-height: 260px;
-  overflow: auto;
-}
-
-.import-row {
-  padding: 4px 0;
-  border-bottom: 1px dashed #e5e7f0;
-}
-
-.import-row:last-child {
-  border-bottom: none;
-}
-
-/* ============= Toast ============= */
+/* =============================
+   Toast 提示
+=============================== */
 
 .toast {
   position: fixed;
+  bottom: 26px;
   left: 50%;
-  bottom: 32px;
   transform: translateX(-50%);
-  background: rgba(17, 24, 39, 0.88);
-  color: #ffffff;
-  padding: 6px 14px;
-  border-radius: 999px;
-  font-size: 13px;
-  z-index: 50;
+  background: rgba(17,24,39,0.92);
+  color: white;
+  padding: 10px 20px;
+  font-size: 14px;
+  border-radius: 8px;
+  z-index: 9999;
+}
+
+/* =============================
+   云端快照面板
+=============================== */
+
+#cloudHistoryPanel {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  padding: 12px;
+  max-height: 420px;
+  overflow-y: auto;
+  display: none;
+  margin-top: 12px;
+}
+
+.cloud-item {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+}
+
+.cloud-item:hover {
+  background: #f9fafb;
+}
+
+.cloud-item-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cloud-item-meta,
+.cloud-item-time {
+  font-size: 12px;
+  color: #6b7280;
 }
