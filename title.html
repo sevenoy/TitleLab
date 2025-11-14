@@ -63,17 +63,25 @@
       <main class="layout">
         <!-- 左侧分类面板 -->
         <aside class="panel w-full md:w-64 md:flex-shrink-0">
-          <div class="flex items-center justify-between mb-3">
-            <div class="text-sm font-semibold">分类</div>
-            <button
-              id="btnAddCategory"
-              class="function-btn ghost text-xs"
-            >
-              新增分类
-            </button>
-          </div>
-          <ul id="categoryList" class="category-list"></ul>
-        </aside>
+  <div class="flex items-center justify-between mb-3">
+    <div class="text-sm font-semibold">分类</div>
+    <div class="flex gap-2">
+      <button
+        id="btnAddCategory"
+        class="function-btn ghost text-xs"
+      >
+        新增分类
+      </button>
+      <button
+        id="btnDeleteCategory"
+        class="function-btn ghost text-xs"
+      >
+        删除分类
+      </button>
+    </div>
+  </div>
+  <ul id="categoryList" class="category-list"></ul>
+</aside>
 
         <!-- 右侧主内容 -->
         <section class="flex-1 min-w-0 flex flex-col gap-3">
