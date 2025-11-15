@@ -61,37 +61,42 @@
 
       <main class="layout">
         <!-- 左侧分类面板 -->
-        <aside class="panel w-full md:w-64 md:flex-shrink-0">
-          <div class="flex items-center justify-between mb-3">
-            <div class="text-sm font-semibold">分类</div>
-            <div class="flex gap-2">
-              <button id="btnAddCategory" class="function-btn ghost text-xs">
-                新增分类
-              </button>
-              <button id="btnDeleteCategory" class="function-btn ghost text-xs">
-                删除分类
-              </button>
-              <button id="btnSortCategory" class="function-btn ghost text-xs">
-                排序
-              </button>
-            </div>
-          </div>
+       <aside class="panel w-full md:w-64 md:flex-shrink-0">
+  <!-- 分类标题：上下排 + 居中，在“全部”等分类上方 -->
+  <div class="category-title-main">
+    分<br />类
+  </div>
 
-          <!-- 手机端：分类下拉触发按钮（桌面端无影响） -->
-          <div id="mobileCategoryWrapper" class="md:hidden mb-2">
-            <button
-              id="mobileCategoryToggle"
-              type="button"
-              class="function-btn ghost w-full flex items-center justify-between"
-            >
-              <span id="mobileCategoryLabel">全部</span>
-              <span class="text-xs text-gray-600">分类 ▾</span>
-            </button>
-          </div>
+  <!-- 按钮行：新增 / 删除 / 排序 -->
+  <div class="flex items-center justify-end mb-3">
+    <div class="flex gap-2">
+      <button id="btnAddCategory" class="function-btn ghost text-xs">
+        新增分类
+      </button>
+      <button id="btnDeleteCategory" class="function-btn ghost text-xs">
+        删除分类
+      </button>
+      <button id="btnSortCategory" class="function-btn ghost text-xs">
+        排序
+      </button>
+    </div>
+  </div>
 
-          <!-- 共用一份分类列表：桌面直接显示，手机端通过下拉动画控制 -->
-          <ul id="categoryList" class="category-list"></ul>
-        </aside>
+  <!-- 手机端：分类下拉触发按钮（桌面端隐藏） -->
+  <div id="mobileCategoryWrapper" class="md:hidden mb-2">
+    <button
+      id="mobileCategoryToggle"
+      type="button"
+      class="function-btn ghost w-full flex items-center justify-between"
+    >
+      <span id="mobileCategoryLabel">全部</span>
+      <span class="text-xs text-gray-600">分类 ▾</span>
+    </button>
+  </div>
+
+  <!-- 共用一份分类列表：桌面直接显示，手机端通过 JS 做显示/隐藏 -->
+  <ul id="categoryList" class="category-list"></ul>
+</aside>
 
         <!-- 右侧主内容 -->
         <section class="flex-1 min-w-0 flex flex-col gap-3">
