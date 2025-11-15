@@ -102,8 +102,8 @@
         <section class="flex-1 min-w-0 flex flex-col gap-3">
           <!-- 工具栏 -->
           <div class="panel">
-           <div class="toolbar flex items-center gap-3 flex-wrap mb-2">
-  <!-- 搜索输入 + X 清空 -->
+      <div class="toolbar flex items-center gap-3 flex-wrap mb-2">
+  <!-- 搜索输入 + 清除按钮 -->
   <div class="search-wrapper">
     <input
       id="searchInput"
@@ -114,21 +114,21 @@
     <button
       id="btnClearSearch"
       type="button"
-      class="search-clear-btn"
-      aria-label="清空搜索"
+      class="function-btn search-clear-btn text-xs"
     >
-      ×
+      清除
     </button>
   </div>
 
-              <select id="filterScene" class="field-input filter-select">
-                <option value="">场景（全部）</option>
-                <option value="港迪城堡">港迪城堡</option>
-                <option value="烟花">烟花</option>
-                <option value="夜景">夜景</option>
-                <option value="香港街拍">香港街拍</option>
-              </select>
-            </div>
+  <select id="filterScene" class="field-input filter-select">
+    <option value="">场景（全部）</option>
+    <option value="港迪城堡">港迪城堡</option>
+    <option value="烟花">烟花</option>
+    <option value="夜景">夜景</option>
+    <option value="香港街拍">香港街拍</option>
+  </select>
+</div>
+
 
             <!-- 按钮工具区 -->
             <div class="flex flex-wrap items-center gap-2 mt-1">
