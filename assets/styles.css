@@ -23,21 +23,6 @@ body.bg-page {
   padding: 16px;
 }
 
-/* 搜索输入 + 清除按钮包装：一排布局 */
-.search-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  max-width: 360px;
-  flex: 1 1 auto;
-}
-
-/* 搜索清除按钮：和 function-btn 一样，只控制显示 */
-.search-clear-btn {
-  display: none; /* 默认隐藏，JS 里有内容时改成 inline-flex */
-  padding-inline: 10px;
-}
-
 /* 顶部栏 */
 
 .topbar {
@@ -170,7 +155,7 @@ body.bg-page {
   box-shadow: none;
 }
 
-/* 专门给“复制/修改/删除”等小按钮用，保证一排 */
+/* 专门给“复制/修改/删除”等小按钮用 */
 
 .btn-inline {
   display: inline-flex !important;
@@ -215,35 +200,19 @@ textarea.field-input {
   max-width: 160px;
 }
 
-/* 搜索框 + X 清空 */
+/* 搜索框 + 清空按钮 */
 
 .search-wrapper {
-  position: relative;
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  gap: 8px;
+  max-width: 360px;
+  flex: 1 1 auto;
 }
 
-.search-wrapper .search-input {
-  padding-right: 28px; /* 给 X 预留空间 */
-}
-
-.clear-search-btn {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  border: none;
-  background: transparent;
-  font-size: 14px;
-  line-height: 1;
-  padding: 0;
-  cursor: pointer;
-  color: #9ca3af;
-  display: none; /* 默认隐藏，有内容时通过 JS 显示 */
-}
-
-.clear-search-btn:hover {
-  color: #6b7280;
+.search-clear-btn {
+  display: none;
+  padding-inline: 10px;
 }
 
 /* 分类列表 */
@@ -288,15 +257,6 @@ textarea.field-input {
 #mobileCategoryWrapper {
   position: relative;
   margin-bottom: 12px;
-}
-
-/* 如果有需要单独的下拉容器，可以用这个类 */
-.mobile-category-dropdown {
-  position: absolute;
-  left: 0;
-  right: 0;
-  z-index: 40;
-  margin-top: 8px;
 }
 
 /* 桌面表格 */
