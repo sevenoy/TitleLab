@@ -244,8 +244,12 @@ function setupMobileCategoryDropdown() {
 
   if (!wrapper || !toggleBtn || !list) return;
 
+  function isMobile() {
+    return window.innerWidth < 768;
+  }
+
   function applyVisibility() {
-    if (window.innerWidth < 768) {
+    if (isMobile()) {
       wrapper.style.display = 'block';
       const isOpen = wrapper.getAttribute('data-open') === '1';
       list.style.display = isOpen ? 'block' : 'none';
@@ -397,7 +401,6 @@ function renderTitles() {
   const mobileList = document.getElementById('mobileList');
   if (!tbody || !mobileList) return;
 
-  // 清空原有内容
   tbody.innerHTML = '';
   mobileList.innerHTML = '';
 
@@ -407,28 +410,23 @@ function renderTitles() {
     // ---------- 桌面端行 ----------
     const tr = document.createElement('tr');
 
-    // # 序号
     const tdIndex = document.createElement('td');
     tdIndex.textContent = index + 1;
     tr.appendChild(tdIndex);
 
-    // 标题
     const tdText = document.createElement('td');
     tdText.textContent = item.text || '';
     tr.appendChild(tdText);
 
-    // 主分类
     const tdCat = document.createElement('td');
     tdCat.textContent = item.main_category || '';
     tr.appendChild(tdCat);
 
-    // 使用次数
     const tdUsage = document.createElement('td');
     tdUsage.className = 'text-center';
     tdUsage.textContent = item.usage_count || 0;
     tr.appendChild(tdUsage);
 
-    // 操作按钮（复制 / 修改 / 删除）
     const tdActions = document.createElement('td');
     tdActions.className = 'actions-cell';
 
@@ -460,19 +458,16 @@ function renderTitles() {
     const card = document.createElement('div');
     card.className = 'panel mobile-card';
 
-    // 标题行
     const cTitle = document.createElement('div');
     cTitle.className = 'text-sm font-medium mb-1';
     cTitle.textContent = item.text || '';
 
-    // 分类 + 使用 次数
     const cMeta = document.createElement('div');
     cMeta.className = 'text-xs text-gray-500 mb-2';
     const catText = item.main_category ? item.main_category : '未分类';
     const usageText = item.usage_count || 0;
     cMeta.textContent = `分类：${catText} ｜ 使用：${usageText}`;
 
-    // 按钮区：复制 / 修改 / 删除
     const actions = document.createElement('div');
     actions.className = 'flex gap-2';
 
@@ -532,7 +527,6 @@ async function copyTitle(item) {
 async function deleteTitle(item) {
   if (!confirm('确定删除该标题？')) return;
 
-  // 先在前端删掉，保证界面立即更新
   state.titles = state.titles.filter((t) => t.id !== item.id);
   renderTitles();
 
@@ -573,7 +567,6 @@ function openTitleModal(item) {
     return;
   }
 
-  // 填充分类下拉（不含“全部”）
   fieldCat.innerHTML = '';
   state.categories
     .filter((c) => c !== '全部')
@@ -653,7 +646,6 @@ async function saveTitleFromModal() {
     state.editingId
   );
 
-  // ---- 本地先更新一份（兜底）
   if (state.editingId) {
     state.titles = state.titles.map((t) =>
       t.id === state.editingId ? { ...t, ...payload } : t
@@ -670,7 +662,6 @@ async function saveTitleFromModal() {
   closeTitleModal();
   showToast('已保存（本地）');
 
-  // ---- 再尝试云端写入 ----
   if (!supabase) {
     console.warn('[TitleApp] supabase 不存在，只保存本地状态');
     return;
@@ -687,7 +678,6 @@ async function saveTitleFromModal() {
         .single();
 
       if (error) throw error;
-      // 用云端返回的真实 id 替换本地 fake
       state.titles = state.titles.map((t) =>
         t.id && String(t.id).startsWith('local_') && t.text === payload.text
           ? data
@@ -765,7 +755,6 @@ async function runImport() {
 
   console.log('[TitleApp] 批量导入 payloads =', payloads.length);
 
-  // ---- 本地兜底：保持正序，按输入顺序 push 到末尾 ----
   const now = Date.now();
   payloads.forEach((p, idx) => {
     state.titles.push({
@@ -778,7 +767,6 @@ async function runImport() {
   closeImportModal();
   showToast('已导入（本地）');
 
-  // ---- 再尝试云端写入 ----
   if (!supabase) {
     console.warn('[TitleApp] supabase 不存在，只保存本地状态（批量导入）');
     return;
@@ -792,7 +780,6 @@ async function runImport() {
 
     if (error) throw error;
 
-    // 简单策略：重新拉一次云端列表（云端按 created_at DESC 排序）
     if (Array.isArray(data) && data.length > 0) {
       await loadTitlesFromCloud();
     }
@@ -828,6 +815,29 @@ function applySnapshotPayload(payload) {
   saveCategoriesToLocal();
   renderCategoryList();
   renderTitles();
+}
+
+// 🔹 把快照中的 titles 写回 Supabase.titles，保证刷新后仍然是这批数据
+async function overwriteTitlesFromSnapshot(titles) {
+  if (!supabase) return;
+  try {
+    await supabase.from('titles').delete().neq('id', null);
+
+    if (!Array.isArray(titles) || titles.length === 0) return;
+
+    const cleaned = titles.map((t) => ({
+      text: t.text || '',
+      main_category: t.main_category || null,
+      content_type: t.content_type || null,
+      scene_tags: Array.isArray(t.scene_tags) ? t.scene_tags : [],
+      usage_count: t.usage_count || 0
+    }));
+
+    await supabase.from('titles').insert(cleaned);
+  } catch (e) {
+    console.error('[TitleApp] overwriteTitlesFromSnapshot error', e);
+    showToast('写回云端失败（本地已加载快照）', 'error');
+  }
 }
 
 async function saveCloudSnapshot() {
@@ -881,7 +891,7 @@ async function renderCloudHistoryList() {
       .from(SNAPSHOT_TABLE)
       .select('key,payload,updated_at')
       .order('updated_at', { ascending: false })
-      .limit(5); // 只取最近 5 条
+      .limit(5);
 
     if (error) throw error;
 
@@ -949,7 +959,17 @@ async function loadCloudSnapshot(key) {
       return;
     }
 
-    applySnapshotPayload(data.payload);
+    const payload = data.payload;
+
+    // 1）本地状态应用
+    applySnapshotPayload(payload);
+
+    // 2）写回 Supabase.titles，保证刷新后也是这个快照的数据
+    await overwriteTitlesFromSnapshot(payload.titles || []);
+
+    // 3）重新从云端拉一遍（拿到真实 id / created_at）
+    await loadTitlesFromCloud();
+
     showToast('云端数据已加载');
     const panel = document.getElementById('cloudHistoryPanel');
     if (panel) {
@@ -971,7 +991,6 @@ async function toggleCloudHistoryPanel() {
     panel.classList.contains('hidden') || panel.style.display === 'none';
 
   if (isHidden) {
-    // 定位到“加载云端”按钮下方
     const rect = btnLoad.getBoundingClientRect();
     const scrollTop =
       window.pageYOffset || document.documentElement.scrollTop;
