@@ -287,6 +287,7 @@ function bindToolbar() {
   const btnBatchImport = document.getElementById('btnBatchImport');
   const btnClearAll = document.getElementById('btnClearAll');
 
+  // 🔍 搜索 + X 清空
   if (searchInput) {
     const syncClearIcon = () => {
       if (!btnClearSearch) return;
@@ -332,7 +333,7 @@ function bindToolbar() {
     });
   }
 
-  // 🔹 清空全部：只有云端删除成功才清空本地
+  // 🗑 清空全部：先云端删，成功才清本地
   if (btnClearAll) {
     btnClearAll.addEventListener('click', async () => {
       if (!confirm('确定清空全部标题？此操作不可恢复')) return;
@@ -341,10 +342,12 @@ function bindToolbar() {
         return;
       }
       try {
+        // 关键：用 .not('id','is',null) 避免 uuid 比较 "null" 报错
         const { error } = await supabase
           .from('titles')
           .delete()
-          .neq('id', null);
+          .not('id', 'is', null);
+
         if (error) throw error;
 
         state.titles = [];
@@ -352,7 +355,7 @@ function bindToolbar() {
         showToast('已清空全部标题');
       } catch (e) {
         console.error('[TitleApp] 清空全部失败', e);
-        showToast('清空失败：' + (e.message || ''), 'error');
+        showToast('清空失败： ' + (e.message || ''), 'error');
       }
     });
   }
@@ -828,7 +831,7 @@ async function overwriteTitlesFromSnapshot(titles) {
     const { error: delError } = await supabase
       .from('titles')
       .delete()
-      .neq('id', null);
+      .not('id', 'is', null);
     if (delError) throw delError;
 
     if (!Array.isArray(titles) || titles.length === 0) return;
@@ -970,13 +973,10 @@ async function loadCloudSnapshot(key) {
 
     const payload = data.payload;
 
-    // 1）本地状态应用
     applySnapshotPayload(payload);
 
-    // 2）写回 Supabase.titles，保证刷新后也是这个快照的数据
     await overwriteTitlesFromSnapshot(payload.titles || []);
 
-    // 3）重新从云端拉一遍（拿到真实 id / created_at）
     await loadTitlesFromCloud();
 
     showToast('云端数据已加载');
