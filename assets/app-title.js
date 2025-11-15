@@ -888,22 +888,14 @@ async function saveCloudSnapshot() {
   }
 }
 
-async function renderCloudHistoryList() {
-  const panel = document.getElementById('cloudHistoryPanel');
-  if (!panel) return;
-
-  if (!supabase) {
-    panel.innerHTML =
-      '<div style="padding:8px 10px;color:#888;">未配置 Supabase</div>';
-    return;
-  }
-
-  try {
     const { data, error } = await supabase
       .from(SNAPSHOT_TABLE)
       .select('key,payload,updated_at')
+      // 把用于占位的 default 快照排除掉，列表里只显示历史快照
+      .neq('key', SNAPSHOT_DEFAULT_KEY)
       .order('updated_at', { ascending: false })
       .limit(5);
+
 
     if (error) throw error;
 
