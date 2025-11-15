@@ -1,9 +1,9 @@
 // assets/app-title.js
-// 标题管理主逻辑（桌面表格 + 手机卡片）
+// 标题管理主逻辑（桌面表格 + 手机卡片 + 云端快照）
 
 console.log('[TitleApp] app-title.js loaded');
 
-// --------- 0. 全局状态 ---------
+// =============== 0. 全局常量 & 状态 ===============
 
 const supabase = window.supabaseClient || null;
 
@@ -11,33 +11,35 @@ const DEFAULT_CATEGORIES = ['全部', '亲子', '情侣', '闺蜜', '单人', '�
 const CATEGORY_LS_KEY = 'title_categories_v1';
 
 const SNAPSHOT_TABLE = 'title_snapshots';
-const SNAPSHOT_DEFAULT_KEY = 'default';
+const SNAPSHOT_DEFAULT_KEY = 'default'; // 占位快照 key（不在列表里显示）
 
 const state = {
-  titles: [], // 当前所有标题记录
+  titles: [],                 // 当前所有标题记录（来自 Supabase.titles）
   categories: [...DEFAULT_CATEGORIES],
   currentCategory: '全部',
   filters: {
     search: '',
     scene: ''
   },
-  editingId: null,
-  viewSettings: {},
-  isSortingCategories: false // 分类是否处在排序模式
+  editingId: null,            // 当前弹窗编辑的 id（null = 新增）
+  viewSettings: {},           // 预留
+  isSortingCategories: false  // 分类是否处在“排序模式”
 };
 
 let toastTimer = null;
 
-// --------- 1. 初始化入口 ---------
+// =============== 1. 初始化入口 ===============
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log('[TitleApp] DOMContentLoaded: init');
 
+  // 分类
   loadCategoriesFromLocal();
   renderCategoryList();
   bindCategoryButtons();
   setupMobileCategoryDropdown();
 
+  // 工具栏 / 弹窗 / 云端 / 全局按钮
   bindToolbar();
   bindTitleModal();
   bindImportModal();
@@ -50,11 +52,11 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('[TitleApp] supabaseClient 已就绪');
   }
 
-  // 初始从云端加载一遍
+  // 初始从云端加载一遍 titles
   loadTitlesFromCloud();
 });
 
-// --------- 2. 分类逻辑 ---------
+// =============== 2. 分类逻辑 ===============
 
 function loadCategoriesFromLocal() {
   const raw = localStorage.getItem(CATEGORY_LS_KEY);
@@ -97,7 +99,7 @@ function renderCategoryList() {
     nameSpan.textContent = cat;
     li.appendChild(nameSpan);
 
-    // 排序模式下：给非“全部”增加上下按钮
+    // 排序模式：给非“全部”增加 ↑↓ 按钮
     if (state.isSortingCategories && cat !== '全部') {
       const controls = document.createElement('span');
       controls.style.marginLeft = '8px';
@@ -128,7 +130,7 @@ function renderCategoryList() {
       li.appendChild(controls);
     }
 
-    // 正常点击：切换当前分类
+    // 普通点击：切换当前分类
     li.addEventListener('click', () => {
       state.currentCategory = cat;
       renderCategoryList();
@@ -141,11 +143,11 @@ function renderCategoryList() {
   updateMobileCategoryLabel();
 }
 
-// 分类重新排序：index 当前下标，delta = -1 上移 / +1 下移
+// index 当前下标，delta = -1 上移 / +1 下移
 function reorderCategory(index, delta) {
   const newIndex = index + delta;
 
-  // 0 是“全部”，不能动；其它分类从 1 开始
+  // 0 是“全部”，不能动；其它从 1 开始
   if (index <= 0) return;
   if (newIndex <= 0) return;
   if (newIndex >= state.categories.length) return;
@@ -160,7 +162,7 @@ function reorderCategory(index, delta) {
   renderCategoryList();
 }
 
-// --------- 2.5 手机端分类下拉 ---------
+// =============== 2.5 手机端分类下拉 ===============
 
 function setupMobileCategoryDropdown() {
   const wrapper = document.getElementById('mobileCategoryWrapper');
@@ -191,7 +193,6 @@ function setupMobileCategoryDropdown() {
   });
 
   window.addEventListener('resize', applyVisibility);
-
   applyVisibility();
 }
 
@@ -201,7 +202,7 @@ function updateMobileCategoryLabel() {
   labelEl.textContent = state.currentCategory || '全部';
 }
 
-// --------- 3. 工具栏：搜索 / 场景筛选 / 按钮 ---------
+// =============== 3. 工具栏：搜索 / 场景筛选 / 按钮 ===============
 
 function bindToolbar() {
   const searchInput = document.getElementById('searchInput');
@@ -212,7 +213,7 @@ function bindToolbar() {
   const btnBatchImport = document.getElementById('btnBatchImport');
   const btnClearAll = document.getElementById('btnClearAll');
 
-  // 🔍 搜索 + 清除
+  // 🔍 搜索 + 「清除」按钮
   if (searchInput) {
     const syncClearBtn = () => {
       if (!btnClearSearch) return;
@@ -267,7 +268,7 @@ function bindToolbar() {
         return;
       }
       try {
-        // 用 .not('id','is',null) 避免 uuid 比较 "null" 报错
+        // 用 not('id','is',null) 避免 uuid 比较 "null" 报错
         const { error } = await supabase
           .from('titles')
           .delete()
@@ -286,7 +287,7 @@ function bindToolbar() {
   }
 }
 
-// --------- 4. 加载 & 过滤 & 渲染列表 ---------
+// =============== 4. 加载 & 过滤 & 渲染列表 ===============
 
 async function loadTitlesFromCloud() {
   if (!supabase) {
@@ -297,7 +298,8 @@ async function loadTitlesFromCloud() {
     const { data, error } = await supabase
       .from('titles')
       .select('*')
-      .order('created_at', { ascending: false });
+      // 按 created_at 正序：旧的在上，新插入在后面，保持“1、2、3…”顺序不变
+      .order('created_at', { ascending: true });
 
     if (error) throw error;
     state.titles = data || [];
@@ -409,12 +411,12 @@ function renderTitles() {
     mCopy.addEventListener('click', () => copyTitle(item));
 
     const mEdit = document.createElement('button');
-    mEdit.className = 'function-btn ghost text-xs';
+    mEdit.className = 'function-btn ghost text-xs btn-inline';
     mEdit.textContent = '修改';
     mEdit.addEventListener('click', () => openTitleModal(item));
 
     const mDel = document.createElement('button');
-    mDel.className = 'function-btn ghost text-xs';
+    mDel.className = 'function-btn ghost text-xs btn-inline';
     mDel.textContent = '删除';
     mDel.addEventListener('click', () => deleteTitle(item));
 
@@ -432,7 +434,7 @@ function renderTitles() {
   }
 }
 
-// --------- 5. 标题操作：复制 / 删除 ---------
+// =============== 5. 标题操作：复制 / 删除 ===============
 
 async function copyTitle(item) {
   try {
@@ -473,7 +475,7 @@ async function deleteTitle(item) {
   }
 }
 
-// --------- 6. 标题弹窗：打开 / 保存 / 关闭 ---------
+// =============== 6. 标题弹窗：打开 / 保存 / 关闭 ===============
 
 function bindTitleModal() {
   const btnClose = document.getElementById('btnCloseModal');
@@ -586,7 +588,7 @@ async function saveTitleFromModal() {
     );
   } else {
     const fakeId = 'local_' + Date.now();
-    state.titles.unshift({
+    state.titles.push({
       id: fakeId,
       usage_count: 0,
       ...payload
@@ -612,6 +614,7 @@ async function saveTitleFromModal() {
         .single();
 
       if (error) throw error;
+
       // 用云端返回的真实 id 替换本地 fake
       state.titles = state.titles.map((t) =>
         t.id && String(t.id).startsWith('local_') && t.text === payload.text
@@ -627,7 +630,7 @@ async function saveTitleFromModal() {
   }
 }
 
-// --------- 7. 批量导入弹窗 ---------
+// =============== 7. 批量导入弹窗 ===============
 
 function bindImportModal() {
   const btnClose = document.getElementById('btnCloseImport');
@@ -690,7 +693,7 @@ async function runImport() {
 
   console.log('[TitleApp] 批量导入 payloads =', payloads.length);
 
-  // 保持正序：push 到列表尾部
+  // 保持正序：push 到数组末尾
   const now = Date.now();
   payloads.forEach((p, idx) => {
     state.titles.push({
@@ -728,7 +731,7 @@ async function runImport() {
   }
 }
 
-// --------- 8. 云端快照：保存 / 加载 / 列表 ---------
+// =============== 8. 云端快照：保存 / 加载 / 列表 ===============
 
 function collectSnapshotPayload() {
   return {
@@ -797,14 +800,14 @@ async function saveCloudSnapshot() {
   const nowIso = new Date(payload.updated_at).toISOString();
 
   try {
-    // 更新 default 占位
+    // 1）更新 default 占位快照（只保留一条）
     await supabase.from(SNAPSHOT_TABLE).upsert({
       key: SNAPSHOT_DEFAULT_KEY,
       payload,
       updated_at: nowIso
     });
 
-    // 新增历史快照
+    // 2）新增一条历史快照（带时间戳 key）
     const histKey = 'snap_' + payload.updated_at;
     await supabase.from(SNAPSHOT_TABLE).insert({
       key: histKey,
@@ -908,12 +911,13 @@ async function loadCloudSnapshot(key) {
 
     const payload = data.payload;
 
+    // 1）把快照内容应用到本地状态
     applySnapshotPayload(payload);
 
-    // 把快照 titles 覆盖写回 titles 表，保证刷新后不丢
+    // 2）把快照 titles 覆盖写回 titles 表，保证刷新后不丢
     await overwriteTitlesFromSnapshot(payload.titles || []);
 
-    // 再拉一遍云端，保证 state.titles 是最新结构
+    // 3）再拉一遍云端，保证 state.titles 是最新
     await loadTitlesFromCloud();
 
     showToast('云端数据已加载');
@@ -955,6 +959,83 @@ async function toggleCloudHistoryPanel() {
   }
 }
 
+// =============== 9. 全局其它按钮 ===============
+
+function bindCategoryButtons() {
+  const btnAdd = document.getElementById('btnAddCategory');
+  const btnDelete = document.getElementById('btnDeleteCategory');
+  const btnSort = document.getElementById('btnSortCategory');
+
+  if (btnAdd) {
+    btnAdd.addEventListener('click', () => {
+      const name = prompt('请输入新分类名称：');
+      if (!name) return;
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      if (trimmed === '全部') {
+        showToast('不能使用“全部”作为分类名', 'error');
+        return;
+      }
+      if (state.categories.includes(trimmed)) {
+        showToast('该分类已存在', 'error');
+        return;
+      }
+      state.categories.push(trimmed);
+      saveCategoriesToLocal();
+      renderCategoryList();
+      showToast('已新增分类：' + trimmed);
+    });
+  }
+
+  if (btnDelete) {
+    btnDelete.addEventListener('click', async () => {
+      const cat = state.currentCategory;
+      if (cat === '全部') {
+        showToast('不能删除“全部”分类', 'error');
+        return;
+      }
+      if (!state.categories.includes(cat)) {
+        showToast('当前分类不存在', 'error');
+        return;
+      }
+
+      if (!confirm(`确定删除分类「${cat}」？`)) return;
+
+      state.categories = state.categories.filter((c) => c !== cat);
+      saveCategoriesToLocal();
+      state.currentCategory = '全部';
+      renderCategoryList();
+
+      // 云端里把该分类的 main_category 置空
+      if (supabase) {
+        try {
+          await supabase
+            .from('titles')
+            .update({ main_category: null })
+            .eq('main_category', cat);
+        } catch (e) {
+          console.error('[TitleApp] 删除分类时更新 titles 出错', e);
+        }
+      }
+
+      await loadTitlesFromCloud();
+      showToast('分类已删除');
+    });
+  }
+
+  if (btnSort) {
+    btnSort.addEventListener('click', () => {
+      state.isSortingCategories = !state.isSortingCategories;
+      renderCategoryList();
+      showToast(
+        state.isSortingCategories
+          ? '分类排序模式已开启（点击↑↓调整顺序）'
+          : '已退出分类排序模式'
+      );
+    });
+  }
+}
+
 function bindCloudButtons() {
   const btnSave = document.getElementById('btnSaveCloud');
   const btnLoad = document.getElementById('btnLoadCloud');
@@ -962,8 +1043,6 @@ function bindCloudButtons() {
   if (btnSave) btnSave.addEventListener('click', saveCloudSnapshot);
   if (btnLoad) btnLoad.addEventListener('click', toggleCloudHistoryPanel);
 }
-
-// --------- 9. 管理页面 / 设置页面 占位 ---------
 
 function bindGlobalNavButtons() {
   const btnSettings = document.getElementById('btnSettings');
@@ -982,7 +1061,7 @@ function bindGlobalNavButtons() {
   }
 }
 
-// --------- 10. Toast ---------
+// =============== 10. Toast ===============
 
 function showToast(msg, type = 'info') {
   const el = document.getElementById('toast');
@@ -1001,7 +1080,7 @@ function showToast(msg, type = 'info') {
   }, 1800);
 }
 
-// --------- 11. 暴露给 HTML 的全局函数 ---------
+// =============== 11. 暴露给 HTML 的全局函数 ===============
 
 window.openTitleModal = openTitleModal;
 window.openImportModal = openImportModal;
