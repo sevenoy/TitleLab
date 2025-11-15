@@ -23,7 +23,7 @@ const state = {
   },
   editingId: null,
   viewSettings: {},
-  isSortingCategories: false // 🔹 分类是否处在排序模式
+  isSortingCategories: false // 分类是否处在排序模式
 };
 
 let toastTimer = null;
@@ -267,7 +267,6 @@ function setupMobileCategoryDropdown() {
 
   window.addEventListener('resize', applyVisibility);
 
-  // 初始执行一次
   applyVisibility();
 }
 
@@ -300,7 +299,6 @@ function bindToolbar() {
       syncClearIcon();
     });
 
-    // 初始化一次
     syncClearIcon();
 
     if (btnClearSearch) {
@@ -334,6 +332,7 @@ function bindToolbar() {
     });
   }
 
+  // 🔹 清空全部：只有云端删除成功才清空本地
   if (btnClearAll) {
     btnClearAll.addEventListener('click', async () => {
       if (!confirm('确定清空全部标题？此操作不可恢复')) return;
@@ -342,13 +341,18 @@ function bindToolbar() {
         return;
       }
       try {
-        await supabase.from('titles').delete().neq('id', null);
+        const { error } = await supabase
+          .from('titles')
+          .delete()
+          .neq('id', null);
+        if (error) throw error;
+
         state.titles = [];
         renderTitles();
         showToast('已清空全部标题');
       } catch (e) {
         console.error('[TitleApp] 清空全部失败', e);
-        showToast('清空失败', 'error');
+        showToast('清空失败：' + (e.message || ''), 'error');
       }
     });
   }
@@ -817,11 +821,15 @@ function applySnapshotPayload(payload) {
   renderTitles();
 }
 
-// 🔹 把快照中的 titles 写回 Supabase.titles，保证刷新后仍然是这批数据
+// 把快照中的 titles 写回 Supabase.titles，保证刷新后仍然是这批数据
 async function overwriteTitlesFromSnapshot(titles) {
   if (!supabase) return;
   try {
-    await supabase.from('titles').delete().neq('id', null);
+    const { error: delError } = await supabase
+      .from('titles')
+      .delete()
+      .neq('id', null);
+    if (delError) throw delError;
 
     if (!Array.isArray(titles) || titles.length === 0) return;
 
@@ -833,7 +841,8 @@ async function overwriteTitlesFromSnapshot(titles) {
       usage_count: t.usage_count || 0
     }));
 
-    await supabase.from('titles').insert(cleaned);
+    const { error: insError } = await supabase.from('titles').insert(cleaned);
+    if (insError) throw insError;
   } catch (e) {
     console.error('[TitleApp] overwriteTitlesFromSnapshot error', e);
     showToast('写回云端失败（本地已加载快照）', 'error');
@@ -1055,7 +1064,7 @@ function showToast(msg, type = 'info') {
   }, 1800);
 }
 
-// --------- 11. 暴露给 HTML 的全局函数（双保险） ---------
+// --------- 11. 暴露给 HTML 的全局函数 ---------
 
 window.openTitleModal = openTitleModal;
 window.openImportModal = openImportModal;
