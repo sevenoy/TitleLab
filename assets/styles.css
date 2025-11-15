@@ -407,6 +407,7 @@ textarea.field-input {
 .cloud-history-panel {
   position: absolute;
   width: 260px;
+  max-width: calc(100vw - 24px); /* 防止在小屏幕超出左右 */
   max-height: 60vh;
   overflow: auto;
   background: #ffffff;
@@ -416,6 +417,7 @@ textarea.field-input {
   padding: 8px 10px;
   z-index: 50;
 }
+
 
 .cloud-item {
   padding: 6px 6px;
