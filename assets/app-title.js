@@ -815,6 +815,7 @@ async function loadCloudSnapshot(key) {
   }
 }
 
+// ⭐ 只显示最近 5 条快照 + 手机端不遮挡
 async function renderCloudHistoryList(anchorBtn) {
   if (!supabase) {
     alert('未配置 Supabase');
@@ -824,21 +825,44 @@ async function renderCloudHistoryList(anchorBtn) {
   const panel = document.getElementById('cloudHistoryPanel');
   if (!panel) return;
 
-  // 定位到按钮旁边
-  const rect = anchorBtn.getBoundingClientRect();
-  panel.style.top = rect.bottom + 8 + window.scrollY + 'px';
-  panel.style.left = rect.left + 'px';
-
-  panel.innerHTML = '<div style="padding:8px 10px;font-size:12px;color:#6b7280;">加载中…</div>';
+  // 先显示出来，避免 offsetWidth=0
   panel.classList.remove('hidden');
+  panel.style.display = 'block';
+  panel.innerHTML =
+    '<div style="padding:8px 10px;font-size:12px;color:#6b7280;">加载中…</div>';
 
+  // —— 1. 跟随按钮定位，同时限制在屏幕左右以内 ——
+  const rect = anchorBtn.getBoundingClientRect();
+  const scrollTop =
+    window.pageYOffset || document.documentElement.scrollTop;
+  const scrollLeft =
+    window.pageXOffset || document.documentElement.scrollLeft;
+
+  let left = rect.left + scrollLeft;
+  const top = rect.bottom + scrollTop + 8;
+
+  const viewportWidth =
+    document.documentElement.clientWidth || window.innerWidth;
+  const panelWidth = 260; // 对应 CSS width
+  const margin = 8;
+
+  const maxLeft = scrollLeft + viewportWidth - panelWidth - margin;
+  const minLeft = scrollLeft + margin;
+
+  if (left > maxLeft) left = Math.max(minLeft, maxLeft);
+  if (left < minLeft) left = minLeft;
+
+  panel.style.top = top + 'px';
+  panel.style.left = left + 'px';
+
+  // —— 2. 拉取最近 5 条快照 ——
   try {
     const { data, error } = await supabase
       .from(SNAPSHOT_TABLE)
       .select('key, payload, updated_at')
       .neq('key', SNAPSHOT_DEFAULT_KEY)
       .order('updated_at', { ascending: false })
-      .limit(20);
+      .limit(5); // ✅ 只要 5 条
 
     if (error) throw error;
 
@@ -891,6 +915,7 @@ function toggleCloudHistoryPanel() {
 
   if (!panel.classList.contains('hidden')) {
     panel.classList.add('hidden');
+    panel.style.display = 'none';
     return;
   }
 
