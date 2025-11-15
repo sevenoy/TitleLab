@@ -27,48 +27,41 @@
     <script src="assets/classifier.js"></script>
 
     <!-- 标题管理主逻辑 -->
-    <script src="assets/app-title.js" defer></script>
+    <script src="assets/app-title.js"></script>
   </head>
 
   <body class="bg-page">
     <div class="wrap">
-      <!-- 顶部栏 -->
+      <!-- 顶部栏：左 LOGO + 标题，中间 Tab，右 Supabase 状态 -->
       <header class="topbar">
+        <!-- 左：LOGO + 主标题 -->
         <div class="topbar-left">
           <div class="logo-dot"></div>
           <div class="ml-2">
-            <div class="text-sm font-semibold">标题与文案管理系统</div>
-            <div class="text-xs text-gray-500">港迪拍摄 · 标题库</div>
+            <div class="topbar-title">标题与文案管理系统</div>
           </div>
         </div>
 
+        <!-- 中：标题 / 文案 Tab -->
+        <div class="topbar-center">
+          <button class="nav-tab nav-tab-active">标题</button>
+          <button
+            class="nav-tab"
+            onclick="window.location.href='content.html'"
+          >
+            文案
+          </button>
+        </div>
+
+        <!-- 右：Supabase 状态 -->
         <div class="topbar-right">
           <span id="supabaseStatus" class="pill-muted text-xs">Supabase</span>
         </div>
       </header>
 
-      <!-- 页面切换 tab -->
-      <div class="mt-4 mb-3 flex items-center gap-3">
-        <button class="nav-tab nav-tab-active">标题</button>
-        <button class="nav-tab" onclick="window.location.href='content.html'">
-          文案
-        </button>
-      </div>
-
       <main class="layout">
         <!-- 左侧分类面板 -->
         <aside class="panel w-full md:w-64 md:flex-shrink-0">
-          <!-- 手机端：分类下拉按钮 -->
-          <div class="md:hidden mb-3">
-            <button
-              id="mobileCategoryToggle"
-              class="function-btn w-full flex items-center justify-between"
-            >
-              <span class="text-sm" id="mobileCategoryLabel">全部</span>
-              <span class="text-xs opacity-80">分类 ▾</span>
-            </button>
-          </div>
-
           <div class="flex items-center justify-between mb-3">
             <div class="text-sm font-semibold">分类</div>
             <div class="flex gap-2">
@@ -78,8 +71,25 @@
               <button id="btnDeleteCategory" class="function-btn ghost text-xs">
                 删除分类
               </button>
+              <button id="btnSortCategory" class="function-btn ghost text-xs">
+                排序
+              </button>
             </div>
           </div>
+
+          <!-- 手机端：分类下拉触发按钮（桌面端无影响） -->
+          <div id="mobileCategoryWrapper" class="md:hidden mb-2">
+            <button
+              id="mobileCategoryToggle"
+              type="button"
+              class="function-btn ghost w-full flex items-center justify-between"
+            >
+              <span id="mobileCategoryLabel">全部</span>
+              <span class="text-xs text-gray-600">分类 ▾</span>
+            </button>
+          </div>
+
+          <!-- 共用一份分类列表：桌面直接显示，手机端通过下拉动画控制 -->
           <ul id="categoryList" class="category-list"></ul>
         </aside>
 
@@ -88,12 +98,22 @@
           <!-- 工具栏 -->
           <div class="panel">
             <div class="toolbar flex items-center gap-3 flex-wrap mb-2">
-              <input
-                id="searchInput"
-                type="text"
-                placeholder="搜索标题关键词"
-                class="field-input search-input"
-              />
+              <!-- 搜索框 + X 清空 -->
+              <div class="search-wrapper">
+                <input
+                  id="searchInput"
+                  type="text"
+                  placeholder="搜索标题关键词"
+                  class="field-input search-input"
+                />
+                <button
+                  id="btnClearSearch"
+                  type="button"
+                  class="clear-search-btn"
+                >
+                  ×
+                </button>
+              </div>
 
               <select id="filterScene" class="field-input filter-select">
                 <option value="">场景（全部）</option>
@@ -106,6 +126,7 @@
 
             <!-- 按钮工具区 -->
             <div class="flex flex-wrap items-center gap-2 mt-1">
+              <!-- 这里加了 onclick，直接调全局函数 -->
               <button
                 id="btnNewTitle"
                 class="function-btn"
@@ -164,7 +185,7 @@
         </section>
       </main>
 
-      <!-- 云端快照弹出层 -->
+      <!-- 云端快照弹出层（位置由 JS 计算） -->
       <div id="cloudHistoryPanel" class="cloud-history-panel hidden"></div>
 
       <!-- 标题弹窗 -->
@@ -236,8 +257,7 @@
             </button>
           </div>
 
-          <!-- 这里原来有“识别预览”右侧列，功能取消，右侧不再使用 -->
-          <div class="modal-body gap-3 md:grid-cols-1">
+          <div class="modal-body grid gap-3 md:grid-cols-2">
             <div class="space-y-2">
               <label class="field-label">多行标题（每行一条）</label>
               <textarea
@@ -248,7 +268,7 @@
               ></textarea>
             </div>
 
-            <!-- 识别预览彻底取消，这一块不再显示，由 JS 隐藏 -->
+            <!-- 右侧识别预览列会通过 CSS 隐藏 -->
             <div class="space-y-2 import-preview-wrapper">
               <label class="field-label">识别预览</label>
               <div id="importPreview" class="preview-box"></div>
