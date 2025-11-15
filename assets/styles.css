@@ -24,32 +24,21 @@ body.bg-page {
 }
 
 
-/* 搜索输入 + 清除按钮包装 */
+/* 搜索输入 + 清除按钮包装：一排布局 */
 .search-wrapper {
-  position: relative;
-  max-width: 260px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 360px;
   flex: 1 1 auto;
 }
 
-/* 搜索框右侧 X 按钮 */
+/* 搜索清除按钮：和 function-btn 一样，只控制显示 */
 .search-clear-btn {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  border: none;
-  background: transparent;
-  color: #9ca3af;
-  font-size: 14px;
-  cursor: pointer;
-  display: none; /* 默认隐藏，输入有内容时通过 JS 显示 */
-  padding: 0;
-  line-height: 1;
+  display: none; /* 默认隐藏，JS 里有内容时改成 inline-flex */
+  padding-inline: 10px;
 }
 
-.search-clear-btn:hover {
-  color: #6b7280;
-}
 
 
 
