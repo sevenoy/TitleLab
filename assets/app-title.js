@@ -27,10 +27,16 @@ const ITEM_LABEL = PAGE_MODE === 'content' ? '文案' : '标题';
 const ITEM_TABLE = PAGE_MODE === 'content' ? 'contents' : 'titles';
 const COUNTER_TABLE = PAGE_MODE === 'content' ? 'titles' : 'contents';
 
+const PAGE_MODE = window.location.pathname.includes('content')
+  ? 'content'
+  : 'title';
+const ITEM_LABEL = PAGE_MODE === 'content' ? '文案' : '标题';
+const ITEM_TABLE = PAGE_MODE === 'content' ? 'contents' : 'titles';
+const COUNTER_TABLE = PAGE_MODE === 'content' ? 'titles' : 'contents';
+
 const DEFAULT_CATEGORIES = ['全部', '亲子', '情侣', '闺蜜', '单人', '烟花', '夜景'];
-const CATEGORY_LS_KEY = `${PAGE_MODE}_categories_v1`;
+const CATEGORY_LS_KEY = 'title_categories_v1';
 const DISPLAY_SETTINGS_KEY = 'display_settings_v1';
-const CLOUD_VERSION_KEY = 'cloud_snapshot_version';
 const DEFAULT_DISPLAY_SETTINGS = {
   brandColor: '#1990ff',
   brandHover: '#1477dd',
@@ -100,12 +106,6 @@ function applyDisplaySettings() {
   renderSceneFilterOptions(settings);
 }
 
-function persistDisplaySettings(settings) {
-  if (!settings) return;
-  const merged = { ...DEFAULT_DISPLAY_SETTINGS, ...settings };
-  localStorage.setItem(DISPLAY_SETTINGS_KEY, JSON.stringify(merged));
-}
-
 function renderSceneFilterOptions(settings) {
   const filterScene = document.getElementById('filterScene');
   if (!filterScene) return;
@@ -126,61 +126,10 @@ function renderSceneFilterOptions(settings) {
   }
 }
 
-function persistSnapshotCategories(payload) {
-  if (!payload) return;
-  if (Array.isArray(payload.titleCategories)) {
-    localStorage.setItem('title_categories_v1', JSON.stringify(payload.titleCategories));
-  }
-  if (Array.isArray(payload.contentCategories)) {
-    localStorage.setItem(
-      'content_categories_v1',
-      JSON.stringify(payload.contentCategories)
-    );
-  }
-}
-
-async function bootstrapCloudState() {
-  refreshSupabaseClient();
-
-  if (!supabase) {
-    console.warn('[TitleApp] supabaseClient 不存在，跳过快照加载');
-    await loadTitlesFromCloud();
-    return;
-  }
-
-  try {
-    const defaultSnapshot = await fetchSnapshotByKey(SNAPSHOT_DEFAULT_KEY);
-
-    if (defaultSnapshot?.payload) {
-      state.cloudVersion = defaultSnapshot.payload.version || 0;
-      localStorage.setItem(CLOUD_VERSION_KEY, String(state.cloudVersion));
-
-      if (defaultSnapshot.payload.displaySettings) {
-        persistDisplaySettings(defaultSnapshot.payload.displaySettings);
-        applyDisplaySettings();
-      }
-
-      persistSnapshotCategories(defaultSnapshot.payload);
-      applySnapshotPayload(defaultSnapshot.payload);
-      await syncSnapshotTables(defaultSnapshot.payload);
-      showToast('已加载云端快照');
-      return;
-    }
-
-    await loadTitlesFromCloud();
-  } catch (e) {
-    console.error('[TitleApp] bootstrapCloudState error', e);
-    showToast('加载云端失败，已切换本地列表', 'error');
-    await loadTitlesFromCloud();
-  }
-}
-
 // =============== 1. 初始化入口 ===============
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log('[TitleApp] DOMContentLoaded: init');
-
-  refreshSupabaseClient();
 
   applyDisplaySettings();
 
@@ -430,7 +379,10 @@ function bindToolbar() {
   if (btnClearAll) {
     btnClearAll.addEventListener('click', async () => {
       if (!confirm(`确定清空全部${ITEM_LABEL}？此操作不可恢复`)) return;
-        if (!ensureSupabase('Supabase 未配置，无法清空云端')) return;
+      if (!supabase) {
+        showToast('Supabase 未配置，无法清空云端', 'error');
+        return;
+      }
       try {
         // 用 not('id','is',null) 避免 uuid 比较 "null" 报错
         const { error } = await supabase
@@ -909,9 +861,8 @@ function getCounterCategories() {
   }
 }
 
-  async function fetchSnapshotByKey(key) {
-    refreshSupabaseClient();
-    if (!supabase) return null;
+async function fetchSnapshotByKey(key) {
+  if (!supabase) return null;
   try {
     const { data, error } = await supabase
       .from(SNAPSHOT_TABLE)
@@ -990,7 +941,10 @@ function applySnapshotPayload(payload) {
 }
 
 async function syncSnapshotTableToCloud(table, items) {
-    if (!ensureSupabase('未配置 Supabase')) return;
+  if (!supabase) {
+    alert('未配置 Supabase');
+    return;
+  }
   if (!Array.isArray(items)) return;
 
   try {
@@ -1117,9 +1071,8 @@ async function loadCloudSnapshot(key, options = {}) {
   }
 }
 
-  async function fetchCounterItems() {
-    refreshSupabaseClient();
-    if (!supabase || !COUNTER_TABLE) return [];
+async function fetchCounterItems() {
+  if (!supabase || !COUNTER_TABLE) return [];
   try {
     const { data, error } = await supabase.from(COUNTER_TABLE).select('*');
     if (error) {
@@ -1130,6 +1083,23 @@ async function loadCloudSnapshot(key, options = {}) {
   } catch (e) {
     console.warn('[TitleApp] fetchCounterItems exception', e);
     return [];
+  }
+}
+
+async function syncSnapshotTables(payload) {
+  const titles = Array.isArray(payload.titles) ? payload.titles : [];
+  const contents = Array.isArray(payload.contents) ? payload.contents : [];
+
+  await syncSnapshotTableToCloud('titles', titles);
+  await syncSnapshotTableToCloud('contents', contents);
+  await loadTitlesFromCloud();
+}
+
+// 手机端不遮挡 + 只显示最近 5 条快照
+async function renderCloudHistoryList(anchorBtn) {
+  if (!supabase) {
+    alert('未配置 Supabase');
+    return;
   }
 }
 
