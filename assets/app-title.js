@@ -5,7 +5,27 @@ console.log('[TitleApp] app-title.js loaded');
 
 // =============== 0. 全局常量 & 状态 ===============
 
-const supabase = window.supabaseClient || null;
+let supabase = null;
+
+function refreshSupabaseClient() {
+  supabase = window.supabaseClient || null;
+}
+
+function ensureSupabase(message = 'Supabase 未配置') {
+  refreshSupabaseClient();
+  if (!supabase) {
+    showToast(message, 'error');
+    return false;
+  }
+  return true;
+}
+
+const PAGE_MODE = window.location.pathname.includes('content')
+  ? 'content'
+  : 'title';
+const ITEM_LABEL = PAGE_MODE === 'content' ? '文案' : '标题';
+const ITEM_TABLE = PAGE_MODE === 'content' ? 'contents' : 'titles';
+const COUNTER_TABLE = PAGE_MODE === 'content' ? 'titles' : 'contents';
 
 const PAGE_MODE = window.location.pathname.includes('content')
   ? 'content'
@@ -386,7 +406,7 @@ function bindToolbar() {
 // =============== 4. 加载 & 过滤 & 渲染列表 ===============
 
 async function loadTitlesFromCloud() {
-  if (!supabase) {
+  if (!ensureSupabase('Supabase 未配置，无法加载云端')) {
     console.warn('[TitleApp] supabaseClient 不存在，跳过云端加载');
     return;
   }
@@ -539,6 +559,8 @@ async function copyTitle(item) {
   }
 
   // 2. 没有云端或没有 id，就不记 usage_count 了
+  refreshSupabaseClient();
+  refreshSupabaseClient();
   if (!supabase || !item.id) return;
 
   // 3. 只更新这一条记录的 usage_count，本地顺序不动
@@ -692,10 +714,7 @@ async function saveTitleFromModal() {
     state.editingId
   );
 
-  if (!supabase) {
-    showToast('未配置 Supabase，无法保存到云端', 'error');
-    return;
-  }
+    if (!ensureSupabase('未配置 Supabase，无法保存到云端')) return;
 
   // 记录当前所在的分类，用来保持筛选不变（包括“全部”）
   const prevCategory = state.currentCategory;
@@ -802,10 +821,7 @@ async function runImport() {
     return;
   }
 
-  if (!supabase) {
-    showToast('未配置 Supabase，无法导入云端', 'error');
-    return;
-  }
+    if (!ensureSupabase('未配置 Supabase，无法导入云端')) return;
 
   const rows = lines.map((text) => ({
     text,
@@ -961,10 +977,7 @@ async function syncSnapshotTableToCloud(table, items) {
 }
 
 async function saveCloudSnapshot() {
-  if (!supabase) {
-    alert('未配置 Supabase');
-    return;
-  }
+    if (!ensureSupabase('未配置 Supabase')) return;
 
   const label = prompt('请输入这次快照的备注名称（例如：11月中旬版本）：', '');
   if (label === null) return;
@@ -1027,10 +1040,7 @@ async function saveCloudSnapshot() {
 async function loadCloudSnapshot(key, options = {}) {
   const { skipConfirm = false } = options;
 
-  if (!supabase) {
-    alert('未配置 Supabase');
-    return;
-  }
+    if (!ensureSupabase('未配置 Supabase')) return;
   try {
     const { data, error } = await supabase
       .from(SNAPSHOT_TABLE)
@@ -1091,6 +1101,20 @@ async function renderCloudHistoryList(anchorBtn) {
     alert('未配置 Supabase');
     return;
   }
+}
+
+async function syncSnapshotTables(payload) {
+  const titles = Array.isArray(payload.titles) ? payload.titles : [];
+  const contents = Array.isArray(payload.contents) ? payload.contents : [];
+
+  await syncSnapshotTableToCloud('titles', titles);
+  await syncSnapshotTableToCloud('contents', contents);
+  await loadTitlesFromCloud();
+}
+
+// 手机端不遮挡 + 只显示最近 5 条快照
+  async function renderCloudHistoryList(anchorBtn) {
+    if (!ensureSupabase('未配置 Supabase')) return;
 
   const panel = document.getElementById('cloudHistoryPanel');
   if (!panel) return;
