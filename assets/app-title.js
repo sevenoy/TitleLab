@@ -7,8 +7,26 @@ console.log('[TitleApp] app-title.js loaded');
 
 const supabase = window.supabaseClient || null;
 
+const PAGE_MODE = window.location.pathname.includes('content')
+  ? 'content'
+  : 'title';
+const ITEM_TABLE = PAGE_MODE === 'content' ? 'contents' : 'titles';
+const COUNTER_TABLE = PAGE_MODE === 'content' ? 'titles' : 'contents';
+
 const DEFAULT_CATEGORIES = ['全部', '亲子', '情侣', '闺蜜', '单人', '烟花', '夜景'];
-const CATEGORY_LS_KEY = 'title_categories_v1';
+const CATEGORY_LS_KEY = `${PAGE_MODE}_categories_v1`;
+const DISPLAY_SETTINGS_KEY = 'display_settings_v1';
+const DEFAULT_DISPLAY_SETTINGS = {
+  brandColor: '#1990ff',
+  brandHover: '#1477dd',
+  ghostColor: '#eef2ff',
+  ghostHover: '#e2e8ff',
+  stripeColor: '#f9fafb',
+  hoverColor: '#eef2ff',
+  scenes: ['港迪城堡', '烟花', '夜景', '香港街拍'],
+  titleText: '标题与文案管理系统',
+  titleColor: '#1990ff'
+};
 
 const SNAPSHOT_TABLE = 'title_snapshots';
 const SNAPSHOT_DEFAULT_KEY = 'default'; // 占位快照 key（不在列表里显示）
@@ -28,10 +46,70 @@ const state = {
 
 let toastTimer = null;
 
+function getDisplaySettings() {
+  const raw = localStorage.getItem(DISPLAY_SETTINGS_KEY);
+  if (!raw) return { ...DEFAULT_DISPLAY_SETTINGS };
+  try {
+    const parsed = JSON.parse(raw);
+    const scenes = Array.isArray(parsed.scenes) ? parsed.scenes : [];
+    return {
+      ...DEFAULT_DISPLAY_SETTINGS,
+      ...parsed,
+      scenes: scenes.length ? scenes : [...DEFAULT_DISPLAY_SETTINGS.scenes]
+    };
+  } catch (e) {
+    console.error('[TitleApp] 解析显示设置失败', e);
+    return { ...DEFAULT_DISPLAY_SETTINGS };
+  }
+}
+
+function applyDisplaySettings() {
+  const settings = getDisplaySettings();
+  const root = document.documentElement;
+  root.style.setProperty('--brand-blue', settings.brandColor);
+  root.style.setProperty('--brand-blue-hover', settings.brandHover);
+  root.style.setProperty('--ghost-bg', settings.ghostColor);
+  root.style.setProperty('--ghost-hover', settings.ghostHover);
+  root.style.setProperty('--table-stripe', settings.stripeColor);
+  root.style.setProperty('--list-hover', settings.hoverColor);
+  root.style.setProperty('--topbar-title-color', settings.titleColor);
+
+  const topbarTitle = document.querySelector('.topbar-title');
+  if (topbarTitle) {
+    topbarTitle.textContent = settings.titleText ||
+      DEFAULT_DISPLAY_SETTINGS.titleText;
+    topbarTitle.style.color = settings.titleColor;
+  }
+
+  renderSceneFilterOptions(settings);
+}
+
+function renderSceneFilterOptions(settings) {
+  const filterScene = document.getElementById('filterScene');
+  if (!filterScene) return;
+  const prevValue = filterScene.value;
+  filterScene.innerHTML = '<option value="">场景（全部）</option>';
+  (settings.scenes || []).forEach((scene) => {
+    const opt = document.createElement('option');
+    opt.value = scene;
+    opt.textContent = scene;
+    filterScene.appendChild(opt);
+  });
+
+  if (settings.scenes.includes(prevValue)) {
+    filterScene.value = prevValue;
+  } else {
+    filterScene.value = '';
+    state.filters.scene = '';
+  }
+}
+
 // =============== 1. 初始化入口 ===============
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log('[TitleApp] DOMContentLoaded: init');
+
+  applyDisplaySettings();
 
   // 分类
   loadCategoriesFromLocal();
@@ -286,7 +364,7 @@ function bindToolbar() {
       try {
         // 用 not('id','is',null) 避免 uuid 比较 "null" 报错
         const { error } = await supabase
-          .from('titles')
+          .from(ITEM_TABLE)
           .delete()
           .not('id', 'is', null);
 
@@ -312,7 +390,7 @@ async function loadTitlesFromCloud() {
   }
   try {
     const { data, error } = await supabase
-      .from('titles')
+      .from(ITEM_TABLE)
       .select('*')
       // 按 created_at 正序：旧的在上，新插入在后面，保持“1、2、3…”顺序不变
       .order('created_at', { ascending: true });
@@ -466,7 +544,7 @@ async function copyTitle(item) {
     const newCount = (item.usage_count || 0) + 1;
 
     await supabase
-      .from('titles')
+      .from(ITEM_TABLE)
       .update({ usage_count: newCount })
       .eq('id', item.id);
 
@@ -492,7 +570,7 @@ async function deleteTitle(item) {
   if (!supabase || !item.id) return;
 
   try {
-    await supabase.from('titles').delete().eq('id', item.id);
+    await supabase.from(ITEM_TABLE).delete().eq('id', item.id);
     showToast('已删除');
   } catch (e) {
     console.error('[TitleApp] 删除失败', e);
@@ -625,7 +703,7 @@ async function saveTitleFromModal() {
       // ====== 情况一：编辑已有标题 ======
 
       const { error } = await supabase
-        .from('titles')
+        .from(ITEM_TABLE)
         .update(payload)
         .eq('id', state.editingId);
 
@@ -651,7 +729,7 @@ async function saveTitleFromModal() {
 
       // 要回写新插入的那条记录，所以加上 .select().single()
       const { data, error } = await supabase
-        .from('titles')
+        .from(ITEM_TABLE)
         .insert([insertPayload])
         .select()
         .single();
@@ -736,7 +814,7 @@ async function runImport() {
   }));
 
   try {
-    const { error } = await supabase.from('titles').insert(rows);
+    const { error } = await supabase.from(ITEM_TABLE).insert(rows);
     if (error) throw error;
     showToast(`批量导入成功，共 ${rows.length} 条`);
     closeImportModal();
@@ -749,22 +827,58 @@ async function runImport() {
 
 // =============== 8. 云端快照：保存 / 加载 / 列表 ===============
 
-function collectSnapshotPayload() {
-  return {
+function getCounterCategories() {
+  const key = PAGE_MODE === 'title' ? 'content_categories_v1' : 'title_categories_v1';
+  const raw = localStorage.getItem(key);
+  if (!raw) return [...DEFAULT_CATEGORIES];
+  try {
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr) || !arr.length) return [...DEFAULT_CATEGORIES];
+    const set = new Set(arr);
+    set.delete('全部');
+    return ['全部', ...set];
+  } catch (e) {
+    console.error('[TitleApp] getCounterCategories error', e);
+    return [...DEFAULT_CATEGORIES];
+  }
+}
+
+function collectSnapshotPayload(otherItems = [], otherCategories = []) {
+  const payload = {
     ver: 1,
     snapshot_label: '',
     updated_at: Date.now(),
-    titles: state.titles,
-    categories: state.categories,
+    titles: [],
+    contents: [],
+    titleCategories: [],
+    contentCategories: [],
     viewSettings: state.viewSettings
   };
+
+  if (PAGE_MODE === 'title') {
+    payload.titles = state.titles;
+    payload.contents = otherItems;
+    payload.titleCategories = state.categories;
+    payload.contentCategories = otherCategories;
+  } else {
+    payload.contents = state.titles;
+    payload.titles = otherItems;
+    payload.contentCategories = state.categories;
+    payload.titleCategories = otherCategories;
+  }
+
+  return payload;
 }
 
 function applySnapshotPayload(payload) {
   if (!payload) return;
-  state.titles = Array.isArray(payload.titles) ? payload.titles : [];
-  state.categories = Array.isArray(payload.categories)
-    ? payload.categories
+  const currentItems = PAGE_MODE === 'title' ? payload.titles : payload.contents;
+  const currentCategories =
+    PAGE_MODE === 'title' ? payload.titleCategories : payload.contentCategories;
+
+  state.titles = Array.isArray(currentItems) ? currentItems : [];
+  state.categories = Array.isArray(currentCategories)
+    ? currentCategories
     : [...DEFAULT_CATEGORIES];
   state.viewSettings = payload.viewSettings || {};
 
@@ -773,25 +887,24 @@ function applySnapshotPayload(payload) {
   renderTitles();
 }
 
-// 把快照中的 titles 写回 Supabase.titles
-async function syncSnapshotTitlesToCloud(titles) {
+async function syncSnapshotTableToCloud(table, items) {
   if (!supabase) {
     alert('未配置 Supabase');
     return;
   }
-  if (!Array.isArray(titles)) return;
+  if (!Array.isArray(items)) return;
 
   try {
     // 方案：先删除表中所有数据，再批量插入快照里的 titles
     const { error: delError } = await supabase
-      .from('titles')
+      .from(table)
       .delete()
       .not('id', 'is', null);
     if (delError) throw delError;
 
-    if (titles.length > 0) {
-      const { error: insertError } = await supabase.from('titles').insert(
-        titles.map((t) => ({
+    if (items.length > 0) {
+      const { error: insertError } = await supabase.from(table).insert(
+        items.map((t) => ({
           text: t.text,
           main_category: t.main_category || null,
           content_type: t.content_type || null,
@@ -819,7 +932,9 @@ async function saveCloudSnapshot() {
   const label = prompt('请输入这次快照的备注名称（例如：11月中旬版本）：', '');
   if (label === null) return;
 
-  const payload = collectSnapshotPayload();
+  const counterItems = await fetchCounterItems();
+  const counterCategories = getCounterCategories();
+  const payload = collectSnapshotPayload(counterItems, counterCategories);
   payload.snapshot_label = label.trim();
 
   const key = `manual_${Date.now()}`;
@@ -875,12 +990,36 @@ async function loadCloudSnapshot(key, options = {}) {
 
     // 覆盖前端 & 覆盖云端表
     applySnapshotPayload(payload);
-    await syncSnapshotTitlesToCloud(payload.titles || []);
+    await syncSnapshotTables(payload);
     showToast('已加载快照并覆盖云端');
   } catch (e) {
     console.error('[TitleApp] loadCloudSnapshot error', e);
     alert('加载快照失败：' + (e.message || 'Unknown error'));
   }
+}
+
+async function fetchCounterItems() {
+  if (!supabase || !COUNTER_TABLE) return [];
+  try {
+    const { data, error } = await supabase.from(COUNTER_TABLE).select('*');
+    if (error) {
+      console.warn('[TitleApp] fetchCounterItems error', error.message);
+      return [];
+    }
+    return Array.isArray(data) ? data : [];
+  } catch (e) {
+    console.warn('[TitleApp] fetchCounterItems exception', e);
+    return [];
+  }
+}
+
+async function syncSnapshotTables(payload) {
+  const titles = Array.isArray(payload.titles) ? payload.titles : [];
+  const contents = Array.isArray(payload.contents) ? payload.contents : [];
+
+  await syncSnapshotTableToCloud('titles', titles);
+  await syncSnapshotTableToCloud('contents', contents);
+  await loadTitlesFromCloud();
 }
 
 // 手机端不遮挡 + 只显示最近 5 条快照
@@ -1072,13 +1211,13 @@ function bindGlobalNavButtons() {
 
   if (btnSettings) {
     btnSettings.addEventListener('click', () => {
-      alert('设置页面（占位），后续可跳转到 settings.html');
+      window.location.href = 'settings.html';
     });
   }
 
   if (btnManage) {
     btnManage.addEventListener('click', () => {
-      window.location.href = 'index.html';
+      window.location.href = 'admin-center.html';
     });
   }
 }
