@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+  />
+  <title>文案管理 - Title & Copy Management</title>
+
+  <!-- 样式：路径请改成你项目真实的 style.css 路径 -->
+  <link rel="stylesheet" href="assets/style.css" />
+
+  <!-- 这里后面我们会接 icon 文件夹（favicon / PWA icon），暂时先留着 -->
+  <link rel="icon" type="image/png" sizes="192x192" href="icon/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="icon/icon-512.png" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- 顶部栏 -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="logo-mark">
+          <!-- 这里你可以放 THE COPY Lab 小图标，先用文字占位 -->
+          <span class="logo-main">THE</span>
+        </div>
+        <h1 class="topbar-title">标题与文案管理系统</h1>
+      </div>
+
+      <div class="topbar-actions">
+        <!-- 顶部导航：标题 / 文案 / 设置 / 管理中心 -->
+        <button
+          id="btnTitlePage"
+          type="button"
+          class="function-btn ghost"
+        >
+          标题
+        </button>
+        <button
+          id="btnCopyPage"
+          type="button"
+          class="function-btn primary"
+        >
+          文案
+        </button>
+        <button
+          id="btnSettings"
+          type="button"
+          class="function-btn ghost"
+        >
+          显示设置
+        </button>
+        <button
+          id="btnManagePage"
+          type="button"
+          class="function-btn ghost"
+        >
+          管理中心
+        </button>
+      </div>
+    </header>
+
+    <main class="main-layout">
+      <!-- 左侧：分类 + 云端快照 -->
+      <aside class="sidebar panel">
+        <!-- 手机端分类切换 -->
+        <div
+          id="copyMobileCategoryWrapper"
+          class="md:hidden mb-3"
+          data-open="0"
+        >
+          <button
+            id="copyMobileCategoryToggle"
+            type="button"
+            class="function-btn ghost w-full justify-between"
+          >
+            <span id="copyMobileCategoryLabel">全部</span>
+            <span>▼</span>
+          </button>
+        </div>
+
+        <div class="sidebar-header">
+          <div class="sidebar-title">文案分类</div>
+          <div class="sidebar-actions">
+            <button
+              id="btnCopyAddCategory"
+              type="button"
+              class="function-btn ghost text-xs"
+            >
+              新增
+            </button>
+            <button
+              id="btnCopyDeleteCategory"
+              type="button"
+              class="function-btn ghost text-xs"
+            >
+              删除
+            </button>
+            <button
+              id="btnCopySortCategory"
+              type="button"
+              class="function-btn ghost text-xs"
+            >
+              排序
+            </button>
+          </div>
+        </div>
+
+        <ul id="copyCategoryList" class="category-list"></ul>
+
+        <div class="sidebar-section">
+          <div class="sidebar-title mt-4 mb-2">云端快照（文案）</div>
+          <div class="flex gap-2 flex-wrap">
+            <button
+              id="btnCopySaveCloud"
+              type="button"
+              class="function-btn ghost text-xs"
+            >
+              保存云端
+            </button>
+            <button
+              id="btnCopyLoadCloud"
+              type="button"
+              class="function-btn ghost text-xs"
+            >
+              加载云端
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- 右侧：文案列表 -->
+      <section class="content">
+        <!-- 工具栏：搜索 / 场景 / 按钮 -->
+        <div class="toolbar panel">
+          <div class="toolbar-row">
+            <div class="toolbar-left">
+              <div class="flex items-center gap-2">
+                <input
+                  id="copySearchInput"
+                  type="text"
+                  class="input"
+                  placeholder="搜索文案内容…"
+                />
+                <button
+                  id="copyBtnClearSearch"
+                  type="button"
+                  class="function-btn ghost text-xs"
+                  style="display:none;"
+                >
+                  清除
+                </button>
+              </div>
+
+              <select id="copyFilterScene" class="select ml-2">
+                <option value="">场景（全部）</option>
+                <!-- 选项由 JS 根据显示设置填充 -->
+              </select>
+            </div>
+
+            <div class="toolbar-right">
+              <button
+                id="btnNewCopy"
+                type="button"
+                class="function-btn primary text-xs"
+              >
+                新增文案
+              </button>
+              <button
+                id="btnCopyBatchImport"
+                type="button"
+                class="function-btn ghost text-xs"
+              >
+                批量导入
+              </button>
+              <button
+                id="btnCopyClearAll"
+                type="button"
+                class="function-btn ghost text-xs"
+              >
+                清空全部
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 桌面表格：仅在 md 及以上设备显示 -->
+        <div class="panel hidden md:block">
+          <table class="basic-table w-full">
+            <thead>
+              <tr>
+                <th class="w-12">#</th>
+                <th class="text-left">文案内容</th>
+                <th class="w-32 text-left">主分类</th>
+                <th class="w-40 text-center">操作</th>
+              </tr>
+            </thead>
+            <tbody id="copyTableBody"></tbody>
+          </table>
+        </div>
+
+        <!-- 移动端卡片列表 -->
+        <div
+          class="md:hidden flex flex-col gap-2"
+          id="copyMobileList"
+        ></div>
+      </section>
+    </main>
+
+    <!-- 文案编辑弹窗 -->
+    <div
+      id="copyModal"
+      class="modal-backdrop hidden"
+    >
+      <div class="modal panel">
+        <div class="modal-header">
+          <div
+            id="copyModalTitle"
+            class="modal-title"
+          >
+            新增文案
+          </div>
+          <button
+            id="btnCloseCopyModal"
+            type="button"
+            class="modal-close"
+          >
+            ×
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="copyFieldText" class="form-label">文案内容</label>
+            <textarea
+              id="copyFieldText"
+              class="textarea"
+              rows="4"
+              placeholder="输入文案内容…"
+            ></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="copyFieldMainCategory" class="form-label">
+                主分类
+              </label>
+              <select
+                id="copyFieldMainCategory"
+                class="select w-full"
+              >
+                <!-- 由 JS 根据分类列表填充 -->
+              </select>
+            </div>
+
+            <div class="form-group flex-1">
+              <label for="copyFieldContentType" class="form-label">
+                文案类型
+              </label>
+              <input
+                id="copyFieldContentType"
+                type="text"
+                class="input w-full"
+                placeholder="例如：引导评论 / 引导私信…"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="copyFieldSceneTags" class="form-label">
+              场景标签（多个用逗号或顿号分隔）
+            </label>
+            <input
+              id="copyFieldSceneTags"
+              type="text"
+              class="input"
+              placeholder="例如：港迪城堡，夜景，烟花…"
+            />
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            id="btnCancelCopyModal"
+            type="button"
+            class="function-btn ghost"
+          >
+            取消
+          </button>
+          <button
+            id="btnSaveCopy"
+            type="button"
+            class="function-btn primary"
+          >
+            保存文案
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 文案批量导入弹窗 -->
+    <div
+      id="copyImportModal"
+      class="modal-backdrop hidden"
+    >
+      <div class="modal panel">
+        <div class="modal-header">
+          <div class="modal-title">批量导入文案</div>
+          <button
+            id="btnCloseCopyImport"
+            type="button"
+            class="modal-close"
+          >
+            ×
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="copyImportRawInput" class="form-label">
+              一行一条文案
+            </label>
+            <textarea
+              id="copyImportRawInput"
+              class="textarea"
+              rows="8"
+              placeholder="每一行是一条文案内容…"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            id="btnCancelCopyImport"
+            type="button"
+            class="function-btn ghost"
+          >
+            取消
+          </button>
+          <button
+            id="btnRunCopyImport"
+            type="button"
+            class="function-btn primary"
+          >
+            开始导入
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 文案云端快照历史弹层 -->
+    <div
+      id="copyCloudHistoryPanel"
+      class="cloud-history-panel hidden"
+    >
+      <!-- 内容由 JS 渲染 -->
+    </div>
+
+    <!-- 全局 Toast（和标题页共用同一个） -->
+    <div
+      id="toast"
+      class="toast hidden"
+    ></div>
+  </div>
+
+  <!-- Supabase 初始化：这里替换成你 index.html 里用的那段 -->
+  <script src="assets/supabase-client.js"></script>
+
+  <!-- 文案主逻辑 -->
+  <script src="assets/app-copy.js"></script>
+
+  <!-- 顶部导航按钮跳转（标题 / 文案 / 设置 / 管理中心） -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const btnTitlePage = document.getElementById('btnTitlePage');
+      const btnCopyPage = document.getElementById('btnCopyPage');
+      const btnSettings = document.getElementById('btnSettings');
+      const btnManagePage = document.getElementById('btnManagePage');
+
+      if (btnTitlePage) {
+        btnTitlePage.addEventListener('click', function () {
+          window.location.href = 'index.html';
+        });
+      }
+
+      if (btnCopyPage) {
+        btnCopyPage.addEventListener('click', function () {
+          window.location.href = 'copy.html';
+        });
+      }
+
+      if (btnSettings) {
+        btnSettings.addEventListener('click', function () {
+          window.location.href = 'settings.html';
+        });
+      }
+
+      if (btnManagePage) {
+        btnManagePage.addEventListener('click', function () {
+          window.location.href = 'admin-center.html';
+        });
+      }
+    });
+  </script>
+</body>
+</html>
