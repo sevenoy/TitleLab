@@ -34,12 +34,13 @@ const state = {
     scene: ''
   },
   editingId: null, // 当前弹窗编辑的 id（null = 新增）
-  viewSettings: {}, // 预留
+  viewSettings: {}, // 显示设置（会跟 DISPLAY_SETTINGS_KEY 同步）
   isSortingCategories: false // 分类是否处在“排序模式”
 };
 
 let toastTimer = null;
 
+// 读取显示设置（供标题页 / 文案页 / 设置页共用）
 function getDisplaySettings() {
   const raw = localStorage.getItem(DISPLAY_SETTINGS_KEY);
   if (!raw) return { ...DEFAULT_DISPLAY_SETTINGS };
@@ -57,8 +58,13 @@ function getDisplaySettings() {
   }
 }
 
+// 应用显示设置到页面（按钮颜色 / 隔行颜色 / 悬停颜色 / 场景列表 / 顶部标题）
 function applyDisplaySettings() {
   const settings = getDisplaySettings();
+
+  // 同步到 state.viewSettings，供快照使用
+  state.viewSettings = { ...settings };
+
   const root = document.documentElement;
   root.style.setProperty('--brand-blue', settings.brandColor);
   root.style.setProperty('--brand-blue-hover', settings.brandHover);
@@ -70,8 +76,8 @@ function applyDisplaySettings() {
 
   const topbarTitle = document.querySelector('.topbar-title');
   if (topbarTitle) {
-    topbarTitle.textContent = settings.titleText ||
-      DEFAULT_DISPLAY_SETTINGS.titleText;
+    topbarTitle.textContent =
+      settings.titleText || DEFAULT_DISPLAY_SETTINGS.titleText;
     topbarTitle.style.color = settings.titleColor;
   }
 
@@ -103,6 +109,7 @@ function renderSceneFilterOptions(settings) {
 document.addEventListener('DOMContentLoaded', () => {
   console.log('[TitleApp] DOMContentLoaded: init');
 
+  // 应用显示设置（同时会写入 state.viewSettings）
   applyDisplaySettings();
 
   // 分类
@@ -612,7 +619,8 @@ function openTitleModal(item) {
     if (titleEl) titleEl.textContent = '新增标题';
     if (textEl) textEl.value = '';
     if (mainCatEl)
-      mainCatEl.value = state.currentCategory === '全部' ? '' : state.currentCategory;
+      mainCatEl.value =
+        state.currentCategory === '全部' ? '' : state.currentCategory;
     if (typeEl) typeEl.value = '';
     if (sceneEl) sceneEl.value = '';
   }
@@ -821,24 +829,47 @@ async function runImport() {
 
 // =============== 8. 云端快照：保存 / 加载 / 列表 ===============
 
+// 把当前状态打包为快照 payload
 function collectSnapshotPayload() {
+  // 始终以当前显示设置为准，避免 state.viewSettings 过期
+  const currentSettings = getDisplaySettings();
+  state.viewSettings = { ...currentSettings };
+
   return {
     ver: 1,
     snapshot_label: '',
     updated_at: Date.now(),
     titles: state.titles,
     categories: state.categories,
-    viewSettings: state.viewSettings
+    viewSettings: currentSettings
   };
 }
 
+// 从快照 payload 恢复本地状态（titles / categories / viewSettings）
 function applySnapshotPayload(payload) {
   if (!payload) return;
+
   state.titles = Array.isArray(payload.titles) ? payload.titles : [];
   state.categories = Array.isArray(payload.categories)
     ? payload.categories
     : [...DEFAULT_CATEGORIES];
-  state.viewSettings = payload.viewSettings || {};
+
+  const newViewSettings =
+    payload.viewSettings && Object.keys(payload.viewSettings).length
+      ? payload.viewSettings
+      : getDisplaySettings();
+
+  state.viewSettings = { ...newViewSettings };
+
+  // 写回本地存储，确保刷新后仍然生效
+  try {
+    localStorage.setItem(DISPLAY_SETTINGS_KEY, JSON.stringify(newViewSettings));
+  } catch (e) {
+    console.error('[TitleApp] 写入显示设置失败', e);
+  }
+
+  // 应用显示设置（按钮颜色 / 隔行色 / hover 等），同时刷新场景筛选
+  applyDisplaySettings();
 
   saveCategoriesToLocal();
   renderCategoryList();
@@ -882,25 +913,29 @@ async function syncSnapshotTitlesToCloud(titles) {
   }
 }
 
-async function saveCloudSnapshot() {
+// 通用保存函数：可指定 label 和 key，给以后“标题+文案一起保存”预留
+async function saveCloudSnapshotWithKeyAndLabel(label, key) {
   if (!supabase) {
     alert('未配置 Supabase');
     return;
   }
 
-  const label = prompt('请输入这次快照的备注名称（例如：11月中旬版本）：', '');
-  if (label === null) return;
+  const safeLabel = (label || '').trim();
+  if (!safeLabel) {
+    alert('快照名称不能为空');
+    return;
+  }
 
   const payload = collectSnapshotPayload();
-  payload.snapshot_label = label.trim();
+  payload.snapshot_label = safeLabel;
 
-  const key = `manual_${Date.now()}`;
+  const finalKey = key || `manual_${Date.now()}`;
 
   try {
     const { error } = await supabase.from(SNAPSHOT_TABLE).upsert(
       [
         {
-          key,
+          key: finalKey,
           payload,
           updated_at: new Date().toISOString()
         }
@@ -912,9 +947,25 @@ async function saveCloudSnapshot() {
 
     showToast('云端快照已保存');
   } catch (e) {
-    console.error('[TitleApp] saveCloudSnapshot error', e);
+    console.error('[TitleApp] saveCloudSnapshotWithKeyAndLabel error', e);
     alert('保存快照失败：' + (e.message || 'Unknown error'));
   }
+}
+
+// 兼容原按钮：内部通过通用函数实现
+async function saveCloudSnapshot() {
+  if (!supabase) {
+    alert('未配置 Supabase');
+    return;
+  }
+
+  const label = prompt(
+    '请输入这次快照的备注名称（例如：11月中旬版本）：',
+    ''
+  );
+  if (label === null) return;
+
+  await saveCloudSnapshotWithKeyAndLabel(label, null);
 }
 
 // 内部不再二次弹窗，始终覆盖 Supabase.titles
@@ -945,7 +996,7 @@ async function loadCloudSnapshot(key, options = {}) {
 
     const payload = data.payload;
 
-    // 覆盖前端 & 覆盖云端表
+    // 覆盖前端（titles / categories / 显示设置） & 覆盖云端表
     applySnapshotPayload(payload);
     await syncSnapshotTitlesToCloud(payload.titles || []);
     showToast('已加载快照并覆盖云端');
@@ -1101,7 +1152,9 @@ function bindCategoryButtons() {
         alert('不能删除「全部」分类');
         return;
       }
-      const ok = confirm(`确定删除分类「${cat}」？（不会删除标题，只是移除分类标签）`);
+      const ok = confirm(
+        `确定删除分类「${cat}」？（不会删除标题，只是移除分类标签）`
+      );
       if (!ok) return;
 
       state.categories = state.categories.filter((c) => c !== cat);
@@ -1172,7 +1225,28 @@ function showToast(msg, type = 'info') {
   }, 1800);
 }
 
-// =============== 11. 暴露给 HTML 的全局函数 ===============
+// =============== 11. 暴露给 HTML / 其他页面的全局函数 ===============
 
+// 弹窗打开（HTML onclick 用）
 window.openTitleModal = openTitleModal;
 window.openImportModal = openImportModal;
+
+// 供“设置页 / 文案页 / 统一快照管理”调用的 API
+window.TitleApp = {
+  // 列表数据
+  loadTitlesFromCloud,
+  applyFilters,
+  renderTitles,
+
+  // 显示设置
+  getDisplaySettings,
+  applyDisplaySettings,
+
+  // 快照相关
+  collectSnapshotPayload,
+  applySnapshotPayload,
+  saveCloudSnapshot,
+  saveCloudSnapshotWithKeyAndLabel,
+  loadCloudSnapshot,
+  syncSnapshotTitlesToCloud
+};
