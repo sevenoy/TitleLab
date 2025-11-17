@@ -42,15 +42,10 @@
           </div>
         </div>
 
-        <!-- 中：标题 / 文案 Tab -->
+        <!-- 中：标题 / 文案 Tab（同页切换，避免跨页跳转） -->
         <div class="topbar-center">
-          <button class="nav-tab nav-tab-active">标题</button>
-          <button
-            class="nav-tab"
-            onclick="window.location.href='content.html'"
-          >
-            文案
-          </button>
+          <button class="nav-tab nav-tab-active" data-target="title">标题</button>
+          <button class="nav-tab" data-target="content">文案</button>
         </div>
 
         <!-- 右：Supabase 状态 -->
@@ -61,7 +56,7 @@
         </div>
       </header>
 
-      <main class="layout">
+      <main id="titleSection" class="layout">
         <!-- 左侧分类面板 -->
         <aside class="panel w-full md:w-64 md:flex-shrink-0">
           <!-- 按钮行：新增 / 删除 / 排序 -->
@@ -188,6 +183,95 @@
         </section>
       </main>
 
+      <!-- 文案管理区域（与标题同页 tab 切换） -->
+      <main id="contentSection" class="layout hidden">
+        <aside class="panel w-full md:w-64 md:flex-shrink-0">
+          <div class="flex items-center justify-end mb-3">
+            <div class="flex gap-2">
+              <button class="function-btn ghost text-xs">新增分类</button>
+              <button class="function-btn ghost text-xs">删除分类</button>
+              <button class="function-btn ghost text-xs">排序</button>
+            </div>
+          </div>
+
+          <div id="mobileContentCategoryWrapper" class="md:hidden mb-2">
+            <button
+              id="mobileContentCategoryToggle"
+              type="button"
+              class="function-btn ghost w-full flex items-center justify-between"
+            >
+              <span id="mobileContentCategoryLabel">全部</span>
+              <span class="text-xs text-gray-600">分类 ▾</span>
+            </button>
+          </div>
+
+          <ul id="contentCategoryList" class="category-list"></ul>
+        </aside>
+
+        <section class="flex-1 min-w-0 flex flex-col gap-3">
+          <div class="panel">
+            <div class="toolbar flex items-center gap-3 flex-wrap mb-2">
+              <div class="search-wrapper">
+                <input
+                  id="contentSearchInput"
+                  type="text"
+                  placeholder="搜索文案 / 标题"
+                  class="field-input search-input"
+                />
+                <button
+                  id="btnClearContentSearch"
+                  type="button"
+                  class="function-btn search-clear-btn text-xs"
+                >
+                  清除
+                </button>
+              </div>
+
+              <select id="contentFilterScene" class="field-input filter-select">
+                <option value="">场景（全部）</option>
+                <option value="港迪城堡">港迪城堡</option>
+                <option value="烟花">烟花</option>
+                <option value="夜景">夜景</option>
+                <option value="香港街拍">香港街拍</option>
+              </select>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 mt-1">
+              <button id="btnNewContent" class="function-btn">新增文案</button>
+              <button id="btnBatchImportContent" class="function-btn ghost">
+                批量导入
+              </button>
+
+              <div class="extra-actions flex flex-wrap items-center gap-2 ml-auto">
+                <button class="function-btn ghost">清空全部</button>
+                <button class="function-btn ghost">设置页面</button>
+                <button class="function-btn ghost">保存云端</button>
+                <button class="function-btn ghost">加载云端</button>
+                <button class="function-btn ghost">管理页面</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel hidden md:block">
+            <table class="basic-table w-full">
+              <thead>
+                <tr>
+                  <th class="w-12">#</th>
+                  <th class="text-left">文案标题</th>
+                  <th class="w-28 text-left">主分类</th>
+                  <th class="w-28 text-left">内容类型</th>
+                  <th class="text-left">正文摘要</th>
+                  <th class="w-40 text-center">操作</th>
+                </tr>
+              </thead>
+              <tbody id="contentTableBody"></tbody>
+            </table>
+          </div>
+
+          <div id="contentMobileList" class="md:hidden flex flex-col gap-2"></div>
+        </section>
+      </main>
+
       <!-- 云端快照弹出层 -->
       <div id="cloudHistoryPanel" class="cloud-history-panel hidden"></div>
 
@@ -290,5 +374,29 @@
       <!-- Toast -->
       <div id="toast" class="toast hidden"></div>
     </div>
+
+    <!-- 站内 tab 切换：无跳转在同页展示标题与文案 -->
+    <script>
+      const tabButtons = document.querySelectorAll('.nav-tab');
+      const sections = {
+        title: document.getElementById('titleSection'),
+        content: document.getElementById('contentSection'),
+      };
+
+      function switchTab(target) {
+        tabButtons.forEach((btn) => {
+          const isActive = btn.dataset.target === target;
+          btn.classList.toggle('nav-tab-active', isActive);
+        });
+
+        Object.entries(sections).forEach(([key, el]) => {
+          el.classList.toggle('hidden', key !== target);
+        });
+      }
+
+      tabButtons.forEach((btn) => {
+        btn.addEventListener('click', () => switchTab(btn.dataset.target));
+      });
+    </script>
   </body>
 </html>
