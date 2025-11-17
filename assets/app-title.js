@@ -98,35 +98,41 @@ function renderSceneFilterOptions(settings) {
   }
 }
 
-// =============== 1. 初始化入口 ===============
+// =============== 1. 初始化入口（由 app-core 调用） ===============
 
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('[TitleApp] DOMContentLoaded: init');
+function initTitleModule() {
+  console.log('[TitleApp] initTitleModule: start');
 
+  // 1）先应用显示设置
   applyDisplaySettings();
 
-  // 分类
+  // 2）分类相关
   loadCategoriesFromLocal();
   renderCategoryList();
   bindCategoryButtons();
   setupMobileCategoryDropdown();
 
-  // 工具栏 / 弹窗 / 云端 / 全局按钮
+  // 3）工具栏 / 弹窗 / 云端 / 全局按钮
   bindToolbar();
   bindTitleModal();
   bindImportModal();
   bindCloudButtons();
   bindGlobalNavButtons();
 
+  // 4）Supabase 状态检查
   if (!supabase) {
     console.warn('[TitleApp] supabaseClient 不存在，云端功能不可用');
   } else {
     console.log('[TitleApp] supabaseClient 已就绪');
   }
 
-  // 初始从云端加载一遍 titles
+  // 5）初始从云端加载一遍 titles
   loadTitlesFromCloud();
-});
+}
+
+// 暴露给 window，给 app-core 调用
+window.initTitleModule = initTitleModule;
+
 
 // =============== 2. 分类逻辑 ===============
 
