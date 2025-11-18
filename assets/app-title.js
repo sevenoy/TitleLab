@@ -1182,3 +1182,27 @@ function showToast(msg, type = 'info') {
 
 window.openTitleModal = openTitleModal;
 window.openImportModal = openImportModal;
+
+window.TitleModule = {
+  getTitles() {
+    return Array.isArray(state.titles) ? state.titles : [];
+  },
+  getCategories() {
+    return Array.isArray(state.categories) ? state.categories : [];
+  },
+  setTitles(arr) {
+    state.titles = Array.isArray(arr) ? arr : [];
+  },
+  setCategories(arr) {
+    const cats = Array.isArray(arr) && arr.length ? arr : [...DEFAULT_CATEGORIES];
+    const set = new Set(cats);
+    if (!set.has('全部')) set.add('全部');
+    const next = ['全部', ...Array.from(set).filter((c) => c !== '全部')];
+    state.categories = next;
+    saveCategoriesToLocal();
+  },
+  refreshUI() {
+    renderCategoryList();
+    renderTitles();
+  }
+};

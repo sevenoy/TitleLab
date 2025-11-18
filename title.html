@@ -32,6 +32,9 @@
 <!-- 标题管理主逻辑（标题模块） -->
 <script src="assets/app-title.js"></script>
 
+<!-- 文案模块（SPA 内容） -->
+<script src="assets/module-contents.js"></script>
+
   </head>
 
   <body class="bg-page">
@@ -50,12 +53,7 @@
         <!-- 中：标题 / 文案 Tab -->
         <div class="topbar-center">
           <button class="nav-tab nav-tab-active">标题</button>
-          <button
-            class="nav-tab"
-            onclick="window.location.href='content.html'"
-          >
-            文案
-          </button>
+          <button class="nav-tab">文案</button>
         </div>
 
         <!-- 右：Supabase 状态 -->
@@ -494,6 +492,7 @@
 
       <!-- Toast -->
       <div id="toast" class="toast hidden"></div>
+      <div id="cloudHistoryPanel" class="cloud-panel hidden"></div>
     </div> <!-- end of #titlePane -->
 
     <div id="contentPane" class="hidden">
