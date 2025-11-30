@@ -1,22 +1,20 @@
-const CACHE_NAME = 'titlelab-pwa-v2';
+const CACHE_NAME = 'titlelab-pwa-v1';
 const OFFLINE_ASSETS = [
-  './',
-  './index.html',
-  './title.html',
-  './content.html',
-  './login.html',
-  './settings.html',
-  './admin-center.html',
-  './assets/styles.css',
-  './assets/app-title.js',
-  './assets/app-content.js',
-  './assets/supabase.js',
-  './assets/classifier.js',
-  './assets/admin.js',
-  './assets/settings.js',
-  './manifest.webmanifest',
-  './icon/icon-192.png',
-  './icon/icon-512.png'
+  '/',
+  '/index.html',
+  '/title.html',
+  '/content.html',
+  '/login.html',
+  '/settings.html',
+  '/admin-center.html',
+  '/assets/styles.css',
+  '/assets/app-title.js',
+  '/assets/app-content.js',
+  '/assets/supabase.js',
+  '/assets/classifier.js',
+  '/manifest.webmanifest',
+  '/icon/icon-192.png',
+  '/icon/icon-512.png'
 ];
 
 self.addEventListener('install', event => {
@@ -56,7 +54,7 @@ self.addEventListener('fetch', event => {
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
           return response;
         })
-        .catch(() => caches.match(new URL('./index.html', self.location.origin)));
+        .catch(() => caches.match('/index.html'));
     })
   );
 });
