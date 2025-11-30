@@ -646,7 +646,7 @@ function renderSceneFilterOptions(settings) {
   const filterScene = document.getElementById('filterScene');
   if (!filterScene) return;
   const prevValue = filterScene.value;
-  filterScene.innerHTML = '<option value="">场景（全部）</option>';
+  filterScene.innerHTML = '<option value="">账号分类</option>';
   (settings.scenes || []).forEach((scene) => {
     const opt = document.createElement('option');
     opt.value = scene;
@@ -676,7 +676,7 @@ function openImportModal() {
     sel.innerHTML = '';
     const emptyOpt = document.createElement('option');
     emptyOpt.value = '';
-    emptyOpt.textContent = '未选择';
+    emptyOpt.textContent = '请选择';
     sel.appendChild(emptyOpt);
     state.categories.filter((c) => c !== '全部').forEach((cat) => {
       const opt = document.createElement('option');

@@ -68,7 +68,7 @@
                 <button id="btnClearSearch" type="button" class="function-btn search-clear-btn text-xs">清除</button>
               </div>
               <select id="filterScene" class="field-input filter-select">
-                <option value="">场景（全部）</option>
+                <option value="">账号分类</option>
                 <option value="港迪城堡">港迪城堡</option>
                 <option value="烟花">烟花</option>
                 <option value="夜景">夜景</option>
@@ -181,13 +181,13 @@
                 <select id="fieldMainCategoryContent" class="field-input"></select>
               </div>
               <div class="flex-1 min-w-[120px]">
-                <label class="field-label">内容类型</label>
+                <label class="field-label">账号分类选择</label>
                 <select id="fieldContentTypeContent" class="field-input">
-                  <option value="">自动识别</option>
-                  <option value="展示">出片展示</option>
-                  <option value="攻略">攻略 / 机位</option>
-                  <option value="服务">服务推荐</option>
-                  <option value="节日">节日主题</option>
+                  <option value="">账号分类</option>
+                  <option value="港迪城堡">港迪城堡</option>
+                  <option value="烟花">烟花</option>
+                  <option value="夜景">夜景</option>
+                  <option value="香港街拍">香港街拍</option>
                 </select>
               </div>
             </div>
@@ -242,8 +242,22 @@
           </div>
           <div class="modal-body grid gap-3 md:grid-cols-2">
             <div class="space-y-2">
-              <label class="field-label">导入到分类</label>
-              <select id="importCategorySelectContent" class="field-input"></select>
+              <div class="flex items-center gap-2">
+                <div class="flex-1">
+                  <label class="field-label">导入到分类</label>
+                  <select id="importCategorySelectContent" class="field-input"></select>
+                </div>
+                <div class="flex-1">
+                  <label class="field-label">账号分类</label>
+                  <select id="importAccountCategorySelectContent" class="field-input">
+                    <option value="">账号分类</option>
+                    <option value="港迪城堡">港迪城堡</option>
+                    <option value="烟花">烟花</option>
+                    <option value="夜景">夜景</option>
+                    <option value="香港街拍">香港街拍</option>
+                  </select>
+                </div>
+              </div>
               <label class="field-label">多行文案（每行一条）</label>
               <textarea id="importRawInputContent" class="field-input" rows="12" placeholder="粘贴多行文案，每行一条"></textarea>
             </div>
