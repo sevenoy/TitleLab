@@ -192,12 +192,13 @@ function renderCategoryList() {
       controls.className = 'category-sort-controls';
       const btnUp = document.createElement('button');
       btnUp.type = 'button';
-      btnUp.textContent = '↑';
+      btnUp.innerHTML = '▲';
       btnUp.className = 'function-btn ghost text-xs btn-inline';
+      btnUp.style.marginLeft = '4px';
       btnUp.addEventListener('click', (e) => { e.stopPropagation(); reorderCategory(index, -1); });
       const btnDown = document.createElement('button');
       btnDown.type = 'button';
-      btnDown.textContent = '↓';
+      btnDown.innerHTML = '▼';
       btnDown.className = 'function-btn ghost text-xs btn-inline';
       btnDown.style.marginLeft = '4px';
       btnDown.addEventListener('click', (e) => { e.stopPropagation(); reorderCategory(index, 1); });
@@ -365,7 +366,7 @@ function renderContents() {
     const card = document.createElement('div');
     card.className = 'panel mobile-card';
     const headerRow = document.createElement('div');
-    headerRow.className = 'flex items-start gap-2';
+    headerRow.className = 'flex items-start justify-between gap-2';
     const cTitle = document.createElement('div');
     cTitle.className = 'text-sm font-medium flex-1 min-w-0 line-clamp-2 break-anywhere';
     {
@@ -405,7 +406,7 @@ function renderContents() {
     mDel.textContent = '删除';
     mDel.addEventListener('click', () => openDeleteContentModal(item));
     actions.append(mCopy, mEdit, mDel);
-    headerRow.append(leftWrap);
+    headerRow.append(leftWrap, actions);
     const details = document.createElement('div');
     details.className = 'mobile-card-details hidden';
     details.textContent = item.text || '';

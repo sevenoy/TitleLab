@@ -71,9 +71,8 @@ body.bg-page {
 .topbar-right {
   display: flex;
   align-items: center;
-  gap: 0px;
+  gap: 8px;
 }
-.topbar-right #btnLogout { margin-left: -1px; }
 
 /* 顶部中间：标题 / 文案 Tab */
 
@@ -104,13 +103,13 @@ body.bg-page {
 .pill-muted {
   padding: 4px 10px;
   border-radius: 999px;
-  background: #f3f4f6;
-  color: var(--text-muted);
+  background: var(--brand-blue, #1990ff) !important;
+  color: #ffffff !important;
   font-size: 12px;
 }
 .pill-muted.alt {
-  background: var(--ghost-bg, #eef2ff);
-  color: var(--text-main);
+  background: #ffffff !important;
+  color: var(--text-main) !important;
 }
 
 /* 用户名简写样式 */
@@ -425,7 +424,22 @@ textarea.field-input {
 
 /* 排序按钮容器，可选 */
 .category-sort-controls .function-btn {
-  padding-inline: 6px;
+  padding-inline: 12px;
+  min-width: 32px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  color: var(--brand-blue, #1990ff) !important;
+}
+
+.category-sort-controls .function-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(25, 144, 255, 0.2);
+  color: var(--brand-blue-hover, #1477dd) !important;
 }
 
 

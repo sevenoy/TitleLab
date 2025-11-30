@@ -78,7 +78,7 @@ function renderSceneFilterOptions(settings) {
   const filterScene = document.getElementById('filterScene');
   if (!filterScene) return;
   const prevValue = filterScene.value;
-  filterScene.innerHTML = '<option value="">场景（全部）</option>';
+  filterScene.innerHTML = '<option value="">账号分类</option>';
   (settings.scenes || []).forEach((scene) => {
     const opt = document.createElement('option');
     opt.value = scene;
@@ -239,8 +239,9 @@ function renderCategoryList() {
 
       const btnUp = document.createElement('button');
       btnUp.type = 'button';
-      btnUp.textContent = '↑';
+      btnUp.innerHTML = '▲';
       btnUp.className = 'function-btn ghost text-xs btn-inline';
+      btnUp.style.marginLeft = '4px';
       btnUp.addEventListener('click', (e) => {
         e.stopPropagation();
         reorderCategory(index, -1);
@@ -248,7 +249,7 @@ function renderCategoryList() {
 
       const btnDown = document.createElement('button');
       btnDown.type = 'button';
-      btnDown.textContent = '↓';
+      btnDown.innerHTML = '▼';
       btnDown.className = 'function-btn ghost text-xs btn-inline';
       btnDown.style.marginLeft = '4px';
       btnDown.addEventListener('click', (e) => {
@@ -733,7 +734,7 @@ function refreshModalCategoryOptions(selectEl) {
   const cats = state.categories.filter((c) => c !== '全部');
   const emptyOpt = document.createElement('option');
   emptyOpt.value = '';
-  emptyOpt.textContent = '未选择';
+  emptyOpt.textContent = '请选择';
   selectEl.appendChild(emptyOpt);
 
   cats.forEach((cat) => {
@@ -875,7 +876,7 @@ function openImportModal() {
     sel.innerHTML = '';
     const emptyOpt = document.createElement('option');
     emptyOpt.value = '';
-    emptyOpt.textContent = '未选择';
+    emptyOpt.textContent = '请选择';
     sel.appendChild(emptyOpt);
     state.categories.filter((c) => c !== '全部').forEach((cat) => {
       const opt = document.createElement('option');
