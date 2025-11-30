@@ -281,14 +281,28 @@ function showSettingsToast(msg) {
   el._timer = setTimeout(() => el.classList.add('hidden'), 1600);
 }
 
+// 允许登录的用户列表（与 login.html 保持一致）
+const ALLOWED_USERS = ['sevenoy', 'olina'];
+
+function validateUser(user) {
+  if (!user || !user.username) return false;
+  return ALLOWED_USERS.includes(user.username);
+}
+
 function initSettingsPage() {
+  const user = getCurrentUser();
+  if (!user || !validateUser(user)) { 
+    // 清除无效的用户信息
+    try { localStorage.removeItem('current_user_v1'); } catch (_) {}
+    window.location.href = 'login.html'; 
+    return; 
+  }
   settingsState = loadDisplaySettings();
   hydrateFormValues();
   applyDisplayPreview();
   bindSceneAdder();
   bindResetButton();
   bindImportExport();
-  const user = getCurrentUser();
   const badge = document.getElementById('currentUserName');
   if (user && badge) badge.textContent = user.username;
   const btnLogout = document.getElementById('btnLogout');

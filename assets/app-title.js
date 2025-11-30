@@ -96,9 +96,22 @@ function renderSceneFilterOptions(settings) {
 
 // =============== 1. 初始化入口 ===============
 
+// 允许登录的用户列表（与 login.html 保持一致）
+const ALLOWED_USERS = ['sevenoy', 'olina'];
+
+function validateUser(user) {
+  if (!user || !user.username) return false;
+  return ALLOWED_USERS.includes(user.username);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const user = getCurrentUser();
-  if (!user) { window.location.href = 'login.html'; return; }
+  if (!user || !validateUser(user)) { 
+    // 清除无效的用户信息
+    try { localStorage.removeItem('current_user_v1'); } catch (_) {}
+    window.location.href = 'login.html'; 
+    return; 
+  }
   console.log('[TitleApp] DOMContentLoaded: init');
 
   applyDisplaySettings();
