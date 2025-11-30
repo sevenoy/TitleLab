@@ -5,9 +5,10 @@
   }
 
   window.addEventListener('load', () => {
-    const swUrl = `${window.location.origin}/sw.js`;
+    // 使用相对路径，适配 GitHub Pages 子目录部署
+    const swUrl = './sw.js';
     navigator.serviceWorker
-      .register(swUrl)
+      .register(swUrl, { scope: './' })
       .then(reg => {
         console.info('Service Worker registered:', reg.scope);
       })
