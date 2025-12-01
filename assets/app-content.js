@@ -104,6 +104,9 @@ function openCloudLoadConfirmContent(key) {
     if (pendingSnapshotKeyContent) {
       try {
         const info = await window.snapshotService.loadUnifiedSnapshot(pendingSnapshotKeyContent, 'both');
+        // 重新加载分类（从 localStorage 恢复）
+        loadCategoriesFromLocal();
+        renderCategoryList();
         await loadContentsFromCloud();
         showToast(`已加载：标题 ${info.titleCount} 条 文案 ${info.contentCount} 条 ${info.updatedText}`);
       } catch (e) {
