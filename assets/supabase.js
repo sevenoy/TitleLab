@@ -84,9 +84,11 @@ async function tryListUnifiedSnapshots(limit = 5) {
     .from('snapshots')
     .select('key, payload, updated_at')
     .order('updated_at', { ascending: false })
-    .limit(limit);
+    .limit(limit * 2); // 获取更多记录以便过滤后仍有足够的快照
   if (error) return { rows: [], source: 'error' };
-  return { rows: data || [], source: 'snapshots' };
+  // 过滤掉用户配置文件记录（以 user_profile_ 开头的 key）
+  const filtered = (data || []).filter((r) => !r.key || !r.key.startsWith('user_profile_'));
+  return { rows: filtered.slice(0, limit), source: 'snapshots' };
 }
 
 async function tryListTitleSnapshots(limit = 5) {
@@ -183,7 +185,18 @@ window.snapshotService = {
   async listUnified(limit = 5) {
     const first = await tryListUnifiedSnapshots(limit);
     if (first.source === 'snapshots' && first.rows.length) {
-      return first.rows.map((r) => ({
+      // 再次过滤，确保只返回真正的快照（有 snapshot_label 或 titles/contents 的记录）
+      const validSnapshots = first.rows.filter((r) => {
+        if (!r.payload) return false;
+        // 排除用户配置文件
+        if (r.key && r.key.startsWith('user_profile_')) return false;
+        // 只返回有 snapshot_label 或 titles/contents 的记录（真正的快照）
+        const hasLabel = r.payload.snapshot_label !== undefined && r.payload.snapshot_label !== null;
+        const hasTitles = Array.isArray(r.payload.titles) && r.payload.titles.length > 0;
+        const hasContents = Array.isArray(r.payload.contents) && r.payload.contents.length > 0;
+        return hasLabel || hasTitles || hasContents;
+      });
+      return validSnapshots.map((r) => ({
         key: r.key,
         label: (r.payload && r.payload.snapshot_label) || '(未命名)',
         titleCount: Array.isArray(r.payload && r.payload.titles)
