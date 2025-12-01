@@ -80,14 +80,33 @@ async function upsertSnapshot(row) {
 
 async function tryListUnifiedSnapshots(limit = 5) {
   if (!supabaseClient) return { rows: [], source: 'none' };
+  
+  // 获取当前用户，只查询当前用户的快照
+  let user = null;
+  try { const raw = localStorage.getItem('current_user_v1'); user = raw ? JSON.parse(raw) : null; } catch (_) {}
+  const userPrefix = user ? `user_${user.username}_` : '';
+  
   const { data, error } = await supabaseClient
     .from('snapshots')
     .select('key, payload, updated_at')
     .order('updated_at', { ascending: false })
     .limit(limit * 2); // 获取更多记录以便过滤后仍有足够的快照
   if (error) return { rows: [], source: 'error' };
-  // 过滤掉用户配置文件记录（以 user_profile_ 开头的 key）
-  const filtered = (data || []).filter((r) => !r.key || !r.key.startsWith('user_profile_'));
+  
+  // 过滤：只返回当前用户的快照，排除用户配置文件记录
+  const filtered = (data || []).filter((r) => {
+    if (!r.key) return false;
+    // 排除用户配置文件
+    if (r.key.startsWith('user_profile_')) return false;
+    // 只返回当前用户的快照
+    if (userPrefix) {
+      return r.key.startsWith(userPrefix);
+    } else {
+      // 如果没有用户，只返回没有 user_ 前缀的快照（旧数据或共享快照）
+      return !r.key.startsWith('user_');
+    }
+  });
+  
   return { rows: filtered.slice(0, limit), source: 'snapshots' };
 }
 
@@ -230,6 +249,19 @@ window.snapshotService = {
   },
   async loadUnifiedSnapshot(key, apply = 'both') {
     if (!supabaseClient) throw new Error('supabase offline');
+    
+    // 验证快照是否属于当前用户
+    let user = null;
+    try { const raw = localStorage.getItem('current_user_v1'); user = raw ? JSON.parse(raw) : null; } catch (_) {}
+    const userPrefix = user ? `user_${user.username}_` : '';
+    
+    // 如果快照 key 有用户前缀，验证是否匹配当前用户
+    if (userPrefix && key.startsWith('user_')) {
+      if (!key.startsWith(userPrefix)) {
+        throw new Error('无权访问此快照');
+      }
+    }
+    
     let payload = null;
     try {
       const { data } = await supabaseClient
