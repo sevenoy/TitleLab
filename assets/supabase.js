@@ -281,6 +281,13 @@ window.snapshotService = {
         JSON.stringify(payload.categories.content)
       );
     }
+    // 恢复场景设置（账号分类）
+    if (payload.viewSettings) {
+      localStorage.setItem(
+        'display_settings_v1',
+        JSON.stringify(payload.viewSettings)
+      );
+    }
     return {
       titleCount: titles.length,
       contentCount: contents.length,

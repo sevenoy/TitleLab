@@ -107,6 +107,8 @@ function openCloudLoadConfirmContent(key) {
         // 重新加载分类（从 localStorage 恢复）
         loadCategoriesFromLocal();
         renderCategoryList();
+        // 重新应用显示设置（包括场景设置/账号分类）
+        applyDisplaySettings();
         await loadContentsFromCloud();
         showToast(`已加载：标题 ${info.titleCount} 条 文案 ${info.contentCount} 条 ${info.updatedText}`);
       } catch (e) {
