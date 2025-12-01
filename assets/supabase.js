@@ -132,6 +132,14 @@ async function clearAndInsert(table, rows) {
 window.snapshotService = {
   async saveUnifiedSnapshotFromCloud(label, opts = {}) {
     if (!supabaseClient) throw new Error('supabase offline');
+    
+    // 防止自动保存空白快照：如果标签为空且不是用户主动保存，则拒绝保存
+    const labelTrimmed = (label || '').trim();
+    if (!labelTrimmed && !opts.allowEmptyLabel) {
+      console.warn('[SnapshotService] 拒绝保存空标签快照（防止自动保存）');
+      throw new Error('快照标签不能为空');
+    }
+    
     const titles = await fetchTableAll('titles');
     const contents = await fetchTableAll('contents');
     const titleCatsRaw = localStorage.getItem('title_categories_v1');
@@ -151,7 +159,7 @@ window.snapshotService = {
     } catch (_) {}
     const payload = {
       ver: 2,
-      snapshot_label: label || '',
+      snapshot_label: labelTrimmed || '',
       updated_at: Date.now(),
       titles,
       contents,
