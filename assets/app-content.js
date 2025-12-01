@@ -502,12 +502,29 @@ function userTag(u) { return `user:${u}`; }
 
 function applyFilters(list) {
   const cat = state.currentCategory;
+  const scene = state.filters.scene;
   const q = state.filters.search.toLowerCase();
-  return list.filter((item) => {
+  const filtered = list.filter((item) => {
+    // 主分类筛选
     if (cat !== '全部' && item.main_category !== cat) return false;
+    
+    // 账号分类筛选（通过 scene_tags）
+    if (scene) {
+      const tags = Array.isArray(item.scene_tags) ? item.scene_tags : [];
+      if (!tags.includes(scene)) return false;
+    }
+    
+    // 搜索筛选
     if (q && !(item.text || '').toLowerCase().includes(q)) return false;
+    
     return true;
   });
+  console.log('[ContentApp] 筛选结果:', {
+    total: list.length,
+    filtered: filtered.length,
+    filters: { category: cat, scene: scene, search: q }
+  });
+  return filtered;
 }
 
 function renderContents() {
@@ -823,6 +840,7 @@ async function saveContentFromModal() {
   allSceneTags.push(userTag(user.username));
   
   const payload = { text, main_category: cat, content_type: type, scene_tags: Array.from(new Set(allSceneTags)) };
+  console.log('[ContentApp] 保存文案 payload =', payload, 'editingId =', state.editingId);
   if (!supabase) { showToast('未配置 Supabase，无法保存到云端', 'error'); return; }
   const prevCategory = state.currentCategory;
   try {
@@ -994,6 +1012,7 @@ async function runImport() {
       usage_count: 0
     };
   });
+  console.log('[ContentApp] 批量导入 rows =', rows, 'mainCategory =', mainCategory, 'accountCategory =', accountCategory);
   try {
     const { error } = await supabase.from('contents').insert(rows);
     if (error) throw error;

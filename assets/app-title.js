@@ -1045,7 +1045,11 @@ async function saveTitleFromModal() {
     '[TitleApp] 保存标题 payload =',
     payload,
     'editingId =',
-    state.editingId
+    state.editingId,
+    '账号分类 =',
+    type,
+    'scene_tags =',
+    payload.scene_tags
   );
 
   if (!supabase) {
@@ -1200,6 +1204,8 @@ async function runImport() {
       usage_count: 0
     };
   });
+  
+  console.log('[TitleApp] 批量导入 rows =', rows, 'mainCategory =', mainCategory, 'accountCategory =', accountCategory);
 
   try {
     const { error } = await supabase.from('titles').insert(rows);
