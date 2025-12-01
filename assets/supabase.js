@@ -144,8 +144,17 @@ window.snapshotService = {
     
     const titles = await fetchTableAll('titles');
     const contents = await fetchTableAll('contents');
-    const titleCatsRaw = localStorage.getItem('title_categories_v1');
-    const contentCatsRaw = localStorage.getItem('content_categories_v1');
+    
+    // 获取当前用户的设置 key
+    let user = null;
+    try { const raw = localStorage.getItem('current_user_v1'); user = raw ? JSON.parse(raw) : null; } catch (_) {}
+    const username = user ? user.username : 'default';
+    const titleCatsKey = `title_categories_v1_${username}`;
+    const contentCatsKey = `content_categories_v1_${username}`;
+    const viewSettingsKey = `display_settings_v1_${username}`;
+    
+    const titleCatsRaw = localStorage.getItem(titleCatsKey);
+    const contentCatsRaw = localStorage.getItem(contentCatsKey);
     let titleCats = [];
     let contentCats = [];
     try {
@@ -154,7 +163,7 @@ window.snapshotService = {
     try {
       contentCats = JSON.parse(contentCatsRaw || '[]');
     } catch (_) {}
-    const viewSettingsRaw = localStorage.getItem('display_settings_v1');
+    const viewSettingsRaw = localStorage.getItem(viewSettingsKey);
     let viewSettings = {};
     try {
       viewSettings = JSON.parse(viewSettingsRaw || '{}');
@@ -168,8 +177,6 @@ window.snapshotService = {
       categories: { title: titleCats, content: contentCats },
       viewSettings
     };
-    let user = null;
-    try { const raw = localStorage.getItem('current_user_v1'); user = raw ? JSON.parse(raw) : null; } catch (_) {}
     const row = {
       key: `${user ? 'user_'+user.username+'_' : ''}manual_${Date.now()}`,
       payload,
@@ -269,22 +276,30 @@ window.snapshotService = {
         }))
       );
     }
+    // 获取当前用户的设置 key
+    let user = null;
+    try { const raw = localStorage.getItem('current_user_v1'); user = raw ? JSON.parse(raw) : null; } catch (_) {}
+    const username = user ? user.username : 'default';
+    const titleCatsKey = `title_categories_v1_${username}`;
+    const contentCatsKey = `content_categories_v1_${username}`;
+    const viewSettingsKey = `display_settings_v1_${username}`;
+    
     if (payload.categories && payload.categories.title) {
       localStorage.setItem(
-        'title_categories_v1',
+        titleCatsKey,
         JSON.stringify(payload.categories.title)
       );
     }
     if (payload.categories && payload.categories.content) {
       localStorage.setItem(
-        'content_categories_v1',
+        contentCatsKey,
         JSON.stringify(payload.categories.content)
       );
     }
     // 恢复场景设置（账号分类）
     if (payload.viewSettings) {
       localStorage.setItem(
-        'display_settings_v1',
+        viewSettingsKey,
         JSON.stringify(payload.viewSettings)
       );
     }

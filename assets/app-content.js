@@ -3,8 +3,19 @@ console.log('[ContentApp] app-content.js loaded');
 const supabase = window.supabaseClient || null;
 
 const DEFAULT_CATEGORIES = ['全部', '亲子', '情侣', '闺蜜', '单人', '烟花', '夜景'];
-const CATEGORY_LS_KEY = 'content_categories_v1';
-const DISPLAY_SETTINGS_KEY = 'display_settings_v1';
+
+// 获取带用户名的 localStorage key（每个账号单独存储）
+function getCategoryLSKey() {
+  const user = getCurrentUser();
+  const username = user ? user.username : 'default';
+  return `content_categories_v1_${username}`;
+}
+
+function getDisplaySettingsLSKey() {
+  const user = getCurrentUser();
+  const username = user ? user.username : 'default';
+  return `display_settings_v1_${username}`;
+}
 const DEFAULT_DISPLAY_SETTINGS = {
   brandColor: '#1990ff',
   brandHover: '#1477dd',
@@ -63,7 +74,8 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // 监听 localStorage 变化，当场景设置改变时自动更新
   window.addEventListener('storage', (e) => {
-    if (e.key === DISPLAY_SETTINGS_KEY) {
+    const settingsKey = getDisplaySettingsLSKey();
+    if (e.key === settingsKey) {
       refreshSceneSelects();
     }
   });
@@ -138,7 +150,8 @@ function stripLeadingIndex(s) {
 }
 
 function getDisplaySettings() {
-  const raw = localStorage.getItem(DISPLAY_SETTINGS_KEY);
+  const key = getDisplaySettingsLSKey();
+  const raw = localStorage.getItem(key);
   if (!raw) return { ...DEFAULT_DISPLAY_SETTINGS };
   try {
     const parsed = JSON.parse(raw);
@@ -171,7 +184,8 @@ function applyDisplaySettings() {
 }
 
 function loadCategoriesFromLocal() {
-  const raw = localStorage.getItem(CATEGORY_LS_KEY);
+  const key = getCategoryLSKey();
+  const raw = localStorage.getItem(key);
   if (!raw) { state.categories = [...DEFAULT_CATEGORIES]; return; }
   try {
     const arr = JSON.parse(raw);
@@ -188,7 +202,8 @@ function loadCategoriesFromLocal() {
 }
 
 function saveCategoriesToLocal() {
-  localStorage.setItem(CATEGORY_LS_KEY, JSON.stringify(state.categories));
+  const key = getCategoryLSKey();
+  localStorage.setItem(key, JSON.stringify(state.categories));
 }
 
 function renderCategoryList() {

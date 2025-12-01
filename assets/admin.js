@@ -306,22 +306,29 @@ function bindCategoryOps() {
   const btnA = document.getElementById('btnCopyTitleCatsToContent');
   const btnB = document.getElementById('btnCopyContentCatsToTitle');
   const btnR = document.getElementById('btnResetCatsDefault');
+  
+  // 获取当前用户的设置 key
+  const user = getCurrentUser();
+  const username = user ? user.username : 'default';
+  const titleCatsKey = `title_categories_v1_${username}`;
+  const contentCatsKey = `content_categories_v1_${username}`;
+  
   if (btnA) btnA.addEventListener('click', () => {
-    const src = localStorage.getItem('title_categories_v1');
+    const src = localStorage.getItem(titleCatsKey);
     const arr = src ? JSON.parse(src) : [];
-    localStorage.setItem('content_categories_v1', JSON.stringify(arr));
+    localStorage.setItem(contentCatsKey, JSON.stringify(arr));
     showToast('已复制到文案分类');
   });
   if (btnB) btnB.addEventListener('click', () => {
-    const src = localStorage.getItem('content_categories_v1');
+    const src = localStorage.getItem(contentCatsKey);
     const arr = src ? JSON.parse(src) : [];
-    localStorage.setItem('title_categories_v1', JSON.stringify(arr));
+    localStorage.setItem(titleCatsKey, JSON.stringify(arr));
     showToast('已复制到标题分类');
   });
   if (btnR) btnR.addEventListener('click', () => {
     const def = ['全部','亲子','情侣','闺蜜','单人','烟花','夜景'];
-    localStorage.setItem('title_categories_v1', JSON.stringify(def));
-    localStorage.setItem('content_categories_v1', JSON.stringify(def));
+    localStorage.setItem(titleCatsKey, JSON.stringify(def));
+    localStorage.setItem(contentCatsKey, JSON.stringify(def));
     showToast('分类已重置');
   });
 }

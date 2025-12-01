@@ -1,4 +1,3 @@
-const DISPLAY_SETTINGS_KEY = 'display_settings_v1';
 const DEFAULT_DISPLAY_SETTINGS = {
   brandColor: '#1990ff',
   brandHover: '#1477dd',
@@ -11,10 +10,18 @@ const DEFAULT_DISPLAY_SETTINGS = {
   titleColor: '#1990ff'
 };
 
+// 获取带用户名的 localStorage key（每个账号单独存储）
+function getDisplaySettingsLSKey() {
+  const user = getCurrentUser();
+  const username = user ? user.username : 'default';
+  return `display_settings_v1_${username}`;
+}
+
 let settingsState = { ...DEFAULT_DISPLAY_SETTINGS };
 
 function loadDisplaySettings() {
-  const raw = localStorage.getItem(DISPLAY_SETTINGS_KEY);
+  const key = getDisplaySettingsLSKey();
+  const raw = localStorage.getItem(key);
   if (!raw) return { ...DEFAULT_DISPLAY_SETTINGS };
   try {
     const parsed = JSON.parse(raw);
@@ -32,7 +39,8 @@ function loadDisplaySettings() {
 
 function saveDisplaySettings(nextSettings) {
   settingsState = { ...settingsState, ...nextSettings };
-  localStorage.setItem(DISPLAY_SETTINGS_KEY, JSON.stringify(settingsState));
+  const key = getDisplaySettingsLSKey();
+  localStorage.setItem(key, JSON.stringify(settingsState));
   applyDisplayPreview();
   showSettingsToast('已保存并应用');
   // 触发自定义事件，通知其他页面更新场景下拉菜单
@@ -215,7 +223,8 @@ function bindResetButton() {
   if (!btn) return;
   btn.addEventListener('click', () => {
     settingsState = { ...DEFAULT_DISPLAY_SETTINGS };
-    localStorage.setItem(DISPLAY_SETTINGS_KEY, JSON.stringify(settingsState));
+    const key = getDisplaySettingsLSKey();
+    localStorage.setItem(key, JSON.stringify(settingsState));
     hydrateFormValues();
     applyDisplayPreview();
     showSettingsToast('已恢复默认');
@@ -227,7 +236,8 @@ function bindImportExport() {
   const btnImp = document.getElementById('btnImportSettings');
   const fileInput = document.getElementById('settingsFileInput');
   if (btnExp) btnExp.addEventListener('click', () => {
-    const payload = { key: DISPLAY_SETTINGS_KEY, version: 'v1', savedAt: Date.now(), data: settingsState };
+    const key = getDisplaySettingsLSKey();
+    const payload = { key: key, version: 'v1', savedAt: Date.now(), data: settingsState };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8;' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -249,7 +259,8 @@ function bindImportExport() {
         const next = { ...DEFAULT_DISPLAY_SETTINGS, ...payload.data };
         const scenes = Array.isArray(next.scenes) ? next.scenes.filter(Boolean) : [];
         settingsState = { ...next, scenes };
-        localStorage.setItem(DISPLAY_SETTINGS_KEY, JSON.stringify(settingsState));
+        const key = getDisplaySettingsLSKey();
+        localStorage.setItem(key, JSON.stringify(settingsState));
         hydrateFormValues();
         applyDisplayPreview();
         showSettingsToast('已导入并应用');
