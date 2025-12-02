@@ -1357,9 +1357,19 @@ async function renderCloudHistoryList(anchorBtn) {
     return;
   }
   const panel = document.getElementById('cloudHistoryPanel');
-  if (!panel) return;
+  if (!panel) {
+    console.warn('[TitleApp] renderCloudHistoryList: cloudHistoryPanel 未找到');
+    return;
+  }
+  
+  // 强制显示面板
   panel.classList.remove('hidden');
   panel.style.display = 'block';
+  panel.style.visibility = 'visible';
+  panel.style.opacity = '1';
+  panel.style.pointerEvents = 'auto';
+  panel.style.zIndex = '50';
+  
   panel.innerHTML =
     '<div style="padding:8px 10px;font-size:12px;color:#6b7280;">加载中…</div>';
   const rect = anchorBtn.getBoundingClientRect();
@@ -1407,7 +1417,13 @@ async function renderCloudHistoryList(anchorBtn) {
   }
 }
 
-function toggleCloudHistoryPanel() {
+function toggleCloudHistoryPanel(e) {
+  // 阻止事件冒泡，防止被document的click事件处理
+  if (e) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  
   const panel = document.getElementById('cloudHistoryPanel');
   const btn = document.getElementById('btnLoadCloud');
   if (!panel) {
@@ -1422,6 +1438,7 @@ function toggleCloudHistoryPanel() {
   if (!panel.classList.contains('hidden')) {
     panel.classList.add('hidden');
     panel.style.display = 'none';
+    panel.style.visibility = 'hidden';
     return;
   }
 
@@ -1440,10 +1457,14 @@ document.addEventListener('click', (e) => {
   const btn = document.getElementById('btnLoadCloud');
   if (!panel || panel.classList.contains('hidden')) return;
   const target = e.target;
+  // 如果点击的是按钮本身或其子元素，不关闭面板
   if (btn && (btn === target || btn.contains(target))) return;
+  // 如果点击的是面板内部，不关闭面板
   if (panel.contains(target)) return;
+  // 否则关闭面板
   panel.classList.add('hidden');
   panel.style.display = 'none';
+  panel.style.visibility = 'hidden';
 });
 
 // =============== 9. 分类按钮：新增 / 删除 / 排序 ===============
@@ -1543,7 +1564,8 @@ function bindCloudButtons() {
   const btnLoad = document.getElementById('btnLoadCloud');
 
   if (btnSave) {
-    btnSave.addEventListener('click', () => { 
+    btnSave.addEventListener('click', (e) => { 
+      e.stopPropagation();
       hideCloudHistoryPanel(); 
       openCloudLabelModal(); 
     });
@@ -1551,7 +1573,11 @@ function bindCloudButtons() {
     console.warn('[TitleApp] bindCloudButtons: btnSaveCloud 未找到');
   }
   if (btnLoad) {
-    btnLoad.addEventListener('click', toggleCloudHistoryPanel);
+    btnLoad.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleCloudHistoryPanel(e);
+    });
+    console.log('[TitleApp] bindCloudButtons: btnLoadCloud 事件已绑定');
   } else {
     console.warn('[TitleApp] bindCloudButtons: btnLoadCloud 未找到');
   }
