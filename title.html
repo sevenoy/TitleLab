@@ -395,21 +395,26 @@
     <!-- 页面加载后立即隐藏所有模态框 -->
     <script>
       (function() {
+        let isInitializing = true;
         function hideAllModals() {
+          // 只在初始化阶段强制隐藏，避免干扰正常的模态框显示
+          if (!isInitializing) return;
+          
           // 强制隐藏所有模态框
           const allModals = document.querySelectorAll('.modal-backdrop');
           allModals.forEach(modal => {
-            modal.classList.add('hidden');
-            modal.style.display = 'none';
-            modal.style.visibility = 'hidden';
-            modal.style.opacity = '0';
-            modal.style.pointerEvents = 'none';
-            modal.style.zIndex = '-1';
+            // 只处理有hidden类的模态框，避免干扰正常显示的模态框
+            if (modal.classList.contains('hidden')) {
+              modal.style.display = 'none';
+              modal.style.visibility = 'hidden';
+              modal.style.opacity = '0';
+              modal.style.pointerEvents = 'none';
+              modal.style.zIndex = '-1';
+            }
           });
           // 隐藏云端快照面板
           const cloudPanel = document.getElementById('cloudHistoryPanel');
-          if (cloudPanel) {
-            cloudPanel.classList.add('hidden');
+          if (cloudPanel && cloudPanel.classList.contains('hidden')) {
             cloudPanel.style.display = 'none';
             cloudPanel.style.visibility = 'hidden';
           }
@@ -418,19 +423,20 @@
         hideAllModals();
         // DOMContentLoaded时再执行一次
         if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', hideAllModals);
+          document.addEventListener('DOMContentLoaded', function() {
+            hideAllModals();
+            // 初始化完成后，允许正常的模态框显示
+            setTimeout(() => { isInitializing = false; }, 1000);
+          });
         } else {
           hideAllModals();
+          setTimeout(() => { isInitializing = false; }, 1000);
         }
         // window.onload时再执行一次（确保万无一失）
-        window.addEventListener('load', hideAllModals);
-        // 使用MutationObserver监听DOM变化，确保新添加的模态框也被隐藏
-        if (typeof MutationObserver !== 'undefined') {
-          const observer = new MutationObserver(function(mutations) {
-            hideAllModals();
-          });
-          observer.observe(document.body, { childList: true, subtree: true });
-        }
+        window.addEventListener('load', function() {
+          hideAllModals();
+          setTimeout(() => { isInitializing = false; }, 500);
+        });
       })();
     </script>
   </body>
