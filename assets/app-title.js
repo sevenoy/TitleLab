@@ -1398,7 +1398,14 @@ async function renderCloudHistoryList(anchorBtn) {
 function toggleCloudHistoryPanel() {
   const panel = document.getElementById('cloudHistoryPanel');
   const btn = document.getElementById('btnLoadCloud');
-  if (!panel || !btn) return;
+  if (!panel) {
+    console.warn('[TitleApp] toggleCloudHistoryPanel: cloudHistoryPanel 未找到');
+    return;
+  }
+  if (!btn) {
+    console.warn('[TitleApp] toggleCloudHistoryPanel: btnLoadCloud 未找到');
+    return;
+  }
 
   if (!panel.classList.contains('hidden')) {
     panel.classList.add('hidden');
@@ -1523,8 +1530,19 @@ function bindCloudButtons() {
   const btnSave = document.getElementById('btnSaveCloud');
   const btnLoad = document.getElementById('btnLoadCloud');
 
-  if (btnSave) btnSave.addEventListener('click', () => { hideCloudHistoryPanel(); openCloudLabelModal(); });
-  if (btnLoad) btnLoad.addEventListener('click', toggleCloudHistoryPanel);
+  if (btnSave) {
+    btnSave.addEventListener('click', () => { 
+      hideCloudHistoryPanel(); 
+      openCloudLabelModal(); 
+    });
+  } else {
+    console.warn('[TitleApp] bindCloudButtons: btnSaveCloud 未找到');
+  }
+  if (btnLoad) {
+    btnLoad.addEventListener('click', toggleCloudHistoryPanel);
+  } else {
+    console.warn('[TitleApp] bindCloudButtons: btnLoadCloud 未找到');
+  }
 }
 
 function bindGlobalNavButtons() {
@@ -1582,7 +1600,10 @@ function openCloudLabelModal() {
   const btnClose = document.getElementById('btnCloseCloudLabel');
   const btnCancel = document.getElementById('btnCancelCloudLabel');
   const btnSave = document.getElementById('btnSaveCloudLabel');
-  if (!modal || !input || !btnClose || !btnCancel || !btnSave) return;
+  if (!modal || !input || !btnClose || !btnCancel || !btnSave) {
+    console.error('[TitleApp] openCloudLabelModal: 缺少必要的DOM元素');
+    return;
+  }
   modal.classList.remove('hidden');
   // 确保移除hidden类后，样式正确应用
   modal.style.display = '';
@@ -1591,18 +1612,28 @@ function openCloudLabelModal() {
   modal.style.pointerEvents = '';
   modal.style.zIndex = '';
   input.value = '';
-  input.focus();
+  // 延迟focus，确保模态框已显示
+  setTimeout(() => input.focus(), 100);
   const close = () => { modal.classList.add('hidden'); };
   btnClose.onclick = close;
   btnCancel.onclick = close;
   btnSave.onclick = async () => {
-    if (!window.snapshotService) { alert('未配置 Supabase'); return; }
+    if (!window.snapshotService) { 
+      alert('未配置 Supabase'); 
+      return; 
+    }
     const label = input.value.trim();
+    if (!label) {
+      alert('快照备注名称不能为空');
+      input.focus();
+      return;
+    }
     try {
       const info = await window.snapshotService.saveUnifiedSnapshotFromCloud(label);
       close();
       showToast(`已保存：标题 ${info.titleCount} 条 文案 ${info.contentCount} 条 ${info.updatedText}`);
     } catch (e) {
+      console.error('[TitleApp] 保存快照失败:', e);
       alert('保存快照失败：' + (e.message || 'Unknown error'));
     }
   };
