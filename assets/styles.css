@@ -608,10 +608,14 @@ textarea.field-input {
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.35);
-  display: flex;
+  display: none; /* 默认隐藏，只有移除hidden类时才显示 */
   align-items: center;
   justify-content: center;
   z-index: 40;
+}
+
+.modal-backdrop:not(.hidden) {
+  display: flex; /* 只有当没有hidden类时才显示 */
 }
 
 .modal-backdrop.hidden {

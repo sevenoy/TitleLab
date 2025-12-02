@@ -37,34 +37,6 @@
     <!-- 标题管理主逻辑 -->
     <script src="assets/app-title.js"></script>
     <script src="assets/pwa.js"></script>
-    <!-- 立即执行：确保所有模态框在页面加载时隐藏 -->
-    <script>
-      (function() {
-        // 立即隐藏所有模态框，不等待DOMContentLoaded
-        function hideAllModals() {
-          const allModals = document.querySelectorAll('.modal-backdrop');
-          allModals.forEach(modal => {
-            modal.classList.add('hidden');
-            modal.style.display = 'none';
-            modal.style.visibility = 'hidden';
-          });
-          const cloudPanel = document.getElementById('cloudHistoryPanel');
-          if (cloudPanel) {
-            cloudPanel.classList.add('hidden');
-            cloudPanel.style.display = 'none';
-            cloudPanel.style.visibility = 'hidden';
-          }
-        }
-        // 立即执行
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', hideAllModals);
-        } else {
-          hideAllModals();
-        }
-        // 也立即执行一次（防止DOMContentLoaded已经触发）
-        hideAllModals();
-      })();
-    </script>
   </head>
 
   <body class="bg-page">
@@ -420,5 +392,46 @@
       <!-- Toast -->
       <div id="toast" class="toast hidden"></div>
     </div>
+    <!-- 页面加载后立即隐藏所有模态框 -->
+    <script>
+      (function() {
+        function hideAllModals() {
+          // 强制隐藏所有模态框
+          const allModals = document.querySelectorAll('.modal-backdrop');
+          allModals.forEach(modal => {
+            modal.classList.add('hidden');
+            modal.style.display = 'none';
+            modal.style.visibility = 'hidden';
+            modal.style.opacity = '0';
+            modal.style.pointerEvents = 'none';
+            modal.style.zIndex = '-1';
+          });
+          // 隐藏云端快照面板
+          const cloudPanel = document.getElementById('cloudHistoryPanel');
+          if (cloudPanel) {
+            cloudPanel.classList.add('hidden');
+            cloudPanel.style.display = 'none';
+            cloudPanel.style.visibility = 'hidden';
+          }
+        }
+        // 立即执行（DOM可能还没加载完，但也要尝试）
+        hideAllModals();
+        // DOMContentLoaded时再执行一次
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', hideAllModals);
+        } else {
+          hideAllModals();
+        }
+        // window.onload时再执行一次（确保万无一失）
+        window.addEventListener('load', hideAllModals);
+        // 使用MutationObserver监听DOM变化，确保新添加的模态框也被隐藏
+        if (typeof MutationObserver !== 'undefined') {
+          const observer = new MutationObserver(function(mutations) {
+            hideAllModals();
+          });
+          observer.observe(document.body, { childList: true, subtree: true });
+        }
+      })();
+    </script>
   </body>
 </html>
