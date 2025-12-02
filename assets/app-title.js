@@ -405,6 +405,12 @@ function openRenameCategoryModal(oldName) {
   input.value = oldName;
   state.renamingCategory = oldName;
   modal.classList.remove('hidden');
+  // 确保移除hidden类后，样式正确应用
+  modal.style.display = '';
+  modal.style.visibility = '';
+  modal.style.opacity = '';
+  modal.style.pointerEvents = '';
+  modal.style.zIndex = '';
   input.focus();
   input.select();
 }
@@ -869,6 +875,12 @@ function openDeleteTitleModal(item) {
   pendingDeleteTitle = item;
   if (previewEl) previewEl.textContent = (item.text || '').slice(0, 40);
   modal.classList.remove('hidden');
+  // 确保移除hidden类后，样式正确应用
+  modal.style.display = '';
+  modal.style.visibility = '';
+  modal.style.opacity = '';
+  modal.style.pointerEvents = '';
+  modal.style.zIndex = '';
   const close = () => { modal.classList.add('hidden'); pendingDeleteTitle = null; };
   btnClose.onclick = close;
   btnCancel.onclick = close;
@@ -887,6 +899,12 @@ function openCloudLoadConfirmTitle(key) {
   if (!modal || !btnClose || !btnCancel || !btnConfirm) { return; }
   pendingSnapshotKeyTitle = key;
   modal.classList.remove('hidden');
+  // 确保移除hidden类后，样式正确应用
+  modal.style.display = '';
+  modal.style.visibility = '';
+  modal.style.opacity = '';
+  modal.style.pointerEvents = '';
+  modal.style.zIndex = '';
   const panel = document.getElementById('cloudHistoryPanel');
   if (panel) { panel.classList.add('hidden'); panel.style.display = 'none'; }
   const close = () => { modal.classList.add('hidden'); pendingSnapshotKeyTitle = null; };
@@ -957,6 +975,12 @@ function openTitleModal(item) {
   }
 
   modal.classList.remove('hidden');
+  // 确保移除hidden类后，样式正确应用
+  modal.style.display = '';
+  modal.style.visibility = '';
+  modal.style.opacity = '';
+  modal.style.pointerEvents = '';
+  modal.style.zIndex = '';
 }
 
 function closeTitleModal() {
@@ -1204,6 +1228,12 @@ function openImportModal() {
   refreshSceneSelects();
 
   modal.classList.remove('hidden');
+  // 确保移除hidden类后，样式正确应用
+  modal.style.display = '';
+  modal.style.visibility = '';
+  modal.style.opacity = '';
+  modal.style.pointerEvents = '';
+  modal.style.zIndex = '';
 }
 
 function closeImportModal() {
@@ -1433,6 +1463,12 @@ function openAddCategoryModal() {
   const btnConfirm = document.getElementById('btnConfirmAddCategory');
   if (!modal || !input || !btnClose || !btnCancel || !btnConfirm) return;
   modal.classList.remove('hidden');
+  // 确保移除hidden类后，样式正确应用
+  modal.style.display = '';
+  modal.style.visibility = '';
+  modal.style.opacity = '';
+  modal.style.pointerEvents = '';
+  modal.style.zIndex = '';
   input.value = '';
   input.focus();
   const close = () => { modal.classList.add('hidden'); };
@@ -1459,6 +1495,12 @@ function openDeleteCategoryModal() {
   const cat = state.currentCategory;
   if (!cat || cat === '全部') { showToast('不能删除「全部」分类', 'error'); return; }
   modal.classList.remove('hidden');
+  // 确保移除hidden类后，样式正确应用
+  modal.style.display = '';
+  modal.style.visibility = '';
+  modal.style.opacity = '';
+  modal.style.pointerEvents = '';
+  modal.style.zIndex = '';
   const nameEl = document.getElementById('deleteCategoryName');
   if (nameEl) nameEl.textContent = cat;
   const close = () => { modal.classList.add('hidden'); };
@@ -1509,6 +1551,12 @@ function openClearConfirmModal() {
   const btnConfirm = document.getElementById('btnConfirmClear');
   if (!modal || !btnClose || !btnCancel || !btnConfirm) return;
   modal.classList.remove('hidden');
+  // 确保移除hidden类后，样式正确应用
+  modal.style.display = '';
+  modal.style.visibility = '';
+  modal.style.opacity = '';
+  modal.style.pointerEvents = '';
+  modal.style.zIndex = '';
   const close = () => { modal.classList.add('hidden'); };
   btnClose.onclick = close;
   btnCancel.onclick = close;
@@ -1536,6 +1584,12 @@ function openCloudLabelModal() {
   const btnSave = document.getElementById('btnSaveCloudLabel');
   if (!modal || !input || !btnClose || !btnCancel || !btnSave) return;
   modal.classList.remove('hidden');
+  // 确保移除hidden类后，样式正确应用
+  modal.style.display = '';
+  modal.style.visibility = '';
+  modal.style.opacity = '';
+  modal.style.pointerEvents = '';
+  modal.style.zIndex = '';
   input.value = '';
   input.focus();
   const close = () => { modal.classList.add('hidden'); };
