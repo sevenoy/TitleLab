@@ -145,7 +145,13 @@ async function clearAndInsert(table, rows) {
     if (delError) throw delError;
   }
   if (!rows || rows.length === 0) return;
-  const rowsWithTag = tag ? rows.map((r) => ({ ...r, scene_tags: Array.from(new Set([...(r.scene_tags || []), tag])) })) : rows;
+  // 如果已经有 tag，确保每行都包含当前用户的 tag（如果还没有的话）
+  const rowsWithTag = tag ? rows.map((r) => {
+    const existingTags = Array.isArray(r.scene_tags) ? r.scene_tags : [];
+    // 如果已经包含当前用户的 tag，就不重复添加
+    const hasUserTag = existingTags.includes(tag);
+    return { ...r, scene_tags: hasUserTag ? existingTags : Array.from(new Set([...existingTags, tag])) };
+  }) : rows;
   const { error: insError } = await supabaseClient.from(table).insert(rowsWithTag);
   if (insError) throw insError;
 }
@@ -250,10 +256,11 @@ window.snapshotService = {
   async loadUnifiedSnapshot(key, apply = 'both') {
     if (!supabaseClient) throw new Error('supabase offline');
     
-    // 验证快照是否属于当前用户
+    // 获取当前用户信息
     let user = null;
     try { const raw = localStorage.getItem('current_user_v1'); user = raw ? JSON.parse(raw) : null; } catch (_) {}
     const userPrefix = user ? `user_${user.username}_` : '';
+    const userTag = user ? `user:${user.username}` : null;
     
     // 如果快照 key 有用户前缀，验证是否匹配当前用户
     if (userPrefix && key.startsWith('user_')) {
@@ -264,24 +271,45 @@ window.snapshotService = {
     
     let payload = null;
     try {
-      const { data } = await supabaseClient
+      const { data, error } = await supabaseClient
         .from('snapshots')
         .select('payload')
         .eq('key', key)
         .maybeSingle();
+      if (error) throw error;
       payload = data && data.payload;
-    } catch (_) {}
+    } catch (e) {
+      console.error('[Supabase] loadUnifiedSnapshot error:', e);
+      throw new Error('Bad Request');
+    }
     if (!payload) {
-      const { data } = await supabaseClient
-        .from('title_snapshots')
-        .select('payload')
-        .eq('key', key)
-        .maybeSingle();
-      payload = data && data.payload;
+      try {
+        const { data, error } = await supabaseClient
+          .from('title_snapshots')
+          .select('payload')
+          .eq('key', key)
+          .maybeSingle();
+        if (error) throw error;
+        payload = data && data.payload;
+      } catch (e) {
+        console.error('[Supabase] loadUnifiedSnapshot error:', e);
+        throw new Error('Bad Request');
+      }
     }
     if (!payload) throw new Error('snapshot not found');
+    
     const titles = Array.isArray(payload.titles) ? payload.titles : [];
     const contents = Array.isArray(payload.contents) ? payload.contents : [];
+    
+    // 清理 scene_tags，只保留非用户标签（账号分类等），移除所有用户标签，然后添加当前用户的标签
+    const cleanSceneTags = (tags) => {
+      if (!Array.isArray(tags)) return [];
+      // 移除所有用户标签（user:xxx 格式）
+      const nonUserTags = tags.filter(t => !String(t).startsWith('user:'));
+      // 添加当前用户的标签
+      return userTag ? [...nonUserTags, userTag] : nonUserTags;
+    };
+    
     if (apply === 'both' || apply === 'title') {
       await clearAndInsert(
         'titles',
@@ -289,7 +317,7 @@ window.snapshotService = {
           text: t.text,
           main_category: t.main_category || null,
           content_type: t.content_type || null,
-          scene_tags: Array.isArray(t.scene_tags) ? t.scene_tags : [],
+          scene_tags: cleanSceneTags(t.scene_tags),
           usage_count: t.usage_count || 0,
           created_at: t.created_at || new Date().toISOString()
         }))
@@ -302,15 +330,14 @@ window.snapshotService = {
           text: c.text,
           main_category: c.main_category || null,
           content_type: c.content_type || null,
-          scene_tags: Array.isArray(c.scene_tags) ? c.scene_tags : [],
+          scene_tags: cleanSceneTags(c.scene_tags),
           usage_count: c.usage_count || 0,
           created_at: c.created_at || new Date().toISOString()
         }))
       );
     }
-    // 获取当前用户的设置 key
-    let user = null;
-    try { const raw = localStorage.getItem('current_user_v1'); user = raw ? JSON.parse(raw) : null; } catch (_) {}
+    
+    // 恢复用户特定的设置
     const username = user ? user.username : 'default';
     const titleCatsKey = `title_categories_v1_${username}`;
     const contentCatsKey = `content_categories_v1_${username}`;
