@@ -616,6 +616,10 @@ textarea.field-input {
 
 .modal-backdrop.hidden {
   display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
 }
 
 .modal {
