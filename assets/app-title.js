@@ -120,6 +120,14 @@ function validateUser(user) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // 确保所有模态框在初始化时都是隐藏的
+  const allModals = document.querySelectorAll('.modal-backdrop');
+  allModals.forEach(modal => {
+    if (!modal.classList.contains('hidden')) {
+      modal.classList.add('hidden');
+    }
+  });
+
   const user = getCurrentUser();
   if (!user || !validateUser(user)) { 
     // 清除无效的用户信息
@@ -141,12 +149,19 @@ document.addEventListener('DOMContentLoaded', () => {
   refreshSceneSelects();
 
   // 工具栏 / 弹窗 / 云端 / 全局按钮
-  bindToolbar();
-  bindTitleModal();
-  bindImportModal();
-  bindRenameCategoryModal();
-  bindCloudButtons();
-  bindGlobalNavButtons();
+  try {
+    bindToolbar();
+    bindTitleModal();
+    bindImportModal();
+    bindRenameCategoryModal();
+    bindCloudButtons();
+    bindGlobalNavButtons();
+  } catch (e) {
+    console.error('[TitleApp] 初始化错误:', e);
+    // 确保即使出错，模态框也是隐藏的
+    const allModals = document.querySelectorAll('.modal-backdrop');
+    allModals.forEach(modal => modal.classList.add('hidden'));
+  }
   
   // 监听 localStorage 变化，当场景设置改变时自动更新
   window.addEventListener('storage', (e) => {
@@ -160,6 +175,13 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('settingsUpdated', () => {
     refreshSceneSelects();
   });
+
+  // 加载数据
+  try {
+    loadTitlesFromCloud();
+  } catch (e) {
+    console.error('[TitleApp] 加载数据错误:', e);
+  }
 
   const badge = document.getElementById('currentUserName');
   if (badge) {
