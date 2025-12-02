@@ -912,7 +912,19 @@ function openCloudLoadConfirmTitle(key) {
   btnCancel.onclick = close;
   btnConfirm.onclick = async () => {
     if (pendingSnapshotKeyTitle) {
-      await loadCloudSnapshot(pendingSnapshotKeyTitle, { skipConfirm: true });
+      try {
+        const info = await window.snapshotService.loadUnifiedSnapshot(pendingSnapshotKeyTitle, 'both');
+        // 重新加载分类（从 localStorage 恢复）
+        loadCategoriesFromLocal();
+        renderCategoryList();
+        // 重新应用显示设置（包括场景设置/账号分类）
+        applyDisplaySettings();
+        await loadTitlesFromCloud();
+        showToast(`已加载：标题 ${info.titleCount} 条 文案 ${info.contentCount} 条 ${info.updatedText}`);
+      } catch (e) {
+        console.error('[TitleApp] 加载快照失败:', e);
+        alert('加载快照失败：' + (e.message || 'Unknown error'));
+      }
     }
     close();
   };
