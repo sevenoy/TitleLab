@@ -252,28 +252,80 @@ function norm(s) {
   return (s || '').replace(/\s+/g, ' ').trim();
 }
 
+// 完全匹配去重（不归一化，不转小写）
 async function dedupTable(table) {
   const rows = await fetchAll(table);
   const map = new Map();
-  const toDelete = [];
+  const duplicates = []; // 存储重复对信息
+  
   rows.forEach((r) => {
-    const key = norm(r.text).toLowerCase();
+    // 完全匹配：只去除首尾空白，不归一化，不转小写
+    const key = (r.text || '').trim();
     if (!key) return;
+    
     if (!map.has(key)) {
       map.set(key, r);
     } else {
       const keep = map.get(key);
       const curTime = new Date(r.created_at || 0).getTime();
       const keepTime = new Date(keep.created_at || 0).getTime();
+      
+      // 记录重复对信息
+      duplicates.push({
+        keep: curTime < keepTime ? r : keep,
+        delete: curTime < keepTime ? keep : r,
+        text: key
+      });
+      
       if (curTime < keepTime) {
-        toDelete.push(keep);
         map.set(key, r);
-      } else {
-        toDelete.push(r);
       }
     }
   });
-  if (!supabase) return;
+  
+  if (duplicates.length === 0) {
+    showToast('未发现重复项');
+    setProgress('');
+    return;
+  }
+  
+  // 显示重复内容预览
+  const previewHtml = duplicates.map((dup, idx) => `
+    <div style="margin-bottom: 12px; padding: 10px; background: #f9fafb; border-radius: 8px; border-left: 3px solid #ef4444;">
+      <div style="font-weight: 600; color: #ef4444; margin-bottom: 6px;">重复项 #${idx + 1}</div>
+      <div style="color: #6b7280; font-size: 13px; margin-bottom: 4px;">保留（创建时间：${new Date(dup.keep.created_at).toLocaleString()}）：</div>
+      <div style="background: #ffffff; padding: 8px; border-radius: 4px; margin-bottom: 6px; border: 1px solid #e5e7eb;">${escapeHtml(dup.keep.text)}</div>
+      <div style="color: #6b7280; font-size: 13px; margin-bottom: 4px;">删除（创建时间：${new Date(dup.delete.created_at).toLocaleString()}）：</div>
+      <div style="background: #fee2e2; padding: 8px; border-radius: 4px; border: 1px solid #fecaca;">${escapeHtml(dup.delete.text)}</div>
+    </div>
+  `).join('');
+  
+  const previewContainer = document.getElementById('dedupPreview');
+  if (previewContainer) {
+    previewContainer.innerHTML = `
+      <div style="max-height: 400px; overflow-y: auto; padding: 12px;">
+        <div style="font-weight: 600; margin-bottom: 12px; color: #1f2937;">发现 ${duplicates.length} 组重复项，将删除以下内容：</div>
+        ${previewHtml}
+      </div>
+    `;
+    previewContainer.style.display = 'block';
+  }
+  
+  // 确认删除
+  const confirmed = confirm(`发现 ${duplicates.length} 组重复项，是否确认删除？\n\n删除规则：保留创建时间更早的记录，删除较新的重复项。`);
+  if (!confirmed) {
+    if (previewContainer) previewContainer.style.display = 'none';
+    setProgress('');
+    return;
+  }
+  
+  if (!supabase) {
+    showToast('未配置 Supabase', 'error');
+    if (previewContainer) previewContainer.style.display = 'none';
+    return;
+  }
+  
+  const toDelete = duplicates.map(d => d.delete);
   let count = 0;
   setProgress(`准备删除重复 ${toDelete.length} 条…`);
   for (const d of toDelete) {
@@ -283,6 +335,13 @@ async function dedupTable(table) {
   showToast(`已删除重复 ${count} 条`);
   renderOverview();
   setProgress('');
+  if (previewContainer) previewContainer.style.display = 'none';
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 async function normalizeText(table) {
