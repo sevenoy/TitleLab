@@ -96,13 +96,14 @@ async function tryListUnifiedSnapshots(limit = 5) {
   // 过滤：只返回当前用户的快照，排除用户配置文件记录
   const filtered = (data || []).filter((r) => {
     if (!r.key) return false;
-    // 排除用户配置文件
+    // 排除所有用户配置文件（user_profile_ 开头）
     if (r.key.startsWith('user_profile_')) return false;
-    // 只返回当前用户的快照
+    // 只返回当前用户的快照（user_${username}_ 开头，且必须是 manual_ 格式）
     if (userPrefix) {
-      return r.key.startsWith(userPrefix);
+      // 必须同时满足：1) 以当前用户前缀开头 2) 包含 manual_（真正的快照）
+      return r.key.startsWith(userPrefix) && r.key.includes('manual_');
     } else {
-      // 如果没有用户，只返回没有 user_ 前缀的快照（旧数据或共享快照）
+      // 如果没有用户，只返回没有 user_ 前缀的快照（旧数据，但排除 user_profile_）
       return !r.key.startsWith('user_');
     }
   });
@@ -220,8 +221,11 @@ window.snapshotService = {
       // 再次过滤，确保只返回真正的快照（有 snapshot_label 或 titles/contents 的记录）
       const validSnapshots = first.rows.filter((r) => {
         if (!r.payload) return false;
-        // 排除用户配置文件
-        if (r.key && r.key.startsWith('user_profile_')) return false;
+        if (!r.key) return false;
+        // 严格排除用户配置文件（user_profile_ 开头）
+        if (r.key.startsWith('user_profile_')) return false;
+        // 确保是当前用户的快照（如果 key 有 user_ 前缀，必须包含 manual_）
+        if (r.key.startsWith('user_') && !r.key.includes('manual_')) return false;
         // 只返回有 snapshot_label 或 titles/contents 的记录（真正的快照）
         const hasLabel = r.payload.snapshot_label !== undefined && r.payload.snapshot_label !== null;
         const hasTitles = Array.isArray(r.payload.titles) && r.payload.titles.length > 0;
@@ -262,9 +266,17 @@ window.snapshotService = {
     const userPrefix = user ? `user_${user.username}_` : '';
     const userTag = user ? `user:${user.username}` : null;
     
+    // 严格验证快照权限：拒绝用户配置文件，只允许当前用户的快照
+    if (key.startsWith('user_profile_')) {
+      throw new Error('无权访问此快照');
+    }
     // 如果快照 key 有用户前缀，验证是否匹配当前用户
     if (userPrefix && key.startsWith('user_')) {
       if (!key.startsWith(userPrefix)) {
+        throw new Error('无权访问此快照');
+      }
+      // 确保是真正的快照（包含 manual_），而不是其他类型的记录
+      if (!key.includes('manual_')) {
         throw new Error('无权访问此快照');
       }
     }
