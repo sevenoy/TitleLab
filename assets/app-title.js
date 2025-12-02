@@ -120,13 +120,22 @@ function validateUser(user) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // 确保所有模态框在初始化时都是隐藏的
+  // 确保所有模态框和覆盖层在初始化时都是隐藏的
   const allModals = document.querySelectorAll('.modal-backdrop');
   allModals.forEach(modal => {
     if (!modal.classList.contains('hidden')) {
       modal.classList.add('hidden');
     }
+    // 确保样式也正确
+    modal.style.display = 'none';
   });
+  
+  // 确保云端快照面板也是隐藏的
+  const cloudPanel = document.getElementById('cloudHistoryPanel');
+  if (cloudPanel) {
+    cloudPanel.classList.add('hidden');
+    cloudPanel.style.display = 'none';
+  }
 
   const user = getCurrentUser();
   if (!user || !validateUser(user)) { 
