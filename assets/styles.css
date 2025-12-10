@@ -488,6 +488,18 @@ textarea.field-input {
   background: var(--brand-blue-hover);
 }
 
+/* 云端快照按钮行 - 自动适应宽度 */
+.snapshot-buttons-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.snapshot-buttons-row .function-btn {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 /* 删除确认按钮：红色背景 */
 #btnConfirmDeleteCategory,
 #btnConfirmDeleteCategoryContent {
@@ -903,6 +915,13 @@ textarea.field-input {
   color: var(--text-muted);
 }
 
+/* 云端快照操作按钮 */
+.cloud-item-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 /* 小屏兼容 */
 
 @media (max-width: 640px) {
@@ -945,5 +964,69 @@ textarea.field-input {
     width: 100px !important; /* 移动端固定宽度 */
     min-width: 100px !important;
     max-width: 100px !important;
+    padding: 6px 10px !important; /* 确保与其他输入框高度一致 */
+    height: auto !important;
+    line-height: 1.2 !important;
+  }
+  
+  /* 减少用户名徽章和退出按钮间距 */
+  .topbar-right {
+    gap: 7px !important;
+  }
+  
+  /* 减少标题条数和文案条数显示框的padding */
+  .panel .panel {
+    padding: 8px 12px !important;
+  }
+  
+  /* 数据概览中的标题条数和文案条数显示框 */
+  section.panel .grid.grid-cols-2 .panel {
+    padding: 8px 12px !important;
+  }
+  
+  /* 云端快照移动端重新排版 */
+  section.panel > .flex.items-center.justify-between {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  
+  section.panel > .flex.items-center.justify-between .field-input {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  /* 云端快照按钮行移动端保持一排，但允许换行 */
+  .snapshot-buttons-row {
+    flex-wrap: wrap !important;
+  }
+  
+  .snapshot-buttons-row .function-btn {
+    flex: 1 1 calc(50% - 4px) !important;
+    min-width: calc(50% - 4px) !important;
+  }
+  
+  /* 云端快照列表项移动端布局 - 保持横向，按钮在右边 */
+  .cloud-item {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+  }
+  
+  .cloud-item-main {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+  }
+  
+  .cloud-item-actions {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .cloud-item-actions .function-btn {
+    flex: 0 0 auto !important;
   }
 }

@@ -40,12 +40,12 @@
         </div>
       </header>
 
-      <div class="mt-2">
-        <button class="nav-tab nav-tab-active" onclick="window.location.href='title.html'">返回主页</button>
+      <!-- 返回主页按钮 -->
+      <div style="margin-top: 12px; margin-bottom: 0;">
+        <button class="back-home-btn" onclick="window.location.href='title.html'">返回主页</button>
       </div>
 
-
-      <main class="layout flex-col gap-3">
+      <main class="layout flex-col gap-3" style="margin-top: 12px;">
         <section class="panel">
           <div class="flex items-center justify-between">
             <h2 class="panel-title">数据概览</h2>
@@ -70,13 +70,13 @@
         <section class="panel">
           <div class="flex items-center justify-between">
             <h2 class="panel-title">云端快照</h2>
-            <div class="flex gap-2 flex-wrap items-center">
-              <button id="btnSaveUnifiedSnapshot" class="function-btn ghost">保存统一快照</button>
-              <button id="btnToggleSnapshots" class="function-btn ghost">查看快照</button>
-              <input id="snapshotSearchInput" class="field-input" placeholder="搜索快照" />
-              <button id="snapshotPrev" class="function-btn ghost text-xs">上一页</button>
-              <button id="snapshotNext" class="function-btn ghost text-xs">下一页</button>
-            </div>
+            <input id="snapshotSearchInput" class="field-input" placeholder="搜索快照" style="max-width: 200px;" />
+          </div>
+          <div class="snapshot-buttons-row flex gap-2 mt-3">
+            <button id="btnSaveUnifiedSnapshot" class="function-btn ghost flex-1">保存统一快照</button>
+            <button id="btnToggleSnapshots" class="function-btn ghost flex-1">查看快照</button>
+            <button id="snapshotPrev" class="function-btn ghost text-xs flex-1">上一页</button>
+            <button id="snapshotNext" class="function-btn ghost text-xs flex-1">下一页</button>
           </div>
           <div id="snapshotList" class="space-y-2 mt-2"></div>
         </section>
