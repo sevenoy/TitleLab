@@ -355,13 +355,36 @@ function renderCategoryList() {
       rightSpan.appendChild(controls);
     }
 
-    // 普通点击：切换当前分类（排序模式下禁用）
+    // 普通点击：切换当前分类
+    // 排序模式下：只有点击分类名称时才切换，点击其他区域不切换（避免误触按钮）
+    // 非排序模式下：点击整个列表项都可以切换
     li.addEventListener('click', (e) => {
       // 如果点击的是按钮，不处理
       if (e.target.closest('button')) return;
-      // 排序模式下不切换分类
-      if (state.isSortingCategories) return;
       
+      // 排序模式下：只有点击分类名称时才允许切换
+      if (state.isSortingCategories) {
+        // 如果点击的是分类名称，允许切换
+        if (e.target.classList.contains('category-name') || e.target === nameSpan) {
+          state.currentCategory = cat;
+          renderCategoryList();
+          renderTitles();
+          const panel = document.getElementById('cloudHistoryPanel');
+          if (panel) {
+            panel.classList.add('hidden');
+            panel.style.display = 'none';
+          }
+          const wrapper = document.getElementById('mobileCategoryWrapper');
+          const dl = document.getElementById('categoryList');
+          if (wrapper && dl) {
+            wrapper.setAttribute('data-open', '0');
+            if (window.innerWidth < 768) dl.style.display = 'none';
+          }
+        }
+        return;
+      }
+      
+      // 非排序模式下：正常切换
       state.currentCategory = cat;
       renderCategoryList();
       renderTitles();

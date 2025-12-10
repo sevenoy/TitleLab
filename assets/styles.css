@@ -165,6 +165,13 @@ body.bg-page {
   .topbar-center {
     flex-wrap: wrap;
     gap: 6px;
+    position: static;
+    transform: none;
+    left: auto;
+  }
+  .topbar-right {
+    margin-left: auto;
+    flex-shrink: 0;
   }
   .nav-long {
     min-width: 92px;
