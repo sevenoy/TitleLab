@@ -1202,8 +1202,22 @@ function openCloudLabelModal() {
   const btnSave = document.getElementById('btnSaveCloudLabel');
   if (!modal || !input || !btnClose || !btnCancel || !btnSave) return;
   modal.classList.remove('hidden');
-  input.value = '';
-  input.focus();
+  
+  // 生成默认值：用户名+年月日时间
+  const user = getCurrentUser();
+  const username = user ? user.username : 'user';
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const defaultLabel = `${username}${year}${month}${day}`;
+  input.value = defaultLabel;
+  
+  // 选中所有文本以便用户直接输入
+  setTimeout(() => {
+    input.focus();
+    input.select();
+  }, 100);
   const close = () => { modal.classList.add('hidden'); };
   btnClose.onclick = close;
   btnCancel.onclick = close;
