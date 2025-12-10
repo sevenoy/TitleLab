@@ -579,12 +579,35 @@ function applyFilters(list) {
     
     return true;
   });
+  
+  // 排序：星标数据永远置顶，按星标时间倒序，然后按创建时间倒序
+  const sorted = filtered.sort((a, b) => {
+    const aStarred = a.is_starred === true;
+    const bStarred = b.is_starred === true;
+    
+    // 如果都是星标，按星标时间倒序（最新星标的在最前）
+    if (aStarred && bStarred) {
+      const aTime = a.starred_at ? new Date(a.starred_at).getTime() : 0;
+      const bTime = b.starred_at ? new Date(b.starred_at).getTime() : 0;
+      return bTime - aTime;
+    }
+    
+    // 如果只有一个是星标，星标的永远在前
+    if (aStarred && !bStarred) return -1;
+    if (!aStarred && bStarred) return 1;
+    
+    // 都不是星标，按创建时间倒序
+    const aCreated = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const bCreated = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return bCreated - aCreated;
+  });
+  
   console.log('[ContentApp] 筛选结果:', {
     total: list.length,
-    filtered: filtered.length,
+    filtered: sorted.length,
     filters: { category: cat, scene: scene, search: q }
   });
-  return filtered;
+  return sorted;
 }
 
 function renderContents() {
@@ -597,8 +620,17 @@ function renderContents() {
   list.forEach((item, index) => {
     const tr = document.createElement('tr');
     const tdIndex = document.createElement('td');
-    tdIndex.textContent = index + 1;
+    // 如果被星标，在序号位置显示星标+数字
+    if (item.is_starred === true) {
+      const starIndex = document.createElement('span');
+      starIndex.className = 'star-index';
+      starIndex.innerHTML = `<span class="item-star-icon">⭐</span><span class="star-index-number">${index + 1}</span>`;
+      tdIndex.appendChild(starIndex);
+    } else {
+      tdIndex.textContent = index + 1;
+    }
     tr.appendChild(tdIndex);
+    
     const tdTitle = document.createElement('td');
     tdTitle.textContent = item.text || '';
     tr.appendChild(tdTitle);
@@ -647,7 +679,15 @@ function renderContents() {
     leftWrap.className = 'flex items-center gap-2 flex-1 min-w-0';
     const idxBadge = document.createElement('span');
     idxBadge.className = 'pill-muted';
-    idxBadge.textContent = String(index + 1);
+    // 如果被星标，在序号位置显示星标+数字
+    if (item.is_starred === true) {
+      const starIndex = document.createElement('span');
+      starIndex.className = 'star-index-mobile';
+      starIndex.innerHTML = `<span class="item-star-icon">⭐</span><span class="star-index-number">${index + 1}</span>`;
+      idxBadge.appendChild(starIndex);
+    } else {
+      idxBadge.textContent = String(index + 1);
+    }
     if (((index + 1) % 2) === 0) {
       idxBadge.classList.add('alt');
     }
@@ -833,6 +873,8 @@ function openContentModal(item) {
   const mainCatEl = document.getElementById('fieldMainCategoryContent');
   const typeEl = document.getElementById('fieldContentTypeContent');
   const sceneEl = document.getElementById('fieldSceneTagsContent');
+  const btnStar = document.getElementById('btnStarContent');
+  
   refreshModalCategoryOptions(mainCatEl);
   // 刷新场景下拉菜单
   refreshSceneSelects();
@@ -856,6 +898,12 @@ function openContentModal(item) {
       !scenes.includes(tag) && tag !== userTagValue
     );
     if (sceneEl) sceneEl.value = sceneTagsOnly.join(', ');
+    
+    // 设置星标按钮状态
+    if (btnStar) {
+      const isStarred = item.is_starred === true;
+      btnStar.classList.toggle('active', isStarred);
+    }
   } else {
     state.editingId = null;
     if (titleEl) titleEl.textContent = '新增文案';
@@ -863,7 +911,20 @@ function openContentModal(item) {
     if (mainCatEl) mainCatEl.value = state.currentCategory === '全部' ? '' : state.currentCategory;
     if (typeEl) typeEl.value = '';
     if (sceneEl) sceneEl.value = '';
+    
+    // 新增时星标按钮默认不激活
+    if (btnStar) {
+      btnStar.classList.remove('active');
+    }
   }
+  
+  // 绑定星标按钮点击事件
+  if (btnStar) {
+    btnStar.onclick = () => {
+      btnStar.classList.toggle('active');
+    };
+  }
+  
   modal.classList.remove('hidden');
 }
 
@@ -910,21 +971,80 @@ async function saveContentFromModal() {
   }
   allSceneTags.push(userTag(user.username));
   
-  const payload = { text, main_category: cat, content_type: type, scene_tags: Array.from(new Set(allSceneTags)) };
+  // 获取星标状态
+  const btnStar = document.getElementById('btnStarContent');
+  const isStarred = btnStar && btnStar.classList.contains('active');
+  
+  // 如果是编辑已有文案，需要判断星标状态是否改变
+  let starredAt = null;
+  if (state.editingId) {
+    const existingItem = state.contents.find(t => t.id === state.editingId);
+    if (isStarred) {
+      // 如果新设为星标，使用当前时间；如果已经是星标，保持原时间
+      starredAt = existingItem && existingItem.is_starred ? existingItem.starred_at : new Date().toISOString();
+    } else {
+      // 取消星标，设为null
+      starredAt = null;
+    }
+  } else {
+    // 新增文案
+    starredAt = isStarred ? new Date().toISOString() : null;
+  }
+  
+  const payload = { 
+    text, 
+    main_category: cat, 
+    content_type: type, 
+    scene_tags: Array.from(new Set(allSceneTags)),
+    is_starred: isStarred || false,
+    starred_at: starredAt
+  };
   console.log('[ContentApp] 保存文案 payload =', payload, 'editingId =', state.editingId);
   if (!supabase) { showToast('未配置 Supabase，无法保存到云端', 'error'); return; }
   const prevCategory = state.currentCategory;
   try {
     if (state.editingId) {
-      const { error } = await supabase.from('contents').update(payload).eq('id', state.editingId);
-      if (error) throw error;
+      // 尝试保存，如果字段不存在则移除星标字段重试
+      let updatePayload = payload;
+      let { error } = await supabase.from('contents').update(updatePayload).eq('id', state.editingId);
+      
+      // 如果错误是因为字段不存在，移除星标字段重试
+      if (error && (error.message.includes('is_starred') || error.message.includes('starred_at'))) {
+        console.warn('[ContentApp] 数据库表缺少星标字段，移除星标数据后重试');
+        const { is_starred, starred_at, ...payloadWithoutStar } = payload;
+        updatePayload = payloadWithoutStar;
+        const retryResult = await supabase.from('contents').update(updatePayload).eq('id', state.editingId);
+        error = retryResult.error;
+        if (error) throw error;
+      } else if (error) {
+        throw error;
+      }
+      
+      // 即使数据库不支持星标字段，本地状态也要更新（用于显示）
       const idx = state.contents.findIndex((t) => t.id === state.editingId);
       if (idx !== -1) state.contents[idx] = { ...state.contents[idx], ...payload };
       showToast('文案已更新');
   } else {
       const insertPayload = { ...payload, usage_count: 0 };
-      const { data, error } = await supabase.from('contents').insert([insertPayload]).select().single();
-      if (error) throw error;
+      let { data, error } = await supabase.from('contents').insert([insertPayload]).select().single();
+      
+      // 如果错误是因为字段不存在，移除星标字段重试
+      if (error && (error.message.includes('is_starred') || error.message.includes('starred_at'))) {
+        console.warn('[ContentApp] 数据库表缺少星标字段，移除星标数据后重试');
+        const { is_starred, starred_at, ...payloadWithoutStar } = insertPayload;
+        const retryResult = await supabase.from('contents').insert([payloadWithoutStar]).select().single();
+        error = retryResult.error;
+        data = retryResult.data;
+        if (error) throw error;
+        // 如果数据库不支持星标字段，但在本地状态中添加星标信息（用于显示）
+        if (isStarred && data) {
+          data.is_starred = true;
+          data.starred_at = starredAt;
+        }
+      } else if (error) {
+        throw error;
+      }
+      
       if (data) state.contents.unshift(data);
       showToast('文案已新增');
     }
@@ -952,7 +1072,13 @@ function renderSceneFilterOptions(settings) {
       const sceneTags = Array.isArray(content.scene_tags) ? content.scene_tags : [];
       return sceneTags.includes(scene);
     }).length;
-    opt.textContent = `${scene} ${count}条`;
+    // 账号名称置左，数据条数置右
+    const sceneName = scene;
+    const countText = `${count}条`;
+    const maxWidth = 10;
+    const spacesNeeded = Math.max(0, maxWidth - sceneName.length);
+    const spaces = '\u00A0'.repeat(spacesNeeded);
+    opt.textContent = `${sceneName}${spaces}${countText}`;
     filterScene.appendChild(opt);
   });
   if ((settings.scenes || []).includes(prevValue)) filterScene.value = prevValue; else filterScene.value = ''; 
@@ -977,7 +1103,15 @@ function refreshSceneSelects() {
         const sceneTags = Array.isArray(content.scene_tags) ? content.scene_tags : [];
         return sceneTags.includes(scene);
       }).length;
-      opt.textContent = `${scene} ${count}条`;
+      // 账号名称置左，数据条数置右（使用HTML实体空格实现对齐）
+      const sceneName = scene;
+      const countText = `${count}条`;
+      // 使用HTML实体空格（&nbsp;）和固定宽度实现对齐
+      // 计算需要的空格数（假设最大宽度为10个字符）
+      const maxWidth = 10;
+      const spacesNeeded = Math.max(0, maxWidth - sceneName.length);
+      const spaces = '\u00A0'.repeat(spacesNeeded);
+      opt.textContent = `${sceneName}${spaces}${countText}`;
       filterScene.appendChild(opt);
     });
     // 如果之前选中的值仍然存在，保持选中

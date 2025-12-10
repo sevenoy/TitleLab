@@ -388,6 +388,105 @@ select.field-input option {
   font-size: 13px;
 }
 
+/* 星标按钮样式 */
+.star-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.star-btn:hover {
+  background: #f9fafb;
+  border-color: var(--brand-blue);
+}
+
+.star-btn.active {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  color: #92400e;
+}
+
+.star-btn.active .star-icon {
+  filter: none;
+}
+
+.star-icon {
+  font-size: 16px;
+  line-height: 1;
+  filter: grayscale(100%);
+  opacity: 0.5;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.star-btn.active .star-icon {
+  filter: none;
+  opacity: 1;
+}
+
+.star-text {
+  font-size: 13px;
+}
+
+/* 列表项中的星标符号 */
+.item-star-icon {
+  display: inline-block;
+  font-size: 14px;
+  vertical-align: middle;
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+
+/* 星标序号组合样式 */
+.star-index,
+.star-index-mobile {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-weight: 500;
+}
+
+.star-index-number {
+  font-size: inherit;
+  line-height: 1;
+}
+
+/* 移动端星标序号 */
+.star-index-mobile {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* 移动端星标按钮优化 */
+@media (max-width: 430px) {
+  .star-btn {
+    padding: 6px 10px;
+    gap: 4px;
+  }
+  
+  .star-icon {
+    font-size: 14px;
+  }
+  
+  .star-text {
+    font-size: 12px;
+  }
+  
+  .item-star-icon {
+    font-size: 12px;
+    margin-right: 3px;
+  }
+}
+
 .field-input:focus {
   border-color: var(--brand-blue);
   box-shadow: 0 0 0 1px rgba(25, 144, 255, 0.25);

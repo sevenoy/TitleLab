@@ -325,27 +325,47 @@ window.snapshotService = {
     if (apply === 'both' || apply === 'title') {
       await clearAndInsert(
         'titles',
-        titles.map((t) => ({
-          text: t.text,
-          main_category: t.main_category || null,
-          content_type: t.content_type || null,
-          scene_tags: cleanSceneTags(t.scene_tags),
-          usage_count: t.usage_count || 0,
-          created_at: t.created_at || new Date().toISOString()
-        }))
+        titles.map((t) => {
+          const base = {
+            text: t.text,
+            main_category: t.main_category || null,
+            content_type: t.content_type || null,
+            scene_tags: cleanSceneTags(t.scene_tags),
+            usage_count: t.usage_count || 0,
+            created_at: t.created_at || new Date().toISOString()
+          };
+          // 如果原数据有星标字段，尝试保留（如果数据库支持）
+          if (t.is_starred !== undefined) {
+            base.is_starred = t.is_starred || false;
+          }
+          if (t.starred_at) {
+            base.starred_at = t.starred_at;
+          }
+          return base;
+        })
       );
     }
     if (apply === 'both' || apply === 'content') {
       await clearAndInsert(
         'contents',
-        contents.map((c) => ({
-          text: c.text,
-          main_category: c.main_category || null,
-          content_type: c.content_type || null,
-          scene_tags: cleanSceneTags(c.scene_tags),
-          usage_count: c.usage_count || 0,
-          created_at: c.created_at || new Date().toISOString()
-        }))
+        contents.map((c) => {
+          const base = {
+            text: c.text,
+            main_category: c.main_category || null,
+            content_type: c.content_type || null,
+            scene_tags: cleanSceneTags(c.scene_tags),
+            usage_count: c.usage_count || 0,
+            created_at: c.created_at || new Date().toISOString()
+          };
+          // 如果原数据有星标字段，尝试保留（如果数据库支持）
+          if (c.is_starred !== undefined) {
+            base.is_starred = c.is_starred || false;
+          }
+          if (c.starred_at) {
+            base.starred_at = c.starred_at;
+          }
+          return base;
+        })
       );
     }
     
