@@ -621,18 +621,36 @@ function updateMobileCategoryLabel() {
 
 function bindToolbar() {
   const searchInput = document.getElementById('searchInput');
+  const btnClearSearch = document.getElementById('btnClearSearch');
   const filterScene = document.getElementById('filterScene');
 
   const btnNewTitle = document.getElementById('btnNewTitle');
   const btnBatchImport = document.getElementById('btnBatchImport');
   const btnClearAll = document.getElementById('btnClearAll');
 
-  // 🔍 搜索
+  // 🔍 搜索 + 清除按钮
   if (searchInput) {
+    const syncClearBtn = () => {
+      if (!btnClearSearch) return;
+      btnClearSearch.style.display = searchInput.value ? 'flex' : 'none';
+    };
+
     searchInput.addEventListener('input', (e) => {
       state.filters.search = e.target.value.trim();
       renderTitles();
+      syncClearBtn();
     });
+
+    syncClearBtn();
+
+    if (btnClearSearch) {
+      btnClearSearch.addEventListener('click', () => {
+        searchInput.value = '';
+        state.filters.search = '';
+        renderTitles();
+        syncClearBtn();
+      });
+    }
   }
 
   if (filterScene) {

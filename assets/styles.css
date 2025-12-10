@@ -90,6 +90,11 @@ body.bg-page {
   left: 50%;
   transform: translateX(-50%);
   z-index: 1; /* 确保在中间层，不被其他元素遮挡 */
+  pointer-events: none; /* 允许点击穿透到下方元素 */
+}
+
+.topbar-center .nav-tab {
+  pointer-events: auto; /* 按钮本身可以点击 */
 }
 
 
@@ -178,6 +183,7 @@ body.bg-page {
   .topbar-right {
     margin-left: auto;
     flex-shrink: 0;
+    gap: 8px; /* 确保三个按钮间距相同 */
   }
   /* 确保 topbar-left 和 topbar-right 不会遮挡中间的按钮 */
   .topbar-left {
@@ -187,6 +193,9 @@ body.bg-page {
   .topbar-right {
     flex-shrink: 0;
     max-width: 40%;
+    display: flex;
+    align-items: center;
+    gap: 8px; /* 手机端三个按钮间距相同 */
   }
   .nav-long {
     min-width: 92px;
@@ -199,17 +208,27 @@ body.bg-page {
   .search-wrapper {
     flex: 1 1 auto;
     min-width: 0;
-    max-width: none;
+    max-width: 180px; /* 移动端减少宽度 */
+    position: relative;
   }
   .search-wrapper .search-input {
     width: 100%;
     max-width: none;
+    padding-right: 28px;
     box-sizing: border-box;
+  }
+  .search-clear-btn {
+    right: 8px;
+    width: 16px;
+    height: 16px;
+    font-size: 14px;
+    line-height: 16px;
   }
   .filter-select {
     flex-shrink: 0;
+    width: 120px; /* 移动端固定宽度 */
     min-width: 100px;
-    max-width: 120px;
+    max-width: 140px;
   }
 .toolbar-actions {
   display: grid;
@@ -387,26 +406,59 @@ textarea.field-input {
   max-width: 160px;
 }
 
-/* 搜索框容器 */
+/* 搜索框容器 - 减少宽度以适配容器 */
 .search-wrapper {
+  position: relative;
   display: flex;
   flex: 1 1 auto;
   min-width: 0;
-  max-width: 360px;
+  max-width: 240px; /* 减少最大宽度 */
 }
 
 /* 搜索输入框 */
 .search-wrapper .search-input {
   width: 100%;
+  padding-right: 30px; /* 为清除按钮留出空间 */
   box-sizing: border-box;
   flex: 1 1 auto;
 }
 
-/* 选择框 - 与搜索框同一行 */
+/* 搜索框清除按钮 - 在输入框内部右侧 */
+.search-clear-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 16px;
+  line-height: 18px;
+  text-align: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: color 0.2s ease;
+}
+
+.search-clear-btn:hover {
+  color: #6b7280;
+}
+
+.search-clear-btn:active {
+  color: #4b5563;
+}
+
+/* 选择框 - 固定宽度，不超出容器 */
 .filter-select {
   flex-shrink: 0;
-  min-width: 120px;
-  max-width: 160px;
+  width: 160px; /* 固定宽度 */
+  min-width: 140px;
+  max-width: 180px;
 }
 
 /* 确保工具栏中的搜索框和选择框在同一行 */
@@ -415,6 +467,25 @@ textarea.field-input {
   align-items: center;
   gap: 12px;
   flex-wrap: nowrap; /* 不换行，确保搜索框和选择框在同一行 */
+}
+
+/* 返回主页按钮 - 蓝色高亮，置左 */
+.back-home-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  border: none;
+  cursor: pointer;
+  background: var(--brand-blue);
+  color: #ffffff;
+  transition: background 0.15s ease;
+  text-align: left;
+}
+
+.back-home-btn:hover {
+  background: var(--brand-blue-hover);
 }
 
 /* 删除确认按钮：红色背景 */
