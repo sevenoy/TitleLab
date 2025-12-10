@@ -24,10 +24,13 @@
   function checkForUpdate() {
     if (!registration) return;
 
+    // 强制检查更新
     registration.update().then(() => {
       // 检查是否有新的 Service Worker 等待激活
       if (registration.waiting) {
         console.info('[PWA] 发现新版本，自动刷新');
+        // 通知 Service Worker 跳过等待
+        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
         showUpdateToastAndReload();
         // 停止定期检查，因为已经发现更新
         if (updateCheckInterval) {
@@ -42,13 +45,21 @@
         const newWorker = registration.installing;
         if (newWorker) {
           newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              console.info('[PWA] 新版本已安装，自动刷新');
-              showUpdateToastAndReload();
-              // 停止定期检查
-              if (updateCheckInterval) {
-                clearTimeout(updateCheckInterval);
-                updateCheckInterval = null;
+            if (newWorker.state === 'installed') {
+              if (navigator.serviceWorker.controller) {
+                // 有旧版本在运行，新版本已安装
+                console.info('[PWA] 新版本已安装，自动刷新');
+                // 通知新 Service Worker 跳过等待
+                newWorker.postMessage({ type: 'SKIP_WAITING' });
+                showUpdateToastAndReload();
+                // 停止定期检查
+                if (updateCheckInterval) {
+                  clearTimeout(updateCheckInterval);
+                  updateCheckInterval = null;
+                }
+              } else {
+                // 首次安装，不需要刷新
+                console.info('[PWA] Service Worker 首次安装');
               }
             }
           });
@@ -71,12 +82,12 @@
         // 立即检查一次更新
         checkForUpdate();
 
-        // 优化更新检查策略，减少对电池的影响：
+        // 优化更新检查策略：
         // 1. 只在页面可见时检查（使用 Page Visibility API）
-        // 2. 增加检查间隔到3分钟（180秒），减少网络请求频率
-        // 3. 当页面从后台切换到前台时检查一次
+        // 2. 检查间隔为60秒，确保及时更新
+        // 3. 当页面从后台切换到前台时立即检查一次
         let lastCheckTime = Date.now();
-        const CHECK_INTERVAL = 180000; // 3分钟，减少检查频率
+        const CHECK_INTERVAL = 60000; // 60秒检查一次，确保及时更新
 
         function scheduleNextCheck() {
           // 清除之前的定时器
@@ -105,12 +116,9 @@
         // 当页面可见性变化时
         document.addEventListener('visibilitychange', () => {
           if (!document.hidden) {
-            // 页面变为可见时，如果距离上次检查超过1分钟，立即检查一次
-            const timeSinceLastCheck = Date.now() - lastCheckTime;
-            if (timeSinceLastCheck > 60000) {
-              checkForUpdate();
-              lastCheckTime = Date.now();
-            }
+            // 页面变为可见时，立即检查一次更新（确保及时获取最新版本）
+            checkForUpdate();
+            lastCheckTime = Date.now();
             // 重新调度定时检查
             scheduleNextCheck();
           } else {
@@ -119,6 +127,14 @@
               clearTimeout(updateCheckInterval);
               updateCheckInterval = null;
             }
+          }
+        });
+
+        // 添加强制刷新机制：监听 Service Worker 消息
+        navigator.serviceWorker.addEventListener('message', (event) => {
+          if (event.data && event.data.type === 'SKIP_WAITING') {
+            console.info('[PWA] 收到强制更新消息，刷新页面');
+            window.location.reload();
           }
         });
 
