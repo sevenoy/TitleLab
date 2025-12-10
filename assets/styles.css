@@ -226,9 +226,9 @@ body.bg-page {
   }
   .filter-select {
     flex-shrink: 0;
-    width: 120px; /* 移动端固定宽度 */
-    min-width: 100px;
-    max-width: 140px;
+    width: 80px; /* 移动端固定宽度 */
+    min-width: 60px;
+    max-width: 100px;
   }
 .toolbar-actions {
   display: grid;
