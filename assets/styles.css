@@ -358,6 +358,15 @@ body.bg-page {
   outline: none;
   background: #ffffff;
   -webkit-text-size-adjust: 100%; /* 防止 iOS 自动调整字体大小 */
+  box-sizing: border-box;
+}
+
+/* 确保select元素与其他输入框高度一致 */
+select.field-input {
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
 /* 搜索框和选择框使用较小字体（viewport已限制缩放，不会自动放大） */
@@ -959,19 +968,25 @@ textarea.field-input {
 @media (max-width: 430px) {
   .filter-select,
   select.filter-select,
-  .field-input.filter-select {
+  .field-input.filter-select,
+  select.field-input.filter-select {
     flex-shrink: 0 !important;
     width: 100px !important; /* 移动端固定宽度 */
     min-width: 100px !important;
     max-width: 100px !important;
     padding: 6px 10px !important; /* 确保与其他输入框高度一致 */
+    box-sizing: border-box !important;
     height: auto !important;
+    min-height: auto !important;
     line-height: 1.2 !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
   }
   
   /* 减少用户名徽章和退出按钮间距 */
   .topbar-right {
-    gap: 7px !important;
+    gap: 5px !important;
   }
   
   /* 减少标题条数和文案条数显示框的padding */
