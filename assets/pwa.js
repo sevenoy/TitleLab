@@ -79,50 +79,22 @@
         registration = reg;
         console.info('[PWA] Service Worker registered:', reg.scope);
 
-        // 立即检查一次更新
+        // 立即检查一次更新（只在页面打开时）
         checkForUpdate();
 
-        // 优化更新检查策略：
-        // 1. 只在页面可见时检查（使用 Page Visibility API）
-        // 2. 检查间隔为60秒，确保及时更新
-        // 3. 当页面从后台切换到前台时立即检查一次
-        let lastCheckTime = Date.now();
-        const CHECK_INTERVAL = 60000; // 60秒检查一次，确保及时更新
-
-        function scheduleNextCheck() {
-          // 清除之前的定时器
-          if (updateCheckInterval) {
-            clearTimeout(updateCheckInterval);
-          }
-          
-          // 只在页面可见时设置定时器
-          if (!document.hidden) {
-            const timeSinceLastCheck = Date.now() - lastCheckTime;
-            const delay = Math.max(0, CHECK_INTERVAL - timeSinceLastCheck);
-            
-            updateCheckInterval = setTimeout(() => {
-              if (!document.hidden) {
-                checkForUpdate();
-                lastCheckTime = Date.now();
-              }
-              scheduleNextCheck(); // 递归调度下一次检查
-            }, delay);
-          }
-        }
-
-        // 初始调度
-        scheduleNextCheck();
+        // 优化更新检查策略：只在页面打开/可见时检查，后台完全不运行
+        // 1. 页面加载时检查一次
+        // 2. 页面从后台切回前台时检查一次
+        // 3. 不设置定期检查，避免后台运行费电
 
         // 当页面可见性变化时
         document.addEventListener('visibilitychange', () => {
           if (!document.hidden) {
-            // 页面变为可见时，立即检查一次更新（确保及时获取最新版本）
+            // 页面变为可见时，立即检查一次更新
+            // 这是唯一在后台切回前台时的检查时机
             checkForUpdate();
-            lastCheckTime = Date.now();
-            // 重新调度定时检查
-            scheduleNextCheck();
           } else {
-            // 页面隐藏时，清除定时器，停止检查
+            // 页面隐藏时，确保清除所有定时器，完全停止检查
             if (updateCheckInterval) {
               clearTimeout(updateCheckInterval);
               updateCheckInterval = null;
