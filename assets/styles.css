@@ -227,7 +227,7 @@ body.bg-page {
   .filter-select {
     flex-shrink: 0;
     width: 80px; /* 移动端固定宽度 */
-    min-width: 60px;
+    min-width: 100px;
     max-width: 100px;
   }
 .toolbar-actions {
@@ -935,3 +935,15 @@ textarea.field-input {
   border-radius: 8px;
 }
 .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* 移动端覆盖：确保移动端宽度设置生效（放在最后，覆盖所有之前的样式） */
+@media (max-width: 430px) {
+  .filter-select,
+  select.filter-select,
+  .field-input.filter-select {
+    flex-shrink: 0 !important;
+    width: 100px !important; /* 移动端固定宽度 */
+    min-width: 100px !important;
+    max-width: 100px !important;
+  }
+}
