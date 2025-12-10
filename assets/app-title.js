@@ -112,7 +112,12 @@ function renderSceneFilterOptions(settings) {
   (settings.scenes || []).forEach((scene) => {
     const opt = document.createElement('option');
     opt.value = scene;
-    opt.textContent = scene;
+    // 统计该场景的标题数据条数
+    const count = state.titles.filter((title) => {
+      const sceneTags = Array.isArray(title.scene_tags) ? title.scene_tags : [];
+      return sceneTags.includes(scene);
+    }).length;
+    opt.textContent = `${scene} ${count}条`;
     filterScene.appendChild(opt);
   });
 
@@ -704,6 +709,8 @@ async function loadTitlesFromCloud() {
     // 云端数据变化后，需要同步刷新分类数量
     renderCategoryList();
     renderTitles();
+    // 刷新场景下拉列表，更新数据条数
+    refreshSceneSelects();
   } catch (e) {
     console.error('[TitleApp] loadTitlesFromCloud error', e);
     showToast('加载标题失败', 'error');
@@ -889,6 +896,8 @@ async function copyTitle(item) {
 async function deleteTitle(item) {
   state.titles = state.titles.filter((t) => t.id !== item.id);
   renderTitles();
+  // 刷新场景下拉列表，更新数据条数
+  refreshSceneSelects();
 
   if (!supabase || !item.id) return;
 
@@ -957,6 +966,7 @@ function openCloudLoadConfirmTitle(key) {
         // 重新应用显示设置（包括场景设置/账号分类）
         applyDisplaySettings();
         await loadTitlesFromCloud();
+        // loadTitlesFromCloud 内部已经会调用 refreshSceneSelects，这里不需要重复调用
         showToast(`已加载：标题 ${info.titleCount} 条 文案 ${info.contentCount} 条 ${info.updatedText}`);
       } catch (e) {
         console.error('[TitleApp] 加载快照失败:', e);
@@ -1069,7 +1079,12 @@ function refreshSceneSelects() {
     scenes.forEach((scene) => {
       const opt = document.createElement('option');
       opt.value = scene;
-      opt.textContent = scene;
+      // 统计该场景的标题数据条数
+      const count = state.titles.filter((title) => {
+        const sceneTags = Array.isArray(title.scene_tags) ? title.scene_tags : [];
+        return sceneTags.includes(scene);
+      }).length;
+      opt.textContent = `${scene} ${count}条`;
       filterScene.appendChild(opt);
     });
     // 如果之前选中的值仍然存在，保持选中
@@ -1231,6 +1246,8 @@ async function saveTitleFromModal() {
     // 分类数量重新计算
     renderCategoryList();
     renderTitles();
+    // 刷新场景下拉列表，更新数据条数
+    refreshSceneSelects();
     closeTitleModal();
   } catch (e) {
     console.error('[TitleApp] 保存标题失败', e);
@@ -1338,6 +1355,7 @@ async function runImport() {
     showToast(`批量导入成功，共 ${rows.length} 条`);
     closeImportModal();
     await loadTitlesFromCloud();
+    // loadTitlesFromCloud 内部已经会调用 refreshSceneSelects，这里不需要重复调用
   } catch (e) {
     console.error('[TitleApp] 批量导入云端失败', e);
     showToast('云端导入失败', 'error');
@@ -1379,6 +1397,7 @@ async function loadCloudSnapshot(key, options = {}) {
     // 重新应用显示设置（包括场景设置/账号分类）
     applyDisplaySettings();
     await loadTitlesFromCloud();
+    // loadTitlesFromCloud 内部已经会调用 refreshSceneSelects，这里不需要重复调用
     showToast(
       `已加载：标题 ${info.titleCount} 条 文案 ${info.contentCount} 条 ${info.updatedText}`
     );
@@ -1431,14 +1450,21 @@ async function renderCloudHistoryList(anchorBtn) {
         '<div style="padding:8px 10px;font-size:12px;color:#6b7280;">暂无快照</div>';
       return;
     }
-    const rows = list.map((it) => `
-      <div class="cloud-item" data-key="${it.key}">
+    // 第一个是最新的快照
+    const rows = list.map((it, index) => {
+      const isLatest = index === 0;
+      return `
+      <div class="cloud-item ${isLatest ? 'cloud-item-latest' : ''}" data-key="${it.key}">
         <div class="cloud-item-main">
-          <div class="cloud-item-name">${it.label}</div>
+          <div class="cloud-item-name-wrapper">
+            <div class="cloud-item-name">${it.label}</div>
+            ${isLatest ? '<span class="cloud-item-latest-badge">最新</span>' : ''}
+          </div>
           <div class="cloud-item-meta">标题 ${it.titleCount} 条 · 文案 ${it.contentCount} 条 · ${it.updatedText}</div>
         </div>
       </div>
-    `);
+    `;
+    });
     panel.innerHTML = rows.join('');
     panel.querySelectorAll('.cloud-item').forEach((el) => {
       el.addEventListener('click', () => {

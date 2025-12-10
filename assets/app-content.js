@@ -549,6 +549,8 @@ async function loadContentsFromCloud() {
     state.contents = filtered;
     renderCategoryList();
     renderContents();
+    // 刷新场景下拉列表，更新数据条数
+    refreshSceneSelects();
   } catch (e) {
     state.contents = [];
     renderCategoryList();
@@ -929,6 +931,8 @@ async function saveContentFromModal() {
     state.currentCategory = prevCategory;
     renderCategoryList();
     renderContents();
+    // 刷新场景下拉列表，更新数据条数
+    refreshSceneSelects();
     closeContentModal();
   } catch (e) {
     showToast('保存失败：' + (e.message || ''), 'error');
@@ -943,7 +947,12 @@ function renderSceneFilterOptions(settings) {
   (settings.scenes || []).forEach((scene) => {
     const opt = document.createElement('option');
     opt.value = scene;
-    opt.textContent = scene;
+    // 统计该场景的文案数据条数
+    const count = state.contents.filter((content) => {
+      const sceneTags = Array.isArray(content.scene_tags) ? content.scene_tags : [];
+      return sceneTags.includes(scene);
+    }).length;
+    opt.textContent = `${scene} ${count}条`;
     filterScene.appendChild(opt);
   });
   if ((settings.scenes || []).includes(prevValue)) filterScene.value = prevValue; else filterScene.value = ''; 
@@ -963,7 +972,12 @@ function refreshSceneSelects() {
     scenes.forEach((scene) => {
       const opt = document.createElement('option');
       opt.value = scene;
-      opt.textContent = scene;
+      // 统计该场景的文案数据条数
+      const count = state.contents.filter((content) => {
+        const sceneTags = Array.isArray(content.scene_tags) ? content.scene_tags : [];
+        return sceneTags.includes(scene);
+      }).length;
+      opt.textContent = `${scene} ${count}条`;
       filterScene.appendChild(opt);
     });
     // 如果之前选中的值仍然存在，保持选中
@@ -1134,14 +1148,21 @@ async function renderCloudHistoryList(anchorBtn) {
       panel.innerHTML = '<div style="padding:8px 10px;font-size:12px;color:#6b7280;">暂无快照</div>';
       return;
     }
-    const rows = list.map((it) => `
-      <div class="cloud-item" data-key="${it.key}">
+    // 第一个是最新的快照
+    const rows = list.map((it, index) => {
+      const isLatest = index === 0;
+      return `
+      <div class="cloud-item ${isLatest ? 'cloud-item-latest' : ''}" data-key="${it.key}">
         <div class="cloud-item-main">
-          <div class="cloud-item-name">${it.label}</div>
+          <div class="cloud-item-name-wrapper">
+            <div class="cloud-item-name">${it.label}</div>
+            ${isLatest ? '<span class="cloud-item-latest-badge">最新</span>' : ''}
+          </div>
           <div class="cloud-item-meta">标题 ${it.titleCount} 条 · 文案 ${it.contentCount} 条 · ${it.updatedText}</div>
         </div>
       </div>
-    `);
+    `;
+    });
     panel.innerHTML = rows.join('');
     panel.querySelectorAll('.cloud-item').forEach((el) => {
       el.addEventListener('click', () => {
@@ -1263,6 +1284,8 @@ function openClearConfirmModal() {
 async function deleteContent(item) {
   state.contents = state.contents.filter((t) => t.id !== item.id);
   renderContents();
+  // 刷新场景下拉列表，更新数据条数
+  refreshSceneSelects();
   if (!supabase || !item.id) return;
   try {
     await supabase.from('contents').delete().eq('id', item.id);

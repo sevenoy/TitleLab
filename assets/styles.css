@@ -910,8 +910,38 @@ textarea.field-input {
   flex-direction: column;
 }
 
+.cloud-item-name-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .cloud-item-name {
   font-size: 13px;
+  flex: 1;
+}
+
+.cloud-item-latest {
+  background: var(--brand-blue) !important;
+  color: #ffffff !important;
+}
+
+.cloud-item-latest .cloud-item-name,
+.cloud-item-latest .cloud-item-meta {
+  color: #ffffff !important;
+}
+
+.cloud-item-latest-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .cloud-item-meta {
@@ -986,7 +1016,7 @@ textarea.field-input {
   
   /* 减少用户名徽章和退出按钮间距 */
   .topbar-right {
-    gap: 5px !important;
+    gap: 3px !important;
   }
   
   /* 减少标题条数和文案条数显示框的padding */
