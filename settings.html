@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <title>设置中心</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="设置中心" />
@@ -44,6 +44,24 @@
       <main class="layout flex-col gap-3">
         <section class="panel">
           <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <h2 class="text-base font-semibold">场景管理</h2>
+            <div class="flex items-center gap-2 w-full md:w-auto">
+              <input
+                id="newSceneInput"
+                class="field-input flex-1"
+                placeholder="新增场景，如 夜景、烟花"
+              />
+              <button id="btnAddScene" class="function-btn">新增</button>
+            </div>
+          </div>
+          <div id="sceneList" class="grid gap-2 md:grid-cols-2"></div>
+          <div class="text-xs text-gray-500 mt-2">
+            配置后会同步到标题页筛选下拉，支持修改、删除与新增。
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
             <h2 class="text-base font-semibold">主题与显示</h2>
             <div>
               <div class="text-xs text-gray-500">即时保存 · 本地生效</div>
@@ -61,7 +79,7 @@
               <div class="field-label mt-3">标题颜色</div>
               <input id="titleColorInput" class="field-input" type="color" />
               <div class="text-xs text-gray-500 mt-2">
-                影响标题页顶部“标题与文案管理系统”的文字与颜色。
+                影响标题页顶部"标题与文案管理系统"的文字与颜色。
               </div>
               <div
                 id="titlePreview"
@@ -109,24 +127,6 @@
                 以上颜色将应用到标题页的按钮、隔行背景以及分类列表悬停效果。
               </div>
             </div>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
-            <h2 class="text-base font-semibold">场景管理</h2>
-            <div class="flex items-center gap-2 w-full md:w-auto">
-              <input
-                id="newSceneInput"
-                class="field-input flex-1"
-                placeholder="新增场景，如 夜景、烟花"
-              />
-              <button id="btnAddScene" class="function-btn">新增</button>
-            </div>
-          </div>
-          <div id="sceneList" class="grid gap-2 md:grid-cols-2"></div>
-          <div class="text-xs text-gray-500 mt-2">
-            配置后会同步到标题页筛选下拉，支持修改、删除与新增。
           </div>
         </section>
 

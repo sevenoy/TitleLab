@@ -30,6 +30,7 @@ body.bg-page {
   max-width: 1200px;
   margin: 0 auto;
   padding: 16px;
+  padding-top: max(16px, calc(16px + env(safe-area-inset-top)));
   padding-bottom: 120px;
 }
 
@@ -112,19 +113,20 @@ body.bg-page {
   color: var(--text-main) !important;
 }
 
-/* 用户名简写样式 */
+/* 用户名样式 */
 .user-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
+  min-width: 24px;
   height: 24px;
-  border-radius: 50%;
+  padding: 0 8px;
+  border-radius: 12px;
   background: var(--brand-blue);
   color: #ffffff;
   font-size: 12px;
   font-weight: 600;
-  padding: 0;
+  white-space: nowrap;
 }
 
 /* 导航 Tab */
@@ -277,6 +279,18 @@ body.bg-page {
   box-shadow: none;
 }
 
+/* 排序按钮激活状态：蓝色高亮 */
+.function-btn.ghost.active,
+#btnSortCategory.active {
+  background: var(--brand-blue);
+  color: #ffffff;
+}
+
+.function-btn.ghost.active:hover,
+#btnSortCategory.active:hover {
+  background: var(--brand-blue-hover);
+}
+
 /* 统一带 text-xs 的按钮字号，与功能按钮一致 */
 .function-btn.text-xs {
   font-size: 13px !important;
@@ -297,9 +311,29 @@ body.bg-page {
   padding: 6px 10px;
   border-radius: 999px;
   border: 1px solid #d1d5db;
-  font-size: 13px;
+  font-size: 13px; /* 正常字体大小，viewport已限制缩放，不会自动放大 */
   outline: none;
   background: #ffffff;
+  -webkit-text-size-adjust: 100%; /* 防止 iOS 自动调整字体大小 */
+}
+
+/* 搜索框和选择框使用较小字体（viewport已限制缩放，不会自动放大） */
+.search-input,
+.filter-select {
+  font-size: 13px;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* 选择框字体颜色改为蓝色 */
+.filter-select {
+  color: var(--brand-blue);
+}
+
+.filter-select option,
+.field-input option,
+select.field-input option {
+  color: var(--text-main);
+  font-size: 13px;
 }
 
 .field-input:focus {

@@ -35,7 +35,7 @@ const state = {
   renamingCategory: null, // 正在重命名的分类名称
   filters: { search: '', scene: '' },
   editingId: null,
-  isSortingCategories: false
+  isSortingCategories: true // 分类是否处在"排序模式"（默认开启）
 };
 
 let toastTimer = null;
@@ -86,9 +86,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   const badge = document.getElementById('currentUserName');
   if (badge) {
-    // 获取用户名简写
-    const userInitial = getUserInitial(user.username);
-    badge.textContent = userInitial;
+    // 显示完整用户名
+    badge.textContent = user.username || '';
     badge.className = 'user-badge text-xs';
   }
   const btnLogout = document.getElementById('btnLogout');
@@ -152,17 +151,32 @@ function stripLeadingIndex(s) {
 function getDisplaySettings() {
   const key = getDisplaySettingsLSKey();
   const raw = localStorage.getItem(key);
-  if (!raw) return { ...DEFAULT_DISPLAY_SETTINGS };
+  
+  // 根据用户获取默认场景
+  const user = getCurrentUser();
+  const defaultScenes = user && user.username === 'olina' 
+    ? ['西瓜', '糖果', '米苏', '开心', '飞船', '女摄', '新号', '抖音']
+    : DEFAULT_DISPLAY_SETTINGS.scenes;
+  
+  if (!raw) {
+    return { 
+      ...DEFAULT_DISPLAY_SETTINGS,
+      scenes: defaultScenes
+    };
+  }
   try {
     const parsed = JSON.parse(raw);
     const scenes = Array.isArray(parsed.scenes) ? parsed.scenes : [];
     return {
       ...DEFAULT_DISPLAY_SETTINGS,
       ...parsed,
-      scenes: scenes.length ? scenes : [...DEFAULT_DISPLAY_SETTINGS.scenes]
+      scenes: scenes.length ? scenes : defaultScenes
     };
   } catch (_) {
-    return { ...DEFAULT_DISPLAY_SETTINGS };
+    return { 
+      ...DEFAULT_DISPLAY_SETTINGS,
+      scenes: defaultScenes
+    };
   }
 }
 
@@ -705,8 +719,19 @@ function bindCategoryButtons() {
     btnDel.addEventListener('click', openDeleteCategoryModalContent);
   }
   if (btnSort) {
+    // 初始化按钮激活状态（默认开启）
+    if (state.isSortingCategories) {
+      btnSort.classList.add('active');
+    }
+    
     btnSort.addEventListener('click', () => {
       state.isSortingCategories = !state.isSortingCategories;
+      // 更新按钮激活状态
+      if (state.isSortingCategories) {
+        btnSort.classList.add('active');
+      } else {
+        btnSort.classList.remove('active');
+      }
       renderCategoryList();
       showToast(state.isSortingCategories ? '分类排序模式已开启（点击↑↓调整顺序，点击"改"按钮可修改分类名称）' : '已退出分类排序模式');
     });
