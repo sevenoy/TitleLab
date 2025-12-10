@@ -487,30 +487,15 @@ function bindRenameCategoryModal() {
 
 function bindToolbar() {
   const searchInput = document.getElementById('searchInput');
-  const btnClearSearch = document.getElementById('btnClearSearch');
   const filterScene = document.getElementById('filterScene');
   const btnNew = document.getElementById('btnNewTitle');
   const btnBatchImport = document.getElementById('btnBatchImport');
   const btnClearAll = document.getElementById('btnClearAll');
   if (searchInput) {
-    const syncClearBtn = () => {
-      if (!btnClearSearch) return;
-      btnClearSearch.style.display = searchInput.value ? 'inline-flex' : 'none';
-    };
     searchInput.addEventListener('input', (e) => {
       state.filters.search = e.target.value.trim();
       renderContents();
-      syncClearBtn();
     });
-    syncClearBtn();
-    if (btnClearSearch) {
-      btnClearSearch.addEventListener('click', () => {
-        searchInput.value = '';
-        state.filters.search = '';
-        renderContents();
-        syncClearBtn();
-      });
-    }
   }
   if (btnBatchImport) {
     btnBatchImport.addEventListener('click', () => {

@@ -50,6 +50,8 @@ body.bg-page {
 .topbar-left {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
+  z-index: 0;
 }
 
 .logo-dot {
@@ -73,6 +75,8 @@ body.bg-page {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
+  z-index: 0;
 }
 
 /* 顶部中间：标题 / 文案 Tab */
@@ -85,6 +89,7 @@ body.bg-page {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
+  z-index: 1; /* 确保在中间层，不被其他元素遮挡 */
 }
 
 
@@ -165,13 +170,23 @@ body.bg-page {
   .topbar-center {
     flex-wrap: wrap;
     gap: 6px;
-    position: static;
-    transform: none;
-    left: auto;
+    /* 保持绝对定位居中，确保在所有页面都居中 */
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
   }
   .topbar-right {
     margin-left: auto;
     flex-shrink: 0;
+  }
+  /* 确保 topbar-left 和 topbar-right 不会遮挡中间的按钮 */
+  .topbar-left {
+    flex-shrink: 0;
+    max-width: 40%;
+  }
+  .topbar-right {
+    flex-shrink: 0;
+    max-width: 40%;
   }
   .nav-long {
     min-width: 92px;
@@ -182,17 +197,19 @@ body.bg-page {
     gap: 6px;
   }
   .search-wrapper {
-    max-width: 160px;
-    flex: 0 0 160px;
-  }
-  .search-input {
-    width: 140px !important;
+    flex: 1 1 auto;
+    min-width: 0;
     max-width: none;
+  }
+  .search-wrapper .search-input {
+    width: 100%;
+    max-width: none;
+    box-sizing: border-box;
   }
   .filter-select {
-    width: 108px !important;
-    max-width: none;
-    flex: 0 0 108px;
+    flex-shrink: 0;
+    min-width: 100px;
+    max-width: 120px;
   }
 .toolbar-actions {
   display: grid;
@@ -361,6 +378,7 @@ textarea.field-input {
   margin-bottom: 4px;
 }
 
+/* 搜索框样式 */
 .search-input {
   max-width: 220px;
 }
@@ -369,25 +387,34 @@ textarea.field-input {
   max-width: 160px;
 }
 
-/* 搜索框 + 清空按钮 */
-
+/* 搜索框容器 */
 .search-wrapper {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
   max-width: 360px;
+}
+
+/* 搜索输入框 */
+.search-wrapper .search-input {
+  width: 100%;
+  box-sizing: border-box;
   flex: 1 1 auto;
 }
 
-.search-clear-btn {
-  display: none;
-  padding-inline: 10px;
-  background: #ef4444;
-  color: #ffffff;
+/* 选择框 - 与搜索框同一行 */
+.filter-select {
+  flex-shrink: 0;
+  min-width: 120px;
+  max-width: 160px;
 }
 
-.search-clear-btn:hover {
-  background: #dc2626;
+/* 确保工具栏中的搜索框和选择框在同一行 */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap; /* 不换行，确保搜索框和选择框在同一行 */
 }
 
 /* 删除确认按钮：红色背景 */
