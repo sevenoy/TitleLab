@@ -168,8 +168,19 @@ window.snapshotService = {
       throw new Error('快照标签不能为空');
     }
     
-    const titles = await fetchTableAll('titles');
-    const contents = await fetchTableAll('contents');
+    // 优先使用传入的本地状态（包含星标信息），否则从数据库获取
+    let titles, contents;
+    if (opts.localTitles && opts.localContents) {
+      // 使用本地状态，确保星标信息被保存
+      titles = opts.localTitles;
+      contents = opts.localContents;
+      console.log('[SnapshotService] 使用本地状态保存快照（包含星标信息）');
+    } else {
+      // 向后兼容：从数据库获取
+      titles = await fetchTableAll('titles');
+      contents = await fetchTableAll('contents');
+      console.log('[SnapshotService] 从数据库获取数据保存快照');
+    }
     
     // 获取当前用户的设置 key
     let user = null;

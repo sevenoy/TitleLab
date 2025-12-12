@@ -16,6 +16,12 @@ function getDisplaySettingsLSKey() {
   const username = user ? user.username : 'default';
   return `display_settings_v1_${username}`;
 }
+
+function getStarredDataLSKey() {
+  const user = getCurrentUser();
+  const username = user ? user.username : 'default';
+  return `content_starred_data_v1_${username}`;
+}
 const DEFAULT_DISPLAY_SETTINGS = {
   brandColor: '#1990ff',
   brandHover: '#1477dd',
@@ -37,6 +43,9 @@ const state = {
   editingId: null,
   isSortingCategories: true // 分类是否处在"排序模式"（默认开启）
 };
+
+// 暴露 state 到 window，供其他页面访问（用于保存快照时获取本地状态）
+window.contentAppState = state;
 
 let toastTimer = null;
 
@@ -533,9 +542,59 @@ function bindToolbar() {
   }
 }
 
+// 保存星标信息到 localStorage
+function saveStarredDataToLocal() {
+  const starredMap = new Map();
+  state.contents.forEach(item => {
+    if (item.id && item.is_starred === true) {
+      starredMap.set(String(item.id), {
+        is_starred: true,
+        starred_at: item.starred_at
+      });
+    }
+  });
+  const key = getStarredDataLSKey();
+  const data = Object.fromEntries(starredMap);
+  localStorage.setItem(key, JSON.stringify(data));
+}
+
+// 从 localStorage 加载星标信息
+function loadStarredDataFromLocal() {
+  const key = getStarredDataLSKey();
+  const raw = localStorage.getItem(key);
+  if (!raw) return new Map();
+  try {
+    const data = JSON.parse(raw);
+    return new Map(Object.entries(data));
+  } catch (e) {
+    console.error('[ContentApp] loadStarredDataFromLocal error', e);
+    return new Map();
+  }
+}
+
 async function loadContentsFromCloud() {
   if (!supabase) return;
   try {
+    // 在加载前，保存当前本地状态中的星标信息（以 id 为 key）
+    const starredMap = new Map();
+    state.contents.forEach(item => {
+      if (item.id && item.is_starred === true) {
+        starredMap.set(String(item.id), {
+          is_starred: true,
+          starred_at: item.starred_at
+        });
+      }
+    });
+    
+    // 同时从 localStorage 加载星标信息
+    const localStarredMap = loadStarredDataFromLocal();
+    // 合并：优先使用内存中的，其次使用 localStorage 中的
+    localStarredMap.forEach((value, key) => {
+      if (!starredMap.has(key)) {
+        starredMap.set(key, value);
+      }
+    });
+
     const { data, error } = await supabase
       .from('contents')
       .select('*')
@@ -546,7 +605,21 @@ async function loadContentsFromCloud() {
     const filtered = tag
       ? (data || []).filter((it) => Array.isArray(it.scene_tags) && it.scene_tags.includes(tag))
       : (data || []);
+    
+    // 合并本地保存的星标信息
+    filtered.forEach(item => {
+      const itemId = String(item.id);
+      if (item.id && starredMap.has(itemId)) {
+        const starredInfo = starredMap.get(itemId);
+        item.is_starred = starredInfo.is_starred;
+        item.starred_at = starredInfo.starred_at;
+      }
+    });
+    
     state.contents = filtered;
+    // 保存合并后的星标信息到 localStorage
+    saveStarredDataToLocal();
+    console.log('[ContentApp] 从云端加载文案条数：', state.contents.length, '，合并星标信息：', starredMap.size, '条');
     renderCategoryList();
     renderContents();
     // 刷新场景下拉列表，更新数据条数
@@ -1023,6 +1096,8 @@ async function saveContentFromModal() {
       // 即使数据库不支持星标字段，本地状态也要更新（用于显示）
       const idx = state.contents.findIndex((t) => t.id === state.editingId);
       if (idx !== -1) state.contents[idx] = { ...state.contents[idx], ...payload };
+      // 更新 localStorage 中的星标信息
+      saveStarredDataToLocal();
       showToast('文案已更新');
   } else {
       const insertPayload = { ...payload, usage_count: 0 };
@@ -1046,6 +1121,8 @@ async function saveContentFromModal() {
       }
       
       if (data) state.contents.unshift(data);
+      // 更新 localStorage 中的星标信息
+      saveStarredDataToLocal();
       showToast('文案已新增');
     }
     state.currentCategory = prevCategory;
@@ -1380,7 +1457,15 @@ function openCloudLabelModal() {
     if (!window.snapshotService) { alert('未配置 Supabase'); return; }
     const label = input.value.trim();
     try {
-      const info = await window.snapshotService.saveUnifiedSnapshotFromCloud(label);
+      // 获取标题数据（从全局状态或从 title 页面）
+      let titles = [];
+      if (window.titleAppState && window.titleAppState.titles) {
+        titles = window.titleAppState.titles;
+      }
+      const info = await window.snapshotService.saveUnifiedSnapshotFromCloud(
+        label,
+        { localTitles: titles, localContents: state.contents }
+      );
       close();
       showToast(`已保存：标题 ${info.titleCount} 条 文案 ${info.contentCount} 条 ${info.updatedText}`);
     } catch (e) {
@@ -1417,6 +1502,8 @@ function openClearConfirmModal() {
 
 async function deleteContent(item) {
   state.contents = state.contents.filter((t) => t.id !== item.id);
+  // 更新 localStorage 中的星标信息（删除后）
+  saveStarredDataToLocal();
   renderContents();
   // 刷新场景下拉列表，更新数据条数
   refreshSceneSelects();
