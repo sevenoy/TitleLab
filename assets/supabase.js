@@ -153,7 +153,21 @@ async function clearAndInsert(table, rows) {
     const hasUserTag = existingTags.includes(tag);
     return { ...r, scene_tags: hasUserTag ? existingTags : Array.from(new Set([...existingTags, tag])) };
   }) : rows;
-  const { error: insError } = await supabaseClient.from(table).insert(rowsWithTag);
+  
+  // 先尝试插入完整数据
+  let { error: insError } = await supabaseClient.from(table).insert(rowsWithTag);
+  
+  // 如果错误是因为字段不存在（is_starred 或 starred_at），移除这些字段后重试
+  if (insError && (insError.message.includes('is_starred') || insError.message.includes('starred_at'))) {
+    console.warn(`[Supabase] ${table} 表缺少星标字段，移除星标数据后重试`);
+    const rowsWithoutStar = rowsWithTag.map((r) => {
+      const { is_starred, starred_at, ...rest } = r;
+      return rest;
+    });
+    const retryResult = await supabaseClient.from(table).insert(rowsWithoutStar);
+    insError = retryResult.error;
+  }
+  
   if (insError) throw insError;
 }
 
