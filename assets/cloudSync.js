@@ -1,0 +1,681 @@
+// assets/cloudSync.js
+// 云端同步统一协议（对齐 XHSPHONE 白皮书思路）
+
+const DEFAULT_SNAPSHOT_KEY = 'default';
+
+/**
+ * 获取客户端版本号
+ */
+function getClientVersion() {
+  return window.APP_VERSION || 'dev';
+}
+
+/**
+ * 格式化日期为 YYYYMMDD（本地时间）
+ */
+function formatYYYYMMDDLocal(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}${month}${day}`;
+}
+
+/**
+ * 构建快照标签：用户名 + 当天日期
+ * 格式：${username} ${YYYYMMDD}
+ * 例： "Jasper 20251218"
+ */
+function buildSnapshotLabel(user) {
+  // 获取 username（优先级：sessionUser.username > user.username > email前缀 > 'user'）
+  let username = 'user';
+  
+  const sessionUser = window.supabaseApi ? window.supabaseApi.getSessionUser() : null;
+  if (sessionUser && sessionUser.username) {
+    username = sessionUser.username;
+  } else if (user && user.username) {
+    username = user.username;
+  } else if (user && user.email) {
+    // 从 email 提取前缀（test@gmail.com => test）
+    const emailPrefix = user.email.split('@')[0];
+    if (emailPrefix) {
+      username = emailPrefix;
+    }
+  }
+  
+  // 使用本地时间生成日期
+  const today = new Date();
+  const dateStr = formatYYYYMMDDLocal(today);
+  
+  return `${username} ${dateStr}`;
+}
+
+/**
+ * 构建本地 payload（包含 snapshot_label 等完整信息）
+ */
+function buildLocalPayload(snapshotLabel, localData) {
+  return {
+    ver: 1,
+    snapshot_label: snapshotLabel,
+    meta: {
+      client_version: getClientVersion()
+    },
+    titles: localData.titles,
+    contents: localData.contents,
+    cats: localData.cats,
+    view: localData.view
+  };
+}
+
+/**
+ * 聚合本地数据（从 Supabase 表读取）
+ */
+async function aggregateLocalData() {
+  const client = window.supabaseApi ? window.supabaseApi.getClient() : null;
+  if (!client) {
+    throw new Error('Supabase 客户端未初始化');
+  }
+
+  // 获取当前用户信息
+  const sessionUser = window.supabaseApi ? window.supabaseApi.getSessionUser() : null;
+  const username = sessionUser ? sessionUser.username : 'default';
+  const tag = sessionUser ? `user:${username}` : null;
+
+  // 从 Supabase 读取 titles
+  const { data: titlesData, error: titlesError } = await client
+    .from('titles')
+    .select('*')
+    .order('created_at', { ascending: true });
+  if (titlesError) throw titlesError;
+  const titles = tag
+    ? (titlesData || []).filter((it) => Array.isArray(it.scene_tags) && it.scene_tags.includes(tag))
+    : (titlesData || []);
+
+  // 从 Supabase 读取 contents
+  const { data: contentsData, error: contentsError } = await client
+    .from('contents')
+    .select('*')
+    .order('created_at', { ascending: true });
+  if (contentsError) throw contentsError;
+  const contents = tag
+    ? (contentsData || []).filter((it) => Array.isArray(it.scene_tags) && it.scene_tags.includes(tag))
+    : (contentsData || []);
+
+  // 从 localStorage 读取分类和视图设置
+  const titleCatsKey = `title_categories_v1_${username}`;
+  const contentCatsKey = `content_categories_v1_${username}`;
+  const viewSettingsKey = `display_settings_v1_${username}`;
+
+  let titleCats = [];
+  let contentCats = [];
+  let viewSettings = {};
+
+  try {
+    const titleCatsRaw = localStorage.getItem(titleCatsKey);
+    titleCats = titleCatsRaw ? JSON.parse(titleCatsRaw) : [];
+  } catch (_) {}
+
+  try {
+    const contentCatsRaw = localStorage.getItem(contentCatsKey);
+    contentCats = contentCatsRaw ? JSON.parse(contentCatsRaw) : [];
+  } catch (_) {}
+
+  try {
+    const viewSettingsRaw = localStorage.getItem(viewSettingsKey);
+    viewSettings = viewSettingsRaw ? JSON.parse(viewSettingsRaw) : {};
+  } catch (_) {}
+
+  return {
+    titles,
+    contents,
+    cats: {
+      title: titleCats,
+      content: contentCats
+    },
+    view: viewSettings
+  };
+}
+
+/**
+ * 标准化 payload（排序并移除波动字段）
+ * 返回只包含业务数据的对象，用于内容比较
+ */
+function normalizePayload(payload) {
+  const normalized = JSON.parse(JSON.stringify(payload));
+
+  // 移除波动字段
+  delete normalized.snapshot_label;
+  delete normalized.updated_at;  // 移除 updated_at（如果有的话）
+  
+  if (normalized.meta) {
+    delete normalized.meta.client_version;
+    delete normalized.meta.generated_at;
+    delete normalized.meta.created_at;  // 移除时间戳字段
+    // 删除任何其他 meta 中的临时字段
+    if (Object.keys(normalized.meta).length === 0) {
+      delete normalized.meta;
+    }
+  }
+
+  // 统一字段名：处理旧格式（categories/viewSettings）和新格式（cats/view）
+  // 将 categories 转换为 cats（兼容旧数据）
+  if (normalized.categories && !normalized.cats) {
+    normalized.cats = normalized.categories;
+    delete normalized.categories;
+  }
+  // 将 viewSettings 转换为 view（兼容旧数据）
+  if (normalized.viewSettings !== undefined && normalized.view === undefined) {
+    normalized.view = normalized.viewSettings;
+    delete normalized.viewSettings;
+  }
+  
+  // 统一 ver 为 1（确保版本一致性，避免 ver 差异导致 hash 不同）
+  normalized.ver = 1;
+
+  // 对 titles 按 id 排序（稳定排序）
+  if (Array.isArray(normalized.titles)) {
+    normalized.titles.sort((a, b) => {
+      if (a.id && b.id) {
+        // 按 id 字符串比较
+        return String(a.id).localeCompare(String(b.id));
+      }
+      if (a.id) return -1;
+      if (b.id) return 1;
+      // 如果都没有 id，按 name+index 组合比较
+      const aKey = (a.name || a.text || '') + '_' + (a.index || 0);
+      const bKey = (b.name || b.text || '') + '_' + (b.index || 0);
+      return aKey.localeCompare(bKey);
+    });
+  }
+
+  // 对 contents 按 id 排序（稳定排序）
+  if (Array.isArray(normalized.contents)) {
+    normalized.contents.sort((a, b) => {
+      if (a.id && b.id) {
+        // 按 id 字符串比较
+        return String(a.id).localeCompare(String(b.id));
+      }
+      if (a.id) return -1;
+      if (b.id) return 1;
+      // 如果都没有 id，按 name+index 组合比较
+      const aKey = (a.name || a.text || '') + '_' + (a.index || 0);
+      const bKey = (b.name || b.text || '') + '_' + (b.index || 0);
+      return aKey.localeCompare(bKey);
+    });
+  }
+
+  // 对 cats.title 和 cats.content 排序（如果有的话）
+  if (normalized.cats) {
+    if (Array.isArray(normalized.cats.title)) {
+      normalized.cats.title.sort((a, b) => {
+        const aName = (a.name || a || '');
+        const bName = (b.name || b || '');
+        return aName.localeCompare(bName);
+      });
+    }
+    if (Array.isArray(normalized.cats.content)) {
+      normalized.cats.content.sort((a, b) => {
+        const aName = (a.name || a || '');
+        const bName = (b.name || b || '');
+        return aName.localeCompare(bName);
+      });
+    }
+  }
+
+  // 递归删除任何波动字段：时间戳字段、"last_*"、"ui_*"、"temp_*" 等
+  function removeVolatileFields(obj) {
+    if (typeof obj !== 'object' || obj === null) return;
+    if (Array.isArray(obj)) {
+      obj.forEach(item => removeVolatileFields(item));
+      return;
+    }
+    Object.keys(obj).forEach(key => {
+      const lowerKey = key.toLowerCase();
+      // 删除时间戳字段
+      if (lowerKey === 'created_at' || 
+          lowerKey === 'updated_at' || 
+          lowerKey === 'deleted_at' ||
+          lowerKey === 'timestamp' ||
+          lowerKey === 'last_modified' ||
+          lowerKey.endsWith('_at') ||
+          // 删除临时字段
+          lowerKey.startsWith('last_') || 
+          lowerKey.startsWith('ui_') || 
+          lowerKey.startsWith('temp_') ||
+          lowerKey.startsWith('_')) {
+        delete obj[key];
+      } else {
+        removeVolatileFields(obj[key]);
+      }
+    });
+  }
+  removeVolatileFields(normalized);
+
+  return normalized;
+}
+
+/**
+ * 规范化 JSON 对象（确保对象键顺序一致，用于稳定的 hash 计算）
+ */
+function normalizeJSON(obj) {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(item => normalizeJSON(item));
+  }
+  // 对对象的键进行排序，确保顺序一致
+  const sortedKeys = Object.keys(obj).sort();
+  const normalized = {};
+  for (const key of sortedKeys) {
+    normalized[key] = normalizeJSON(obj[key]);
+  }
+  return normalized;
+}
+
+/**
+ * 生成 payload 的内容指纹（hash）
+ * 使用 crypto.subtle.digest 如果可用，否则 fallback 到简单的字符串 hash
+ */
+async function getPayloadHash(payload) {
+  const norm = normalizePayload(payload);
+  // 规范化 JSON 以确保键顺序一致（重要：确保相同内容的 payload 产生相同的 hash）
+  const normalizedObj = normalizeJSON(norm);
+  const json = JSON.stringify(normalizedObj);
+
+  // 优先使用 crypto.subtle.digest
+  if (window.crypto && window.crypto.subtle && window.crypto.subtle.digest) {
+    try {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(json);
+      const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      return hashHex;
+    } catch (e) {
+      console.warn('[cloudSync] crypto.subtle.digest 失败，使用 fallback:', e);
+      // 继续使用 fallback
+    }
+  }
+
+  // Fallback: 使用简单的 DJB2 hash 算法
+  let hash = 5381;
+  for (let i = 0; i < json.length; i++) {
+    hash = ((hash << 5) + hash) + json.charCodeAt(i);
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  // 转换为正数并转为 hex
+  const hex = Math.abs(hash).toString(16);
+  return hex;
+}
+
+// 别名：hashPayload（保持向后兼容）
+const hashPayload = getPayloadHash;
+
+/**
+ * 保存到云端
+ * 在"无改动"时不重复写入（不触发 upsert，不改变 updated_at）
+ */
+async function cloudSave(key = DEFAULT_SNAPSHOT_KEY) {
+  // 统一 key 为 DEFAULT_SNAPSHOT_KEY（如果为空）
+  if (!key || key === undefined || key === null) {
+    key = DEFAULT_SNAPSHOT_KEY;
+  }
+
+  console.log('[cloudSave] key=', key);
+
+  const client = window.supabaseApi ? window.supabaseApi.getClient() : null;
+  if (!client) {
+    throw new Error('Supabase 客户端未初始化');
+  }
+
+  // 【A2-1】检查认证（必须登录）
+  let user = null;
+  if (window.supabaseApi && window.supabaseApi.getAuthedUser) {
+    user = await window.supabaseApi.getAuthedUser();
+  }
+  if (!user) {
+    const msg = '请先登录';
+    console.log('[cloudSave] SKIP (not logged in)');
+    throw new Error(msg);
+  }
+
+  // 聚合本地数据
+  const localData = await aggregateLocalData();
+
+  // 构建快照标签（使用新的命名规则：用户名 + 当天日期）
+  const snapshotLabel = buildSnapshotLabel(user);
+
+  // 构建本地 payload
+  const localPayload = buildLocalPayload(snapshotLabel, localData);
+
+  // 【A2-2】计算 localHash（基于 normalize 后的业务数据）
+  const localHash = await getPayloadHash(localPayload);
+  console.log('[cloudSave] localHash=', localHash);
+
+  // 【A2-3】判断本地 dirty（方式1：基于稳定 hash 自动判断）
+  const lastSavedHashKey = `last_saved_hash_${key}`;
+  const lastSavedHash = localStorage.getItem(lastSavedHashKey);
+  // 如果 lastSavedHash 为 null 或 undefined，说明从未保存过，视为 dirty=true
+  const isDirty = !lastSavedHash || (lastSavedHash !== localHash);
+  console.log('[cloudSave] dirty=', isDirty, '(lastSavedHash:', lastSavedHash || 'null', 'localHash:', localHash, ')');
+
+  // 如果本地无改动（dirty=false），直接跳过保存
+  if (!isDirty) {
+    console.log('[cloudSave] SKIP (reason: local_no_change)');
+    return {
+      skipped: true,
+      reason: 'local_no_change',
+      message: '本地无改动，已跳过保存'
+    };
+  }
+
+  // 【A2-4】本地有改动（dirty=true），继续判断云端
+  // 查询云端现有快照
+  const { data: existingData, error: queryError } = await client
+    .from('titlelab_snapshot')
+    .select('payload, updated_at')
+    .eq('key', key)
+    .limit(1)
+    .maybeSingle();
+
+  if (queryError && queryError.code !== 'PGRST116') {
+    throw queryError;
+  }
+
+  // 若云端存在，计算 cloudHash 并比较
+  if (existingData && existingData.payload) {
+    const cloudHash = await getPayloadHash(existingData.payload);
+    console.log('[cloudSave] cloudHash=', cloudHash);
+
+    // 如果 localHash == cloudHash，云端已是最新，跳过保存
+    if (localHash === cloudHash) {
+      console.log('[cloudSave] SKIP (reason: cloud_same)');
+      
+      // 【A3】更新本地缓存 hash（保持同步）
+      localStorage.setItem(lastSavedHashKey, localHash);
+      // 更新 last_sync_time 为云端的 updated_at
+      const lastSyncTimeKey = `last_sync_time_${key}`;
+      if (existingData.updated_at) {
+        localStorage.setItem(lastSyncTimeKey, existingData.updated_at);
+      }
+      
+      return {
+        skipped: true,
+        reason: 'cloud_same',
+        message: '云端已是最新（无改动），已跳过保存'
+      };
+    }
+    
+    // hash 不同，需要执行 upsert
+    console.log('[cloudSave] UPSERT (hash different, localHash:', localHash, 'cloudHash:', cloudHash, ')');
+  } else {
+    // 云端不存在，首次创建
+    console.log('[cloudSave] UPSERT (first save)');
+  }
+
+  // 获取 updated_by_name（优先 username，其次 email，本地没有就 'unknown'）
+  const sessionUser = window.supabaseApi ? window.supabaseApi.getSessionUser() : null;
+  let updatedByName = 'unknown';
+  if (sessionUser && sessionUser.username) {
+    updatedByName = sessionUser.username;
+  } else if (user && user.username) {
+    updatedByName = user.username;
+  } else if (user && user.email) {
+    updatedByName = user.email;
+  }
+
+  // 构建 upsert 对象（使用 localPayload，包含完整的 snapshot_label）
+  const upsertData = {
+    key: key,
+    payload: localPayload,
+    updated_by_name: updatedByName,
+    updated_at: new Date().toISOString()
+  };
+
+  // 只有当用户是通过 Supabase Auth 登录时才设置 owner_id（避免外键约束错误）
+  const isSupabaseAuthUser = user && 
+    user.id && 
+    (user.app_metadata !== undefined || user.user_metadata !== undefined);
+
+  if (isSupabaseAuthUser) {
+    upsertData.owner_id = user.id;
+  }
+
+  // 执行 upsert
+  console.log('[cloudSave] UPSERT executing...');
+  const { data: upsertResult, error: upsertError } = await client
+    .from('titlelab_snapshot')
+    .upsert(upsertData, {
+      onConflict: 'key'
+    })
+    .select('updated_at')
+    .maybeSingle();
+
+  if (upsertError) {
+    throw upsertError;
+  }
+
+  // 【A3】保存成功后必须做的收尾
+  const lastSyncTimeKey = `last_sync_time_${key}`;
+  // 使用云端的 updated_at（如果存在），否则使用当前时间
+  const finalUpdatedAt = (upsertResult && upsertResult.updated_at) 
+    ? upsertResult.updated_at 
+    : new Date().toISOString();
+  
+  localStorage.setItem(lastSavedHashKey, localHash);
+  localStorage.setItem(lastSyncTimeKey, finalUpdatedAt);
+  localStorage.setItem('last_snapshot_name', snapshotLabel);
+
+  console.log('[cloudSave] UPSERT success, saved hash:', localHash);
+
+  return {
+    saved: true,
+    message: `已保存快照：${snapshotLabel}`
+  };
+}
+
+/**
+ * 检查本地是否有未保存的改动
+ */
+async function hasLocalDirty() {
+  // 这里可以实现检查逻辑
+  // 暂时返回 false，表示总是可以加载
+  return false;
+}
+
+/**
+ * 从云端加载最新快照
+ */
+async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
+  // 统一 key 为 DEFAULT_SNAPSHOT_KEY（如果为空）
+  if (!key || key === undefined || key === null) {
+    key = DEFAULT_SNAPSHOT_KEY;
+  }
+
+  const client = window.supabaseApi ? window.supabaseApi.getClient() : null;
+  if (!client) {
+    throw new Error('Supabase 客户端未初始化');
+  }
+
+  // 检查认证
+  if (window.supabaseApi && window.supabaseApi.requireAuth) {
+    const isAuthed = await window.supabaseApi.requireAuth();
+    if (!isAuthed) {
+      throw new Error('未登录，无法加载云端');
+    }
+  }
+
+  console.log('[cloudSync] cloudLoadLatest', {
+    action: 'load',
+    keyParam: key,
+    actualKey: key
+  });
+
+  const sessionUser = window.supabaseApi ? window.supabaseApi.getSessionUser() : null;
+
+  // 查询云端快照
+  const { data, error } = await client
+    .from('titlelab_snapshot')
+    .select('payload, updated_at')
+    .eq('key', key)
+    .maybeSingle();
+
+  if (error && error.code !== 'PGRST116') {
+    throw error;
+  }
+
+  // 如果查询不到记录，自动保存创建（不弹确认框）
+  if (!data || !data.payload) {
+    // 自动保存，然后自动再加载一次
+    const saveResult = await cloudSave(DEFAULT_SNAPSHOT_KEY);
+    if (saveResult.saved) {
+      // 保存成功后，递归调用自身加载
+      return await cloudLoadLatest(DEFAULT_SNAPSHOT_KEY);
+    } else {
+      throw new Error('保存失败：' + (saveResult.message || '未知错误'));
+    }
+  }
+
+  const payload = data.payload;
+
+  // 获取用户标签
+  const username = sessionUser ? sessionUser.username : 'default';
+  const tag = username ? `user:${username}` : null;
+
+  // 删除现有的 titles（当前用户的）
+  if (Array.isArray(payload.titles) && payload.titles.length > 0) {
+    const { data: existingTitles } = await client
+      .from('titles')
+      .select('id, scene_tags');
+    const idsToDelete = (existingTitles || [])
+      .filter((r) => Array.isArray(r.scene_tags) && r.scene_tags.includes(tag))
+      .map((r) => r.id);
+
+    if (idsToDelete.length > 0) {
+      const { error: delError } = await client
+        .from('titles')
+        .delete()
+        .in('id', idsToDelete);
+      if (delError) throw delError;
+    }
+
+    // 插入新的 titles（移除 is_starred 和 starred_at 字段，避免 schema 不匹配）
+    const titlesWithTag = payload.titles.map((t) => {
+      const existingTags = Array.isArray(t.scene_tags) ? t.scene_tags : [];
+      const hasUserTag = existingTags.includes(tag);
+      const { is_starred, starred_at, ...rest } = t;
+      return {
+        ...rest,
+        scene_tags: hasUserTag ? existingTags : [...existingTags, tag]
+      };
+    });
+
+    const { error: insError } = await client.from('titles').insert(titlesWithTag);
+    if (insError) throw insError;
+  }
+
+  // 删除现有的 contents（当前用户的）
+  if (Array.isArray(payload.contents) && payload.contents.length > 0) {
+    const { data: existingContents } = await client
+      .from('contents')
+      .select('id, scene_tags');
+    const idsToDelete = (existingContents || [])
+      .filter((r) => Array.isArray(r.scene_tags) && r.scene_tags.includes(tag))
+      .map((r) => r.id);
+
+    if (idsToDelete.length > 0) {
+      const { error: delError } = await client
+        .from('contents')
+        .delete()
+        .in('id', idsToDelete);
+      if (delError) throw delError;
+    }
+
+    // 插入新的 contents（移除 is_starred 和 starred_at 字段，避免 schema 不匹配）
+    const contentsWithTag = payload.contents.map((c) => {
+      const existingTags = Array.isArray(c.scene_tags) ? c.scene_tags : [];
+      const hasUserTag = existingTags.includes(tag);
+      const { is_starred, starred_at, ...rest } = c;
+      return {
+        ...rest,
+        scene_tags: hasUserTag ? existingTags : [...existingTags, tag]
+      };
+    });
+
+    const { error: insError } = await client.from('contents').insert(contentsWithTag);
+    if (insError) throw insError;
+  }
+
+  // 恢复分类和视图设置到 localStorage
+  const titleCatsKey = `title_categories_v1_${username}`;
+  const contentCatsKey = `content_categories_v1_${username}`;
+  const viewSettingsKey = `display_settings_v1_${username}`;
+
+  if (payload.cats && payload.cats.title) {
+    localStorage.setItem(titleCatsKey, JSON.stringify(payload.cats.title));
+  }
+  if (payload.cats && payload.cats.content) {
+    localStorage.setItem(contentCatsKey, JSON.stringify(payload.cats.content));
+  }
+  if (payload.view) {
+    localStorage.setItem(viewSettingsKey, JSON.stringify(payload.view));
+  }
+
+  // 更新本地同步时间
+  const lastSyncTime = new Date().toISOString();
+  const lastSnapshotName = payload.snapshot_label || key;
+  localStorage.setItem('last_sync_time', lastSyncTime);
+  localStorage.setItem('last_snapshot_name', lastSnapshotName);
+
+  // 触发页面刷新（通过重新加载页面数据）
+  try {
+    // 触发自定义事件，让页面自己刷新数据
+    window.dispatchEvent(new CustomEvent('cloudSyncLoaded'));
+    
+    // 如果在 title 页面，尝试直接调用 loadTitlesFromCloud
+    if (window.location.pathname.includes('title.html')) {
+      // 尝试多种方式调用刷新函数
+      if (typeof loadTitlesFromCloud === 'function') {
+        await loadTitlesFromCloud();
+      } else if (window.loadTitlesFromCloud && typeof window.loadTitlesFromCloud === 'function') {
+        await window.loadTitlesFromCloud();
+      }
+    }
+    
+    // 如果在 content 页面，尝试直接调用 loadContentsFromCloud
+    if (window.location.pathname.includes('content.html')) {
+      if (typeof loadContentsFromCloud === 'function') {
+        await loadContentsFromCloud();
+      } else if (window.loadContentsFromCloud && typeof window.loadContentsFromCloud === 'function') {
+        await window.loadContentsFromCloud();
+      }
+    }
+  } catch (e) {
+    console.warn('[cloudSync] 刷新页面数据时出错:', e);
+  }
+
+  return {
+    loaded: true,
+    message: `已加载快照：${lastSnapshotName}`,
+    snapshot_label: lastSnapshotName
+  };
+}
+
+// 导出 API
+if (typeof window !== 'undefined') {
+  window.cloudSync = {
+    DEFAULT_SNAPSHOT_KEY,
+    cloudSave,
+    cloudLoadLatest,
+    hasLocalDirty,
+    aggregateLocalData,
+    normalizePayload,
+    getPayloadHash,
+    hashPayload,  // 别名
+    buildLocalPayload,
+    buildSnapshotLabel,
+    formatYYYYMMDDLocal,
+    getClientVersion
+  };
+}
+
