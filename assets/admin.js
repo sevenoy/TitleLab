@@ -108,19 +108,7 @@ function bindSnapshotControls() {
     const label = prompt('请输入快照备注：', '');
     if (label === null) return;
     try {
-      // 尝试从全局状态获取本地数据（如果可用）
-      let titles = [];
-      let contents = [];
-      if (window.titleAppState && window.titleAppState.titles) {
-        titles = window.titleAppState.titles;
-      }
-      if (window.contentAppState && window.contentAppState.contents) {
-        contents = window.contentAppState.contents;
-      }
-      const info = await window.snapshotService.saveUnifiedSnapshotFromCloud(
-        label.trim(),
-        { localTitles: titles.length > 0 ? titles : undefined, localContents: contents.length > 0 ? contents : undefined }
-      );
+      const info = await window.snapshotService.saveUnifiedSnapshotFromCloud(label.trim());
       showToast(`已保存：标题 ${info.titleCount} 文案 ${info.contentCount} ${info.updatedText}`);
       renderOverview();
     } catch (e) {
