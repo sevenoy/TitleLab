@@ -47,6 +47,19 @@ document.addEventListener('DOMContentLoaded', () => {
   
   console.log('[Admin] 准备绑定账号管理, cloudSync加载状态:', !!window.cloudSync, 'supabase加载状态:', !!window.supabase);
   
+  // 初始化云同步（重要：管理页面需要手动初始化）
+  if (window.cloudSync && typeof window.cloudSync.initAutoSync === 'function') {
+    console.log('[Admin] 初始化云同步...');
+    try {
+      window.cloudSync.initAutoSync();
+      console.log('[Admin] ✅ 云同步初始化成功');
+    } catch (error) {
+      console.error('[Admin] ❌ 云同步初始化失败:', error);
+    }
+  } else {
+    console.warn('[Admin] ⚠️ cloudSync 未加载或 initAutoSync 不可用');
+  }
+  
   try {
     bindSceneManagement(); // 账号管理
     console.log('[Admin] ✅ 账号管理绑定成功');
