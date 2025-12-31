@@ -438,13 +438,19 @@ async function cloudSave(key = DEFAULT_SNAPSHOT_KEY) {
     updated_at: new Date().toISOString()
   };
 
-  // 只有当用户是通过 Supabase Auth 登录时才设置 owner_id（避免外键约束错误）
-  const isSupabaseAuthUser = user && 
-    user.id && 
-    (user.app_metadata !== undefined || user.user_metadata !== undefined);
-
-  if (isSupabaseAuthUser) {
+  // 设置 owner_id：优先使用真实的user.id，否则使用username作为标识
+  // 这样可以避免数据库NOT NULL约束错误
+  if (user && user.id) {
+    // Supabase Auth用户有真实的UUID
     upsertData.owner_id = user.id;
+  } else if (sessionUser && sessionUser.username) {
+    // 本地用户使用username作为owner_id
+    upsertData.owner_id = sessionUser.username;
+  } else if (user && user.username) {
+    upsertData.owner_id = user.username;
+  } else {
+    // 最后的fallback
+    upsertData.owner_id = 'default_user';
   }
 
   // 执行 upsert
