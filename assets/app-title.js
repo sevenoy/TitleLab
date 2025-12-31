@@ -750,6 +750,9 @@ async function loadTitlesFromCloud() {
       ? (data || []).filter((it) => Array.isArray(it.scene_tags) && it.scene_tags.includes(tag))
       : (data || []);
     state.titles = filtered;
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:753',message:'从云端加载标题数据',data:{count:state.titles.length,firstThree:state.titles.slice(0,3).map(t=>({id:t.id,text:t.text?.substring(0,20),created_at:t.created_at,is_starred:t.is_starred}))},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1-D,H2-C'})}).catch(()=>{});
+    // #endregion
     console.log('[TitleApp] 从云端加载标题条数：', state.titles.length);
     // 云端数据变化后，需要同步刷新分类数量
     renderCategoryList();
@@ -801,6 +804,9 @@ function applyFilters(list) {
     const bCreated = b.created_at ? new Date(b.created_at).getTime() : 0;
     return bCreated - aCreated;
   });
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:806',message:'排序后准备渲染',data:{sortedCount:sorted.length,firstThree:sorted.slice(0,3).map((t,i)=>({index:i,id:t.id,text:t.text?.substring(0,20),is_starred:t.is_starred,created_at:t.created_at}))},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1-C'})}).catch(()=>{});
+  // #endregion
   
   return sorted;
 }
@@ -1136,7 +1142,12 @@ function openTitleModal(item) {
   // 绑定星标按钮点击事件
   if (btnStar) {
     btnStar.onclick = () => {
+      const wasActive = btnStar.classList.contains('active');
       btnStar.classList.toggle('active');
+      const nowActive = btnStar.classList.contains('active');
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:1140',message:'星标按钮点击',data:{wasActive:wasActive,nowActive:nowActive,editingId:state.editingId,note:'只改变UI状态，未立即保存到数据库'},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2-A'})}).catch(()=>{});
+      // #endregion
     };
   }
 
@@ -1318,6 +1329,9 @@ async function saveTitleFromModal() {
     starred_at: starredAt
   };
 
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:1320',message:'保存标题时的payload',data:{editingId:state.editingId,isStarred:payload.is_starred,starred_at:payload.starred_at,text:payload.text?.substring(0,30)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2-A,H2-B'})}).catch(()=>{});
+  // #endregion
   console.log(
     '[TitleApp] 保存标题 payload =',
     payload,
@@ -1412,6 +1426,9 @@ async function saveTitleFromModal() {
 
       // 新增的加到数组头部，使最新一条在最上
       if (data) {
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:1415',message:'新增标题后插入数组',data:{insertedData:{id:data.id,text:data.text?.substring(0,30),created_at:data.created_at,is_starred:data.is_starred},currentArrayLength:state.titles.length,action:'unshift到数组头部'},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1-A,H1-B'})}).catch(()=>{});
+        // #endregion
         state.titles.unshift(data);
       }
 
