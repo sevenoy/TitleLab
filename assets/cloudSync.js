@@ -2,8 +2,8 @@
 // 云端同步统一协议（对齐 XHSPHONE 白皮书思路）
 // Version: 2.0.0 - Batch delete fix
 
-const CLOUDSYNC_VERSION = '2.2.4';
-console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (添加name等所有必填字段)`);
+const CLOUDSYNC_VERSION = '2.3.0';
+console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (修复外键约束并清理调试日志)`);
 
 const DEFAULT_SNAPSHOT_KEY = 'default';
 const DEVICE_ID_STORAGE_KEY = 'cloudsync_device_id';
@@ -569,9 +569,6 @@ async function cloudSave(key = DEFAULT_SNAPSHOT_KEY) {
   if (window.supabaseApi && window.supabaseApi.getAuthedUser) {
     user = await window.supabaseApi.getAuthedUser();
   }
-  // #region agent log
-  console.log('[DEBUG] User from getAuthedUser:', {user, hasUser: !!user, userKeys: user ? Object.keys(user) : []});
-  // #endregion
   if (!user) {
     const msg = '请先登录';
     console.log('[cloudSave] SKIP (not logged in)');
@@ -673,10 +670,6 @@ async function cloudSave(key = DEFAULT_SNAPSHOT_KEY) {
 
   // 设置 owner_id：必须是UUID格式
   // 优先使用真实的user.id，否则基于username生成稳定的UUID
-  // #region agent log
-  console.log('[DEBUG] User objects before owner_id generation:', {user, sessionUser});
-  // #endregion
-  
   let generatedUsername = '';
   if (user && user.id) {
     // Supabase Auth用户有真实的UUID
@@ -695,9 +688,6 @@ async function cloudSave(key = DEFAULT_SNAPSHOT_KEY) {
     upsertData.owner_id = stringToUUID('default_user');
     generatedUsername = 'default_user';
   }
-  // #region agent log
-  console.log('[DEBUG] Generated owner_id:', upsertData.owner_id, 'for username:', generatedUsername);
-  // #endregion
 
   // 【重要】确保用户记录存在于 users 表中（避免外键约束错误）
   try {
@@ -736,9 +726,6 @@ async function cloudSave(key = DEFAULT_SNAPSHOT_KEY) {
 
   // 执行 upsert
   console.log('[cloudSave] UPSERT executing...');
-  // #region agent log
-  console.log('[DEBUG] Full upsertData before UPSERT:', upsertData);
-  // #endregion
   const { data: upsertResult, error: upsertError } = await client
     .from('titlelab_snapshot')
     .upsert(upsertData, {
@@ -747,19 +734,8 @@ async function cloudSave(key = DEFAULT_SNAPSHOT_KEY) {
     .select('updated_at')
     .maybeSingle();
 
-  // #region agent log
-  console.log('[DEBUG] UPSERT result:', {hasError: !!upsertError, error: upsertError, result: upsertResult});
-  // #endregion
-
   if (upsertError) {
-    // #region agent log
-    console.error('[DEBUG] UPSERT ERROR DETAILS:', {
-      code: upsertError.code,
-      message: upsertError.message,
-      details: upsertError.details,
-      hint: upsertError.hint
-    });
-    // #endregion
+    console.error('[cloudSave] UPSERT failed:', upsertError.message);
     throw upsertError;
   }
 
