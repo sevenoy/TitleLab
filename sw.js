@@ -1,4 +1,4 @@
-const CACHE_NAME = 'titlelab-pwa-v26-20250101-init-cloudsync';
+const CACHE_NAME = 'titlelab-pwa-v27-20250101-clean-logs';
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',

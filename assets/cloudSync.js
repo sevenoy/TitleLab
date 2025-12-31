@@ -35,10 +35,11 @@ function createAutoSyncStatusSetter(statusEl, statusSelector) {
       ? statusConfig.text(payload)
       : statusConfig.text;
     if (!statusEl) {
-      if (!missingStatusWarned) {
-        console.warn(`[cloudSync] 未找到自动同步状态元素：${statusSelector}`);
-        missingStatusWarned = true;
-      }
+      // 静默处理：在管理页面等没有状态元素的页面不显示警告
+      // if (!missingStatusWarned) {
+      //   console.warn(`[cloudSync] 未找到自动同步状态元素：${statusSelector}`);
+      //   missingStatusWarned = true;
+      // }
       return;
     }
     if (AUTO_SYNC_STATUS_CLASSES.length) {

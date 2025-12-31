@@ -45,31 +45,17 @@ document.addEventListener('DOMContentLoaded', () => {
   bindDataOps();
   bindCategoryOps();
   
-  console.log('[Admin] 准备绑定账号管理, cloudSync加载状态:', !!window.cloudSync, 'supabase加载状态:', !!window.supabase);
-  
-  // 初始化云同步（重要：管理页面需要手动初始化）
+  // 初始化云同步（管理页面需要手动初始化以启用自动同步）
   if (window.cloudSync && typeof window.cloudSync.initAutoSync === 'function') {
-    console.log('[Admin] 初始化云同步...');
     try {
       window.cloudSync.initAutoSync();
-      console.log('[Admin] ✅ 云同步初始化成功');
     } catch (error) {
-      console.error('[Admin] ❌ 云同步初始化失败:', error);
+      console.error('[Admin] 云同步初始化失败:', error);
     }
-  } else {
-    console.warn('[Admin] ⚠️ cloudSync 未加载或 initAutoSync 不可用');
   }
   
-  try {
-    bindSceneManagement(); // 账号管理
-    console.log('[Admin] ✅ 账号管理绑定成功');
-  } catch (error) {
-    console.error('[Admin] ❌ 账号管理绑定失败:', error);
-  }
-  
-  console.log('[Admin] Before bindDangerOps');
+  bindSceneManagement(); // 账号管理
   bindDangerOps();
-  console.log('[Admin] After bindDangerOps');
 });
 
 function getCurrentUser() {
@@ -840,30 +826,20 @@ function loadDisplaySettings() {
 }
 
 function saveDisplaySettingsAdmin(nextSettings) {
-  console.log('[Admin 账号管理] 保存设置开始', {nextSettings, currentScenes: adminSettingsState.scenes});
-  
   adminSettingsState = { ...adminSettingsState, ...nextSettings };
   const key = getDisplaySettingsLSKey();
-  
-  console.log('[Admin 账号管理] 准备保存到localStorage', {key, scenes: adminSettingsState.scenes, scenesCount: adminSettingsState.scenes.length});
-  
   localStorage.setItem(key, JSON.stringify(adminSettingsState));
-  
-  const savedValue = localStorage.getItem(key);
-  console.log('[Admin 账号管理] localStorage保存完成', {key, savedValue, parsed: JSON.parse(savedValue||'{}')});
   
   // 触发事件通知其他页面
   window.dispatchEvent(new CustomEvent('settingsUpdated', { 
     detail: { scope: 'display_settings', scenes: adminSettingsState.scenes } 
   }));
   
-  console.log('[Admin 账号管理] 准备触发dataChanged事件', {scope: 'settings', cloudSyncExists: !!window.cloudSync});
-  
+  // 触发云同步
   try {
     window.dispatchEvent(new CustomEvent('dataChanged', { detail: { scope: 'settings', ts: Date.now() } }));
-    console.log('[Admin 账号管理] ✅ dataChanged事件已触发');
   } catch (e) {
-    console.error('[Admin 账号管理] ❌ 触发dataChanged事件失败:', e);
+    console.error('[Admin] 触发dataChanged失败:', e);
   }
 }
 
@@ -974,11 +950,8 @@ function renderSceneListAdmin() {
 }
 
 function bindSceneManagement() {
-  console.log('[Admin 账号管理] 绑定账号管理功能开始');
-  
   // 加载设置
   adminSettingsState = loadDisplaySettings();
-  console.log('[Admin 账号管理] 加载账号设置完成', {scenes: adminSettingsState.scenes, scenesCount: adminSettingsState.scenes.length});
   
   // 渲染列表
   renderSceneListAdmin();
@@ -986,41 +959,25 @@ function bindSceneManagement() {
   // 绑定新增按钮
   const input = document.getElementById('newSceneInput');
   const btn = document.getElementById('btnAddScene');
-  console.log('[Admin 账号管理] 查找DOM元素', {inputFound: !!input, btnFound: !!btn});
   
   if (!input || !btn) {
-    console.error('[Admin 账号管理] ❌ DOM元素未找到，无法绑定事件');
+    console.error('[Admin] 账号管理DOM元素未找到');
     return;
   }
 
   btn.addEventListener('click', () => {
-    console.log('[Admin 账号管理] 新增按钮被点击', {inputValue: input.value});
-    
     const value = input.value.trim();
-    if (!value) {
-      console.log('[Admin 账号管理] 输入值为空，跳过');
-      return;
-    }
+    if (!value) return;
     
     if (adminSettingsState.scenes.includes(value)) {
-      console.log('[Admin 账号管理] 账号已存在', {value, existingScenes: adminSettingsState.scenes});
       showToast('账号已存在');
       return;
     }
     
-    console.log('[Admin 账号管理] 准备添加新账号', {value, currentScenes: adminSettingsState.scenes});
-    
     adminSettingsState.scenes.push(value);
     input.value = '';
-    
-    console.log('[Admin 账号管理] 账号已添加到state', {value, newScenes: adminSettingsState.scenes, scenesCount: adminSettingsState.scenes.length});
-    
     saveDisplaySettingsAdmin({ scenes: [...adminSettingsState.scenes] });
     renderSceneListAdmin();
     showToast('账号已添加');
-    
-    console.log('[Admin 账号管理] ✅ 账号添加流程完成', {value, finalScenes: adminSettingsState.scenes});
   });
-  
-  console.log('[Admin 账号管理] ✅ 账号管理绑定完成，事件监听器已添加');
 }
