@@ -1273,6 +1273,14 @@ async function runImport() {
 }
 
 function bindCloudButtons() {
+  const statusSelector = '#cloudSyncStatus';
+  if (window.cloudSync && typeof window.cloudSync.bindCloudButtons === 'function') {
+    window.cloudSync.bindCloudButtons({ statusSelector });
+    if (typeof window.cloudSync.initAutoSync === 'function') {
+      window.cloudSync.initAutoSync({ statusSelector });
+    }
+    return;
+  }
   const btnSave = document.getElementById('btnSaveCloud');
   const btnLoad = document.getElementById('btnLoadCloud');
   if (btnSave) btnSave.addEventListener('click', () => { hideCloudHistoryPanel(); openCloudLabelModal(); });

@@ -771,7 +771,7 @@ function startAutoSync(onStatusChange, options = {}) {
     : null;
   if (!user) {
     if (typeof onStatusChange === 'function') {
-      onStatusChange({ status: 'inactive', reason: 'not_logged_in' });
+      onStatusChange({ status: 'noAuth', reason: 'not_logged_in' });
     }
     return;
   }
@@ -807,6 +807,229 @@ function startAutoSync(onStatusChange, options = {}) {
   };
 }
 
+
+function bindCloudButtons(options = {}) {
+  const {
+    saveBtnSelector = '#btnSaveCloud',
+    loadBtnSelector = '#btnLoadCloud',
+    statusSelector = '#cloudSyncStatus'
+  } = options;
+
+  const btnSave = typeof saveBtnSelector === 'string'
+    ? document.querySelector(saveBtnSelector)
+    : saveBtnSelector;
+  const btnLoad = typeof loadBtnSelector === 'string'
+    ? document.querySelector(loadBtnSelector)
+    : loadBtnSelector;
+  const statusEl = typeof statusSelector === 'string'
+    ? document.querySelector(statusSelector)
+    : statusSelector;
+
+  const setStatus = (text) => {
+    if (statusEl) {
+      statusEl.textContent = text;
+    }
+  };
+
+  const setButtonsEnabled = (enabled) => {
+    [btnSave, btnLoad].forEach((btn) => {
+      if (btn) {
+        btn.disabled = !enabled;
+        btn.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+        btn.classList.toggle('btn-disabled', !enabled);
+      }
+    });
+  };
+
+  const getLiveKey = () => getUserLiveKey();
+  const getUser = () => (window.supabaseApi && window.supabaseApi.getSessionUser
+    ? window.supabaseApi.getSessionUser()
+    : null);
+
+  const handleSave = async (event) => {
+    if (event && typeof event.stopPropagation === 'function') {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    const user = getUser();
+    if (!user) {
+      setStatus('未登录，无法保存到云端');
+      return;
+    }
+    setStatus('保存中…');
+    try {
+      const result = await cloudSave(getLiveKey());
+      const message = (result && result.message) || '已保存到云端';
+      setStatus(message);
+    } catch (error) {
+      console.error('[cloudSync] 手动保存失败', error);
+      setStatus('保存失败：' + (error && error.message ? error.message : '未知错误'));
+    }
+  };
+
+  const handleLoad = async (event) => {
+    if (event && typeof event.stopPropagation === 'function') {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    const user = getUser();
+    if (!user) {
+      setStatus('未登录，无法加载云端');
+      return;
+    }
+    setStatus('加载中…');
+    try {
+      const result = await cloudLoadLatest(getLiveKey());
+      const message = (result && result.message) || '已加载云端数据';
+      setStatus(message);
+    } catch (error) {
+      console.error('[cloudSync] 加载云端失败', error);
+      setStatus('加载失败：' + (error && error.message ? error.message : '未知错误'));
+    }
+  };
+
+  if (btnSave) {
+    btnSave.addEventListener('click', handleSave);
+  }
+  if (btnLoad) {
+    btnLoad.addEventListener('click', handleLoad);
+  }
+
+  const refreshAuthState = () => {
+    const user = getUser();
+    const enabled = !!user;
+    setButtonsEnabled(enabled);
+    if (!enabled) {
+      setStatus('未登录，云端功能已禁用');
+    }
+  };
+
+  const storageHandler = (event) => {
+    if (event && event.key === 'current_user_v1') {
+      refreshAuthState();
+    }
+  };
+
+  refreshAuthState();
+  window.addEventListener('storage', storageHandler);
+
+  return () => {
+    if (btnSave) {
+      btnSave.removeEventListener('click', handleSave);
+    }
+    if (btnLoad) {
+      btnLoad.removeEventListener('click', handleLoad);
+    }
+    window.removeEventListener('storage', storageHandler);
+  };
+}
+
+function initAutoSync(options = {}) {
+  const {
+    statusSelector = '#cloudSyncStatus',
+    saveBtnSelector = '#btnSaveCloud',
+    loadBtnSelector = '#btnLoadCloud',
+    debounceMs
+  } = options;
+
+  const statusEl = typeof statusSelector === 'string'
+    ? document.querySelector(statusSelector)
+    : statusSelector;
+  const btnSave = typeof saveBtnSelector === 'string'
+    ? document.querySelector(saveBtnSelector)
+    : saveBtnSelector;
+  const btnLoad = typeof loadBtnSelector === 'string'
+    ? document.querySelector(loadBtnSelector)
+    : loadBtnSelector;
+
+  const setStatus = (text) => {
+    if (statusEl) {
+      statusEl.textContent = text;
+    }
+  };
+
+  const setButtonsEnabled = (enabled) => {
+    [btnSave, btnLoad].forEach((btn) => {
+      if (btn) {
+        btn.disabled = !enabled;
+        btn.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+        btn.classList.toggle('btn-disabled', !enabled);
+      }
+    });
+  };
+
+  const getUser = () => (window.supabaseApi && window.supabaseApi.getSessionUser
+    ? window.supabaseApi.getSessionUser()
+    : null);
+
+  let stopListening = null;
+
+  const handleStatusChange = (payload) => {
+    if (!payload || typeof payload !== 'object') return;
+    switch (payload.status) {
+      case 'syncing':
+        setStatus('自动同步中…');
+        break;
+      case 'idle':
+        setStatus('自动同步完成');
+        break;
+      case 'listening':
+        setStatus('自动同步已开启');
+        break;
+      case 'stopped':
+        setStatus('自动同步已停止');
+        break;
+      case 'error':
+        setStatus('自动同步失败：' + (payload.error && payload.error.message ? payload.error.message : '未知错误'));
+        break;
+      case 'noAuth':
+        setButtonsEnabled(false);
+        setStatus('未登录，自动同步已停用');
+        return;
+      default:
+        break;
+    }
+  };
+
+  const restartAutoSync = () => {
+    if (stopListening) {
+      stopListening();
+    }
+    stopListening = startAutoSync(handleStatusChange, { debounceMs });
+  };
+
+  const refreshAuthState = () => {
+    const user = getUser();
+    if (!user) {
+      if (stopListening) {
+        stopListening();
+        stopListening = null;
+      }
+      setButtonsEnabled(false);
+      setStatus('未登录，自动同步已停用');
+      return;
+    }
+    setButtonsEnabled(true);
+    restartAutoSync();
+  };
+
+  const storageHandler = (event) => {
+    if (event && event.key === 'current_user_v1') {
+      refreshAuthState();
+    }
+  };
+
+  refreshAuthState();
+  window.addEventListener('storage', storageHandler);
+
+  return () => {
+    if (stopListening) {
+      stopListening();
+    }
+    window.removeEventListener('storage', storageHandler);
+  };
+}
+
 // 导出 API
 if (typeof window !== 'undefined') {
   window.cloudSync = {
@@ -824,6 +1047,8 @@ if (typeof window !== 'undefined') {
     getClientVersion,
     push,
     startAutoSync,
+    bindCloudButtons,
+    initAutoSync,
     getUserLiveKey
   };
   // 同时将 cloudLoadLatest 导出到全局，方便页面直接调用
