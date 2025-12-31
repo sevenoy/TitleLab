@@ -333,6 +333,19 @@ async function aggregateLocalData() {
     ? (titlesData || []).filter((it) => Array.isArray(it.scene_tags) && it.scene_tags.includes(tag))
     : (titlesData || []);
 
+  // 调试：检查读取的标题中有多少个是星标的
+  const starredTitlesCount = titles.filter(t => t.is_starred === true).length;
+  console.log('[cloudSync DEBUG] aggregateLocalData - titles:', {
+    total: titles.length,
+    starred: starredTitlesCount,
+    sample: titles.slice(0, 2).map(t => ({
+      id: t.id,
+      text: t.text?.substring(0, 20),
+      is_starred: t.is_starred,
+      starred_at: t.starred_at
+    }))
+  });
+
   // 从 Supabase 读取 contents
   const { data: contentsData, error: contentsError } = await client
     .from('contents')
@@ -342,6 +355,19 @@ async function aggregateLocalData() {
   const contents = tag
     ? (contentsData || []).filter((it) => Array.isArray(it.scene_tags) && it.scene_tags.includes(tag))
     : (contentsData || []);
+
+  // 调试：检查读取的文案中有多少个是星标的
+  const starredContentsCount = contents.filter(c => c.is_starred === true).length;
+  console.log('[cloudSync DEBUG] aggregateLocalData - contents:', {
+    total: contents.length,
+    starred: starredContentsCount,
+    sample: contents.slice(0, 2).map(c => ({
+      id: c.id,
+      text: c.text?.substring(0, 20),
+      is_starred: c.is_starred,
+      starred_at: c.starred_at
+    }))
+  });
 
   // 从 localStorage 读取分类和视图设置
   const titleCatsKey = `title_categories_v1_${username}`;
@@ -810,6 +836,20 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
     keyParam: key,
     actualKey: key
   });
+  
+  // 调试：检查从云端读取的 payload 中的星标数据
+  console.log('[cloudSync DEBUG] cloudLoadLatest - 从云端读取的 payload:', {
+    titlesCount: payload?.titles?.length || 0,
+    contentsCount: payload?.contents?.length || 0,
+    titlesStarred: (payload?.titles || []).filter(t => t.is_starred === true).length,
+    contentsStarred: (payload?.contents || []).filter(c => c.is_starred === true).length,
+    titlesSample: (payload?.titles || []).slice(0, 2).map(t => ({
+      id: t?.id,
+      text: t?.text?.substring(0, 20),
+      is_starred: t?.is_starred,
+      starred_at: t?.starred_at
+    }))
+  });
 
   const sessionUser = window.supabaseApi ? window.supabaseApi.getSessionUser() : null;
 
@@ -877,6 +917,19 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
         ...t,
         scene_tags: hasUserTag ? existingTags : [...existingTags, tag]
       };
+    });
+
+    // 调试：检查准备插入的标题中有多少个是星标的
+    const starredTitlesToInsert = titlesWithTag.filter(t => t.is_starred === true).length;
+    console.log('[cloudSync DEBUG] cloudLoadLatest - 准备插入 titles:', {
+      total: titlesWithTag.length,
+      starred: starredTitlesToInsert,
+      sample: titlesWithTag.slice(0, 2).map(t => ({
+        id: t.id,
+        text: t.text?.substring(0, 20),
+        is_starred: t.is_starred,
+        starred_at: t.starred_at
+      }))
     });
 
     let { error: insError } = await client.from('titles').insert(titlesWithTag);
