@@ -1190,6 +1190,42 @@ textarea.field-input {
   padding: 0 !important;
 }
 
+/* ============== 隐藏已迁移功能的按钮 ============== */
+#btnClearAll,
+#btnSaveCloud,
+#btnLoadCloud {
+  display: none !important;
+}
+
+/* ============== iOS 安全区域适配（防止顶部栏遮挡状态栏）============== */
+@supports (-webkit-touch-callout: none) {
+  /* iOS Safari 特定样式 */
+  body {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .wrap {
+    /* 在已有的 padding-top 基础上，确保 iOS 有足够的顶部空间 */
+    padding-top: max(20px, calc(20px + env(safe-area-inset-top))) !important;
+  }
+  
+  .topbar {
+    /* 确保顶部栏不会被状态栏遮挡 */
+    margin-top: env(safe-area-inset-top, 0px);
+  }
+  
+  /* 如果是 iPhone X 及以上（有刘海屏） */
+  @media only screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3),
+         only screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2),
+         only screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3),
+         only screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3),
+         only screen and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) {
+    .wrap {
+      padding-top: max(32px, calc(32px + env(safe-area-inset-top))) !important;
+    }
+  }
+}
+
 /* ============== Android 端 Select 优化样式（类似 iOS 透明水晶效果）============== */
 @supports (-webkit-touch-callout: none) {
   /* iOS Safari - 原生样式已经很好看 */
