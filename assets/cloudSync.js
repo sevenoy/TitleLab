@@ -2,8 +2,8 @@
 // 云端同步统一协议（对齐 XHSPHONE 白皮书思路）
 // Version: 2.0.0 - Batch delete fix
 
-const CLOUDSYNC_VERSION = '2.2.0';
-console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (修复用户外键约束)`);
+const CLOUDSYNC_VERSION = '2.2.1';
+console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (修复users表字段)`);
 
 const DEFAULT_SNAPSHOT_KEY = 'default';
 const DEVICE_ID_STORAGE_KEY = 'cloudsync_device_id';
@@ -708,22 +708,21 @@ async function cloudSave(key = DEFAULT_SNAPSHOT_KEY) {
       .maybeSingle();
     
     if (!existingUser && !checkError) {
-      // 用户不存在，创建用户记录
+      // 用户不存在，创建用户记录（只插入 id，其他字段由数据库管理）
       console.log('[cloudSave] User not found in users table, creating...', upsertData.owner_id);
       const { error: insertError } = await client
         .from('users')
         .insert([{
-          id: upsertData.owner_id,
-          username: generatedUsername,
-          email: user?.email || null,
-          created_at: new Date().toISOString()
+          id: upsertData.owner_id
         }]);
       
       if (insertError) {
-        console.warn('[cloudSave] Failed to create user record:', insertError);
-        // 如果插入失败（可能是并发创建），继续尝试 upsert snapshot
+        console.error('[cloudSave] ❌ Failed to create user record:', insertError);
+        console.error('[cloudSave] 💡 解决方案：请在 Supabase 数据库中手动执行以下 SQL:');
+        console.error(`INSERT INTO users (id) VALUES ('${upsertData.owner_id}') ON CONFLICT (id) DO NOTHING;`);
+        // 如果插入失败（可能是并发创建或权限问题），继续尝试 upsert snapshot
       } else {
-        console.log('[cloudSave] User record created successfully');
+        console.log('[cloudSave] ✅ User record created successfully');
       }
     }
   } catch (userCheckError) {
