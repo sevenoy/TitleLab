@@ -271,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 初始从云端加载一遍 titles
   loadTitlesFromCloud();
-  initAutoSync();
+  // initAutoSync 已被移除，自动同步由 cloudSync.js 的 bindCloudButtons 处理
 });
 
 function getCurrentUser() {
