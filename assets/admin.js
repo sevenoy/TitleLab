@@ -445,15 +445,36 @@ function bindDangerOps() {
         return; 
       }
       
-      console.log('[Admin] Opening danger confirm dialog');
-      openDangerConfirm('⚠️ 警告：此操作将清除所有数据（标题、文案、分类、账号分类、设置、星标），不可恢复！请输入：清空所有数据', async () => {
+      // 使用浏览器原生确认对话框
+      const confirmed = confirm(
+        '⚠️ 警告：此操作将清除所有数据！\n\n' +
+        '将删除：\n' +
+        '• 所有标题数据\n' +
+        '• 所有文案数据\n' +
+        '• 所有分类设置\n' +
+        '• 所有账号分类\n' +
+        '• 所有显示设置\n' +
+        '• 所有星标数据\n\n' +
+        '此操作不可恢复！\n\n' +
+        '确定要继续吗？'
+      );
+      
+      if (!confirmed) {
+        console.log('[Admin] User cancelled');
+        return;
+      }
+      
       try {
+        console.log('[Admin] Starting to clear all data...');
+        
         // 清除Supabase中的数据
         const titleResult = await supabase.from('titles').delete().not('id', 'is', null);
         if (titleResult.error) throw titleResult.error;
+        console.log('[Admin] Titles cleared');
         
         const contentResult = await supabase.from('contents').delete().not('id', 'is', null);
         if (contentResult.error) throw contentResult.error;
+        console.log('[Admin] Contents cleared');
         
         // 清除localStorage中的数据
         const user = getCurrentUser();
@@ -465,9 +486,12 @@ function bindDangerOps() {
           try { localStorage.removeItem(`content_categories_v1_${username}`); } catch (_) {}
           // 清除显示设置（包括账号分类）
           try { localStorage.removeItem(`display_settings_v1_${username}`); } catch (_) {}
+          console.log('[Admin] LocalStorage cleared');
         }
         
         showToast('已清除所有数据，页面将刷新...');
+        console.log('[Admin] All data cleared, reloading in 3 seconds...');
+        
         // 3秒后刷新页面
         setTimeout(() => {
           window.location.reload();
@@ -476,7 +500,6 @@ function bindDangerOps() {
         console.error('[Admin] 清除所有数据失败', e);
         showToast('清除失败：' + (e.message || ''), 'error');
       }
-    }, '清空所有数据');
     });
   } else {
     console.log('[Admin] btnClearAll element NOT FOUND!');
