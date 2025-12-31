@@ -2,6 +2,11 @@ const supabase = window.supabaseClient || null;
 
 let toastTimer = null;
 
+// #region agent log
+// 文件加载时间戳 - 验证是否加载了最新版本
+fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:1',message:'File loaded',data:{timestamp:Date.now(),version:'2025-01-01-v2',supabaseAvailable:!!supabase,userAgent:navigator.userAgent},timestamp:Date.now(),sessionId:'debug-session',runId:'remote-debug',hypothesisId:'CACHE'})}).catch(()=>{});
+// #endregion
+
 // 允许登录的用户列表（与 login.html 保持一致）
 const ALLOWED_USERS = ['sevenoy', 'olina'];
 
@@ -11,6 +16,10 @@ function validateUser(user) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:DOMContentLoaded',message:'DOM ready',data:{timestamp:Date.now(),readyState:document.readyState},timestamp:Date.now(),sessionId:'debug-session',runId:'remote-debug',hypothesisId:'TIMING'})}).catch(()=>{});
+  // #endregion
+  
   const user = getCurrentUser();
   if (!user || !validateUser(user)) { 
     // 清除无效的用户信息
@@ -407,6 +416,10 @@ function bindDangerOps() {
   const btnCC = document.getElementById('btnClearContentsAdmin');
   const btnClearAll = document.getElementById('btnClearAllData');
   
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:bindDangerOps',message:'Function called',data:{btnCT:!!btnCT,btnCC:!!btnCC,btnClearAll:!!btnClearAll,btnClearAllId:btnClearAll?.id,supabaseAvailable:!!supabase},timestamp:Date.now(),sessionId:'debug-session',runId:'remote-debug',hypothesisId:'TIMING'})}).catch(()=>{});
+  // #endregion
+  
   console.log('[Admin bindDangerOps]', { btnCT: !!btnCT, btnCC: !!btnCC, btnClearAll: !!btnClearAll });
   
   if (btnCT) btnCT.addEventListener('click', async () => {
@@ -436,28 +449,57 @@ function bindDangerOps() {
   if (btnClearAll) {
     console.log('[Admin] Binding btnClearAll event listener');
     
-    btnClearAll.addEventListener('click', async () => {
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:bindClearAll',message:'Binding event listener',data:{buttonExists:true,hasClickProp:'onclick' in btnClearAll,hasAddEventListener:'addEventListener' in btnClearAll},timestamp:Date.now(),sessionId:'debug-session',runId:'remote-debug',hypothesisId:'MOBILE_EVENT'})}).catch(()=>{});
+    // #endregion
+    
+    // 同时支持 click 和 touchend 事件（移动端兼容）
+    const handleClick = async (e) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:handleClick',message:'Button clicked',data:{eventType:e.type,isTrusted:e.isTrusted,supabase:!!supabase,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'remote-debug',hypothesisId:'MOBILE_EVENT'})}).catch(()=>{});
+      // #endregion
+      
       console.log('[Admin] btnClearAll clicked!');
       
       if (!supabase) { 
         console.log('[Admin] No supabase');
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:handleClick',message:'Supabase not available',data:{supabaseClient:window.supabaseClient,supabaseType:typeof window.supabaseClient},timestamp:Date.now(),sessionId:'debug-session',runId:'remote-debug',hypothesisId:'SUPABASE_INIT'})}).catch(()=>{});
+        // #endregion
         showToast('未配置 Supabase', 'error'); 
         return; 
       }
       
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:beforeConfirm',message:'About to show confirm dialog',data:{confirmFunction:typeof confirm},timestamp:Date.now(),sessionId:'debug-session',runId:'remote-debug',hypothesisId:'ERROR_SILENT'})}).catch(()=>{});
+      // #endregion
+      
       // 使用浏览器原生确认对话框
-      const confirmed = confirm(
-        '⚠️ 警告：此操作将清除所有数据！\n\n' +
-        '将删除：\n' +
-        '• 所有标题数据\n' +
-        '• 所有文案数据\n' +
-        '• 所有分类设置\n' +
-        '• 所有账号分类\n' +
-        '• 所有显示设置\n' +
-        '• 所有星标数据\n\n' +
-        '此操作不可恢复！\n\n' +
-        '确定要继续吗？'
-      );
+      let confirmed = false;
+      try {
+        confirmed = confirm(
+          '⚠️ 警告：此操作将清除所有数据！\n\n' +
+          '将删除：\n' +
+          '• 所有标题数据\n' +
+          '• 所有文案数据\n' +
+          '• 所有分类设置\n' +
+          '• 所有账号分类\n' +
+          '• 所有显示设置\n' +
+          '• 所有星标数据\n\n' +
+          '此操作不可恢复！\n\n' +
+          '确定要继续吗？'
+        );
+      } catch (err) {
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:confirmError',message:'Confirm failed',data:{error:err.message,stack:err.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'remote-debug',hypothesisId:'ERROR_SILENT'})}).catch(()=>{});
+        // #endregion
+        console.error('[Admin] Confirm error:', err);
+        return;
+      }
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:afterConfirm',message:'Confirm dialog result',data:{confirmed},timestamp:Date.now(),sessionId:'debug-session',runId:'remote-debug',hypothesisId:'ERROR_SILENT'})}).catch(()=>{});
+      // #endregion
       
       if (!confirmed) {
         console.log('[Admin] User cancelled');
@@ -498,11 +540,28 @@ function bindDangerOps() {
         }, 3000);
       } catch (e) {
         console.error('[Admin] 清除所有数据失败', e);
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:clearError',message:'Clear all data failed',data:{error:e.message,stack:e.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'remote-debug',hypothesisId:'ERROR_SILENT'})}).catch(()=>{});
+        // #endregion
         showToast('清除失败：' + (e.message || ''), 'error');
       }
+    };
+    
+    btnClearAll.addEventListener('click', handleClick);
+    // 移动端兼容：同时监听 touchend 事件
+    btnClearAll.addEventListener('touchend', (e) => {
+      e.preventDefault(); // 防止触发click事件
+      handleClick(e);
     });
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:eventBound',message:'Event listeners attached',data:{hasClickListener:true,hasTouchListener:true},timestamp:Date.now(),sessionId:'debug-session',runId:'remote-debug',hypothesisId:'MOBILE_EVENT'})}).catch(()=>{});
+    // #endregion
   } else {
     console.log('[Admin] btnClearAll element NOT FOUND!');
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:elementNotFound',message:'btnClearAll not found',data:{allButtons:Array.from(document.querySelectorAll('button')).map(b=>b.id).filter(Boolean)},timestamp:Date.now(),sessionId:'debug-session',runId:'remote-debug',hypothesisId:'TIMING'})}).catch(()=>{});
+    // #endregion
   }
 }
 
