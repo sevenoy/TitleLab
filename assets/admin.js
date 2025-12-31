@@ -76,6 +76,17 @@ async function fetchAll(table) {
 
 function bindOverview() {
   renderOverview();
+
+  // 同步事件：云端加载完成或本地数据变更时，自动刷新统计
+  window.addEventListener('cloudSyncLoaded', () => renderOverview());
+  window.addEventListener('autoSyncStatus', (e) => {
+    const st = e.detail && e.detail.status;
+    if (st === 'synced' || st === 'pulling' || st === 'syncing') {
+      // 状态进入同步/拉取后刷新一次
+      renderOverview();
+    }
+  });
+  window.addEventListener('dataChanged', debounce(() => renderOverview(), 600));
 }
 
 async function renderOverview() {
@@ -256,7 +267,7 @@ function norm(s) {
 async function dedupTable(table) {
   const rows = await fetchAll(table);
   const map = new Map();
-  const duplicates = []; // 存储重复对信息
+  const deleteIds = [];
   
   rows.forEach((r) => {
     // 完全匹配：只去除首尾空白，不归一化，不转小写
@@ -270,72 +281,56 @@ async function dedupTable(table) {
       const curTime = new Date(r.created_at || 0).getTime();
       const keepTime = new Date(keep.created_at || 0).getTime();
       
-      // 记录重复对信息
-      duplicates.push({
-        keep: curTime < keepTime ? r : keep,
-        delete: curTime < keepTime ? keep : r,
-        text: key
-      });
-      
       if (curTime < keepTime) {
+        deleteIds.push(keep.id);
         map.set(key, r);
+      } else {
+        deleteIds.push(r.id);
       }
     }
   });
   
-  if (duplicates.length === 0) {
+  if (deleteIds.length === 0) {
     showToast('未发现重复项');
-    setProgress('');
-    return;
-  }
-  
-  // 显示重复内容预览
-  const previewHtml = duplicates.map((dup, idx) => `
-    <div style="margin-bottom: 12px; padding: 10px; background: #f9fafb; border-radius: 8px; border-left: 3px solid #ef4444;">
-      <div style="font-weight: 600; color: #ef4444; margin-bottom: 6px;">重复项 #${idx + 1}</div>
-      <div style="color: #6b7280; font-size: 13px; margin-bottom: 4px;">保留（创建时间：${new Date(dup.keep.created_at).toLocaleString()}）：</div>
-      <div style="background: #ffffff; padding: 8px; border-radius: 4px; margin-bottom: 6px; border: 1px solid #e5e7eb;">${escapeHtml(dup.keep.text)}</div>
-      <div style="color: #6b7280; font-size: 13px; margin-bottom: 4px;">删除（创建时间：${new Date(dup.delete.created_at).toLocaleString()}）：</div>
-      <div style="background: #fee2e2; padding: 8px; border-radius: 4px; border: 1px solid #fecaca;">${escapeHtml(dup.delete.text)}</div>
-    </div>
-  `).join('');
-  
-  const previewContainer = document.getElementById('dedupPreview');
-  if (previewContainer) {
-    previewContainer.innerHTML = `
-      <div style="max-height: 400px; overflow-y: auto; padding: 12px;">
-        <div style="font-weight: 600; margin-bottom: 12px; color: #1f2937;">发现 ${duplicates.length} 组重复项，将删除以下内容：</div>
-        ${previewHtml}
-      </div>
-    `;
-    previewContainer.style.display = 'block';
-  }
-  
-  // 确认删除
-  const confirmed = confirm(`发现 ${duplicates.length} 组重复项，是否确认删除？\n\n删除规则：保留创建时间更早的记录，删除较新的重复项。`);
-  if (!confirmed) {
-    if (previewContainer) previewContainer.style.display = 'none';
     setProgress('');
     return;
   }
   
   if (!supabase) {
     showToast('未配置 Supabase', 'error');
-    if (previewContainer) previewContainer.style.display = 'none';
     return;
   }
   
-  const toDelete = duplicates.map(d => d.delete);
+  const ok = confirm(`发现 ${deleteIds.length} 条重复，将保留同内容中创建时间最早的一条。\n确认一键删除所有重复项吗？`);
+  if (!ok) {
+    setProgress('');
+    return;
+  }
+
+  const BATCH = 50;
   let count = 0;
-  setProgress(`准备删除重复 ${toDelete.length} 条…`);
-  for (const d of toDelete) {
-    try { await supabase.from(table).delete().eq('id', d.id); count++; } catch (_) {}
-    if (count % 20 === 0) setProgress(`已删除 ${count}/${toDelete.length}`);
+  setProgress(`准备删除重复 ${deleteIds.length} 条…`);
+  for (let i = 0; i < deleteIds.length; i += BATCH) {
+    const batch = deleteIds.slice(i, i + BATCH);
+    try {
+      const { error } = await supabase.from(table).delete().in('id', batch);
+      if (error) throw error;
+      count += batch.length;
+      setProgress(`已删除 ${Math.min(count, deleteIds.length)}/${deleteIds.length}`);
+    } catch (e) {
+      console.error('[Admin] 删除重复失败', e);
+      showToast('删除部分失败，请重试', 'error');
+      break;
+    }
   }
   showToast(`已删除重复 ${count} 条`);
   renderOverview();
   setProgress('');
-  if (previewContainer) previewContainer.style.display = 'none';
+  const previewContainer = document.getElementById('dedupPreview');
+  if (previewContainer) {
+    previewContainer.style.display = 'none';
+    previewContainer.innerHTML = '';
+  }
 }
 
 function escapeHtml(text) {
