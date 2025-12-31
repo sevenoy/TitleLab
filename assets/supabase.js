@@ -18,6 +18,33 @@ const supabaseClient = window.supabase
 // ✅ 关键：挂到 window 上，给 app-title.js 使用
 window.supabaseClient = supabaseClient;
 
+// ✅ 创建 supabaseApi 包装器（用于 cloudSync.js）
+window.supabaseApi = {
+  getClient: () => supabaseClient,
+  getSessionUser: () => {
+    // 从 localStorage 读取当前用户
+    try {
+      const raw = localStorage.getItem('current_user_v1');
+      return raw ? JSON.parse(raw) : null;
+    } catch (_) {
+      return null;
+    }
+  },
+  getAuthedUser: async () => {
+    // 同步方法，直接返回 localStorage 中的用户
+    try {
+      const raw = localStorage.getItem('current_user_v1');
+      return raw ? JSON.parse(raw) : null;
+    } catch (_) {
+      return null;
+    }
+  },
+  requireAuth: async () => {
+    const user = window.supabaseApi.getSessionUser();
+    return !!user;
+  }
+};
+
 // 状态检查：右上角的小 pill 提示 Supabase 在线/错误
 async function pingSupabase() {
   try {

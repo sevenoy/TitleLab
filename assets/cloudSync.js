@@ -499,6 +499,9 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
   }
 
   const client = window.supabaseApi ? window.supabaseApi.getClient() : null;
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:502',message:'cloudLoadLatest - got client',data:{hasClient:!!client,hasSupabaseApi:!!window.supabaseApi},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'FIX',runId:'post-fix'})}).catch(()=>{});
+  // #endregion
   if (!client) {
     throw new Error('Supabase 客户端未初始化');
   }
@@ -506,6 +509,9 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
   // 检查认证
   if (window.supabaseApi && window.supabaseApi.requireAuth) {
     const isAuthed = await window.supabaseApi.requireAuth();
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:508',message:'requireAuth result',data:{isAuthed:isAuthed},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'FIX',runId:'post-fix'})}).catch(()=>{});
+    // #endregion
     if (!isAuthed) {
       throw new Error('未登录，无法加载云端');
     }
@@ -518,6 +524,9 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
   });
 
   const sessionUser = window.supabaseApi ? window.supabaseApi.getSessionUser() : null;
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:522',message:'cloudLoadLatest - got sessionUser',data:{hasSessionUser:!!sessionUser,username:sessionUser?sessionUser.username:null,key:key},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'FIX',runId:'post-fix'})}).catch(()=>{});
+  // #endregion
 
   // 查询云端快照
   const { data, error } = await client
@@ -525,6 +534,10 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
     .select('payload, updated_at')
     .eq('key', key)
     .maybeSingle();
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:532',message:'cloudLoadLatest - query result',data:{hasData:!!data,hasError:!!error,errorCode:error?error.code:null,errorMessage:error?error.message:null},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'FIX',runId:'post-fix'})}).catch(()=>{});
+  // #endregion
 
   if (error && error.code !== 'PGRST116') {
     throw error;
@@ -532,13 +545,26 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
 
   // 如果查询不到记录，自动保存创建（不弹确认框）
   if (!data || !data.payload) {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:537',message:'cloudLoadLatest - no data, creating new snapshot',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'FIX',runId:'post-fix'})}).catch(()=>{});
+    // #endregion
     // 自动保存，然后自动再加载一次
-    const saveResult = await cloudSave(DEFAULT_SNAPSHOT_KEY);
-    if (saveResult.saved) {
-      // 保存成功后，递归调用自身加载
-      return await cloudLoadLatest(DEFAULT_SNAPSHOT_KEY);
-    } else {
-      throw new Error('保存失败：' + (saveResult.message || '未知错误'));
+    try {
+      const saveResult = await cloudSave(DEFAULT_SNAPSHOT_KEY);
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:544',message:'cloudSave result',data:{saved:saveResult.saved,skipped:saveResult.skipped,message:saveResult.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'FIX',runId:'post-fix'})}).catch(()=>{});
+      // #endregion
+      if (saveResult.saved) {
+        // 保存成功后，递归调用自身加载
+        return await cloudLoadLatest(DEFAULT_SNAPSHOT_KEY);
+      } else {
+        throw new Error('保存失败：' + (saveResult.message || '未知错误'));
+      }
+    } catch (saveError) {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:555',message:'cloudSave threw error',data:{errorMessage:saveError.message,errorStack:saveError.stack},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'FIX',runId:'post-fix'})}).catch(()=>{});
+      // #endregion
+      throw saveError;
     }
   }
 
