@@ -44,7 +44,17 @@ document.addEventListener('DOMContentLoaded', () => {
   bindSnapshotControls();
   bindDataOps();
   bindCategoryOps();
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:DOMContentLoaded:beforeBindScene',message:'准备绑定账号管理',data:{cloudSyncLoaded:!!window.cloudSync,supabaseLoaded:!!window.supabase},timestamp:Date.now(),sessionId:'debug-session',runId:'scene-mgmt-debug',hypothesisId:'H1'})}).catch(()=>{});
+  // #endregion
+  
   bindSceneManagement(); // 账号管理
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:DOMContentLoaded:afterBindScene',message:'账号管理绑定完成',data:{cloudSyncLoaded:!!window.cloudSync},timestamp:Date.now(),sessionId:'debug-session',runId:'scene-mgmt-debug',hypothesisId:'H1'})}).catch(()=>{});
+  // #endregion
+  
   console.log('[Admin] Before bindDangerOps');
   bindDangerOps();
   console.log('[Admin] After bindDangerOps');
@@ -818,18 +828,44 @@ function loadDisplaySettings() {
 }
 
 function saveDisplaySettingsAdmin(nextSettings) {
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:saveDisplaySettingsAdmin:entry',message:'保存账号管理设置',data:{nextSettings,currentScenes:adminSettingsState.scenes},timestamp:Date.now(),sessionId:'debug-session',runId:'scene-mgmt-debug',hypothesisId:'H2'})}).catch(()=>{});
+  // #endregion
+  
   adminSettingsState = { ...adminSettingsState, ...nextSettings };
   const key = getDisplaySettingsLSKey();
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:saveDisplaySettingsAdmin:beforeLS',message:'准备保存到localStorage',data:{key,scenes:adminSettingsState.scenes,scenesCount:adminSettingsState.scenes.length},timestamp:Date.now(),sessionId:'debug-session',runId:'scene-mgmt-debug',hypothesisId:'H3'})}).catch(()=>{});
+  // #endregion
+  
   localStorage.setItem(key, JSON.stringify(adminSettingsState));
+  
+  // #region agent log
+  const savedValue = localStorage.getItem(key);
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:saveDisplaySettingsAdmin:afterLS',message:'localStorage保存完成',data:{key,savedValue,parsed:JSON.parse(savedValue||'{}')},timestamp:Date.now(),sessionId:'debug-session',runId:'scene-mgmt-debug',hypothesisId:'H3'})}).catch(()=>{});
+  // #endregion
   
   // 触发事件通知其他页面
   window.dispatchEvent(new CustomEvent('settingsUpdated', { 
     detail: { scope: 'display_settings', scenes: adminSettingsState.scenes } 
   }));
   
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:saveDisplaySettingsAdmin:beforeDataChanged',message:'准备触发dataChanged事件',data:{scope:'settings',cloudSyncExists:!!window.cloudSync},timestamp:Date.now(),sessionId:'debug-session',runId:'scene-mgmt-debug',hypothesisId:'H2'})}).catch(()=>{});
+  // #endregion
+  
   try {
     window.dispatchEvent(new CustomEvent('dataChanged', { detail: { scope: 'settings', ts: Date.now() } }));
-  } catch (_) {}
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:saveDisplaySettingsAdmin:afterDataChanged',message:'dataChanged事件已触发',data:{success:true},timestamp:Date.now(),sessionId:'debug-session',runId:'scene-mgmt-debug',hypothesisId:'H2'})}).catch(()=>{});
+    // #endregion
+  } catch (e) {
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:saveDisplaySettingsAdmin:error',message:'触发dataChanged事件失败',data:{error:e.message},timestamp:Date.now(),sessionId:'debug-session',runId:'scene-mgmt-debug',hypothesisId:'H2'})}).catch(()=>{});
+    // #endregion
+  }
 }
 
 function renderSceneListAdmin() {
@@ -939,8 +975,16 @@ function renderSceneListAdmin() {
 }
 
 function bindSceneManagement() {
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:bindSceneManagement:entry',message:'绑定账号管理功能',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'scene-mgmt-debug',hypothesisId:'H4'})}).catch(()=>{});
+  // #endregion
+  
   // 加载设置
   adminSettingsState = loadDisplaySettings();
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:bindSceneManagement:afterLoad',message:'加载账号设置完成',data:{scenes:adminSettingsState.scenes,scenesCount:adminSettingsState.scenes.length},timestamp:Date.now(),sessionId:'debug-session',runId:'scene-mgmt-debug',hypothesisId:'H4'})}).catch(()=>{});
+  // #endregion
   
   // 渲染列表
   renderSceneListAdmin();
@@ -948,19 +992,55 @@ function bindSceneManagement() {
   // 绑定新增按钮
   const input = document.getElementById('newSceneInput');
   const btn = document.getElementById('btnAddScene');
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:bindSceneManagement:elements',message:'查找DOM元素',data:{inputFound:!!input,btnFound:!!btn},timestamp:Date.now(),sessionId:'debug-session',runId:'scene-mgmt-debug',hypothesisId:'H4'})}).catch(()=>{});
+  // #endregion
+  
   if (!input || !btn) return;
 
   btn.addEventListener('click', () => {
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:bindSceneManagement:btnClick',message:'新增按钮被点击',data:{inputValue:input.value,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'scene-mgmt-debug',hypothesisId:'H5'})}).catch(()=>{});
+    // #endregion
+    
     const value = input.value.trim();
-    if (!value) return;
+    if (!value) {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:bindSceneManagement:emptyValue',message:'输入值为空，跳过',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'scene-mgmt-debug',hypothesisId:'H5'})}).catch(()=>{});
+      // #endregion
+      return;
+    }
+    
     if (adminSettingsState.scenes.includes(value)) {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:bindSceneManagement:duplicate',message:'账号已存在',data:{value,existingScenes:adminSettingsState.scenes},timestamp:Date.now(),sessionId:'debug-session',runId:'scene-mgmt-debug',hypothesisId:'H5'})}).catch(()=>{});
+      // #endregion
       showToast('账号已存在');
       return;
     }
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:bindSceneManagement:beforeAdd',message:'准备添加新账号',data:{value,currentScenes:adminSettingsState.scenes},timestamp:Date.now(),sessionId:'debug-session',runId:'scene-mgmt-debug',hypothesisId:'H5'})}).catch(()=>{});
+    // #endregion
+    
     adminSettingsState.scenes.push(value);
     input.value = '';
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:bindSceneManagement:afterAdd',message:'账号已添加到state',data:{value,newScenes:adminSettingsState.scenes,scenesCount:adminSettingsState.scenes.length},timestamp:Date.now(),sessionId:'debug-session',runId:'scene-mgmt-debug',hypothesisId:'H5'})}).catch(()=>{});
+    // #endregion
+    
     saveDisplaySettingsAdmin({ scenes: [...adminSettingsState.scenes] });
     renderSceneListAdmin();
     showToast('账号已添加');
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:bindSceneManagement:complete',message:'账号添加流程完成',data:{value,finalScenes:adminSettingsState.scenes},timestamp:Date.now(),sessionId:'debug-session',runId:'scene-mgmt-debug',hypothesisId:'H5'})}).catch(()=>{});
+    // #endregion
   });
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:bindSceneManagement:exit',message:'账号管理绑定完成',data:{listenerBound:true},timestamp:Date.now(),sessionId:'debug-session',runId:'scene-mgmt-debug',hypothesisId:'H4'})}).catch(()=>{});
+  // #endregion
 }
