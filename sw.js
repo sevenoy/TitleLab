@@ -1,4 +1,4 @@
-const CACHE_NAME = 'titlelab-pwa-v27-20250101-clean-logs';
+const CACHE_NAME = 'titlelab-pwa-v28-20250101-ios-sticky-topbar';
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',

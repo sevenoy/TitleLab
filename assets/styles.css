@@ -1197,31 +1197,37 @@ textarea.field-input {
   display: none !important;
 }
 
-/* ============== iOS 安全区域适配（防止顶部栏遮挡状态栏）============== */
+/* ============== iOS 安全区域适配（防止顶部栏与状态栏重合）============== */
 @supports (-webkit-touch-callout: none) {
   /* iOS Safari 特定样式 */
-  body {
-    padding-top: env(safe-area-inset-top);
+  
+  .topbar {
+    /* 使用 sticky 定位，滚动时固定在顶部 */
+    position: sticky !important;
+    top: 0 !important;
+    /* 添加顶部内边距以避开状态栏 */
+    padding-top: calc(8px + env(safe-area-inset-top)) !important;
+    /* 确保在状态栏之上 */
+    z-index: 100 !important;
+    /* 使用半透明背景增强可读性 */
+    background: rgba(255, 255, 255, 0.98) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
   }
   
   .wrap {
-    /* 在已有的 padding-top 基础上，确保 iOS 有足够的顶部空间 */
-    padding-top: max(20px, calc(20px + env(safe-area-inset-top))) !important;
+    /* 移除之前的顶部 padding，因为 topbar 现在是 sticky 的 */
+    padding-top: 16px !important;
   }
   
-  .topbar {
-    /* 确保顶部栏不会被状态栏遮挡 */
-    margin-top: env(safe-area-inset-top, 0px);
-  }
-  
-  /* 如果是 iPhone X 及以上（有刘海屏） */
+  /* 如果是 iPhone X 及以上（有刘海屏），增加额外的安全距离 */
   @media only screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3),
          only screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2),
          only screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3),
          only screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3),
          only screen and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) {
-    .wrap {
-      padding-top: max(32px, calc(32px + env(safe-area-inset-top))) !important;
+    .topbar {
+      padding-top: calc(8px + max(20px, env(safe-area-inset-top))) !important;
     }
   }
 }
