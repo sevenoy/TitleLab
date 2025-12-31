@@ -185,11 +185,14 @@ function getDisplaySettings() {
   }
   try {
     const parsed = JSON.parse(raw);
-    const scenes = Array.isArray(parsed.scenes) ? parsed.scenes : [];
+    // 允许 scenes 为空数组，只有当 parsed.scenes 为 undefined 时才使用默认值
+    const scenes = parsed.hasOwnProperty('scenes') && Array.isArray(parsed.scenes) 
+      ? parsed.scenes 
+      : defaultScenes;
     return {
       ...DEFAULT_DISPLAY_SETTINGS,
       ...parsed,
-      scenes: scenes.length ? scenes : defaultScenes
+      scenes
     };
   } catch (_) {
     return { 
