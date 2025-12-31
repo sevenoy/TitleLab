@@ -1,4 +1,4 @@
-const CACHE_NAME = 'titlelab-pwa-v24-20250101-scene-mgmt-fix';
+const CACHE_NAME = 'titlelab-pwa-v25-20250101-scene-mgmt-console-debug';
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',
