@@ -2,8 +2,8 @@
 // 云端同步统一协议（对齐 XHSPHONE 白皮书思路）
 // Version: 2.0.0 - Batch delete fix
 
-const CLOUDSYNC_VERSION = '2.3.0';
-console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (修复外键约束并清理调试日志)`);
+const CLOUDSYNC_VERSION = '2.4.0';
+console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (保留星标字段并增强分类同步)`);
 
 const DEFAULT_SNAPSHOT_KEY = 'default';
 const DEVICE_ID_STORAGE_KEY = 'cloudsync_device_id';
@@ -854,18 +854,26 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
       }
     }
 
-    // 插入新的 titles（移除 is_starred 和 starred_at 字段，避免 schema 不匹配）
+    // 插入新的 titles（尝试保留星标字段，如果失败再移除）
     const titlesWithTag = payload.titles.map((t) => {
       const existingTags = Array.isArray(t.scene_tags) ? t.scene_tags : [];
       const hasUserTag = existingTags.includes(tag);
-      const { is_starred, starred_at, ...rest } = t;
       return {
-        ...rest,
+        ...t,
         scene_tags: hasUserTag ? existingTags : [...existingTags, tag]
       };
     });
 
-    const { error: insError } = await client.from('titles').insert(titlesWithTag);
+    let { error: insError } = await client.from('titles').insert(titlesWithTag);
+    
+    // 如果插入失败，可能是因为星标字段不存在，移除后重试
+    if (insError && (insError.message?.includes('is_starred') || insError.message?.includes('starred_at'))) {
+      console.warn('[cloudSync] 星标字段不存在，移除后重试');
+      const titlesWithoutStar = titlesWithTag.map(({ is_starred, starred_at, ...rest }) => rest);
+      const retryResult = await client.from('titles').insert(titlesWithoutStar);
+      insError = retryResult.error;
+    }
+    
     if (insError) throw insError;
   }
 
@@ -891,18 +899,26 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
       }
     }
 
-    // 插入新的 contents（移除 is_starred 和 starred_at 字段，避免 schema 不匹配）
+    // 插入新的 contents（尝试保留星标字段，如果失败再移除）
     const contentsWithTag = payload.contents.map((c) => {
       const existingTags = Array.isArray(c.scene_tags) ? c.scene_tags : [];
       const hasUserTag = existingTags.includes(tag);
-      const { is_starred, starred_at, ...rest } = c;
       return {
-        ...rest,
+        ...c,
         scene_tags: hasUserTag ? existingTags : [...existingTags, tag]
       };
     });
 
-    const { error: insError } = await client.from('contents').insert(contentsWithTag);
+    let { error: insError } = await client.from('contents').insert(contentsWithTag);
+    
+    // 如果插入失败，可能是因为星标字段不存在，移除后重试
+    if (insError && (insError.message?.includes('is_starred') || insError.message?.includes('starred_at'))) {
+      console.warn('[cloudSync] 星标字段不存在，移除后重试');
+      const contentsWithoutStar = contentsWithTag.map(({ is_starred, starred_at, ...rest }) => rest);
+      const retryResult = await client.from('contents').insert(contentsWithoutStar);
+      insError = retryResult.error;
+    }
+    
     if (insError) throw insError;
   }
 
@@ -911,30 +927,55 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
   const contentCatsKey = `content_categories_v1_${username}`;
   const viewSettingsKey = `display_settings_v1_${username}`;
 
+  let categoriesUpdated = false;
+  let settingsUpdated = false;
+
   if (payload.cats && payload.cats.title) {
     localStorage.setItem(titleCatsKey, JSON.stringify(payload.cats.title));
+    categoriesUpdated = true;
   }
   if (payload.cats && payload.cats.content) {
     localStorage.setItem(contentCatsKey, JSON.stringify(payload.cats.content));
+    categoriesUpdated = true;
   }
   if (payload.view) {
     localStorage.setItem(viewSettingsKey, JSON.stringify(payload.view));
+    settingsUpdated = true;
   }
 
   // 通知页面更新本地分类与显示设置
-  try {
-    if (typeof window.loadCategoriesFromLocal === 'function') {
-      window.loadCategoriesFromLocal();
-    } else if (typeof window.loadCategoriesFromLocalContent === 'function') {
-      window.loadCategoriesFromLocalContent();
+  if (categoriesUpdated || settingsUpdated) {
+    try {
+      // 触发 settingsUpdated 事件（app-title.js 会监听）
+      if (categoriesUpdated) {
+        window.dispatchEvent(new CustomEvent('settingsUpdated', { 
+          detail: { scope: 'categories' } 
+        }));
+      }
+      if (settingsUpdated) {
+        window.dispatchEvent(new CustomEvent('settingsUpdated', { 
+          detail: { scope: 'display_settings' } 
+        }));
+      }
+      
+      // 兼容旧的调用方式
+      if (typeof window.loadCategoriesFromLocal === 'function') {
+        window.loadCategoriesFromLocal();
+      } else if (typeof window.loadCategoriesFromLocalContent === 'function') {
+        window.loadCategoriesFromLocalContent();
+      }
+      if (typeof window.renderCategoryList === 'function') {
+        window.renderCategoryList();
+      }
+      if (typeof window.applyDisplaySettings === 'function') {
+        window.applyDisplaySettings();
+      }
+      
+      console.log('[cloudSync] 分类和场景数据已恢复并触发刷新');
+    } catch (e) {
+      console.warn('[cloudSync] 刷新分类失败:', e);
     }
-    if (typeof window.renderCategoryList === 'function') {
-      window.renderCategoryList();
-    }
-    if (typeof window.applyDisplaySettings === 'function') {
-      window.applyDisplaySettings();
-    }
-  } catch (_) {}
+  }
 
   // 更新本地同步时间
   const lastSyncTime = data.updated_at || new Date().toISOString();
