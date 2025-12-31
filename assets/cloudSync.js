@@ -346,17 +346,11 @@ async function aggregateLocalData() {
   try {
     const titleCatsRaw = localStorage.getItem(titleCatsKey);
     titleCats = titleCatsRaw ? JSON.parse(titleCatsRaw) : [];
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:114',message:'aggregateLocalData titleCats',data:{titleCatsKey:titleCatsKey,titleCats:titleCats,titleCatsCount:titleCats.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
   } catch (_) {}
 
   try {
     const contentCatsRaw = localStorage.getItem(contentCatsKey);
     contentCats = contentCatsRaw ? JSON.parse(contentCatsRaw) : [];
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:122',message:'aggregateLocalData contentCats',data:{contentCatsKey:contentCatsKey,contentCats:contentCats,contentCatsCount:contentCats.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
   } catch (_) {}
 
   try {
@@ -576,7 +570,7 @@ async function cloudSave(key = DEFAULT_SNAPSHOT_KEY) {
     user = await window.supabaseApi.getAuthedUser();
   }
   // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:577',message:'[HYP-B,E] User from getAuthedUser',data:{user:user,hasUser:!!user,userKeys:user?Object.keys(user):[]},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B,E'})}).catch(()=>{});
+  console.log('[DEBUG] User from getAuthedUser:', {user, hasUser: !!user, userKeys: user ? Object.keys(user) : []});
   // #endregion
   if (!user) {
     const msg = '请先登录';
@@ -680,7 +674,7 @@ async function cloudSave(key = DEFAULT_SNAPSHOT_KEY) {
   // 设置 owner_id：必须是UUID格式
   // 优先使用真实的user.id，否则基于username生成稳定的UUID
   // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:677',message:'[HYP-A,B] User objects before owner_id generation',data:{user:user,sessionUser:sessionUser},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,B'})}).catch(()=>{});
+  console.log('[DEBUG] User objects before owner_id generation:', {user, sessionUser});
   // #endregion
   if (user && user.id) {
     // Supabase Auth用户有真实的UUID
@@ -696,13 +690,13 @@ async function cloudSave(key = DEFAULT_SNAPSHOT_KEY) {
     upsertData.owner_id = stringToUUID('default_user');
   }
   // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:692',message:'[HYP-A,D] Generated owner_id',data:{owner_id:upsertData.owner_id,username:(sessionUser?.username || user?.username || 'unknown')},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,D'})}).catch(()=>{});
+  console.log('[DEBUG] Generated owner_id:', upsertData.owner_id, 'for username:', sessionUser?.username || user?.username || 'unknown');
   // #endregion
 
   // 执行 upsert
   console.log('[cloudSave] UPSERT executing...');
   // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:694',message:'[HYP-A] Full upsertData before UPSERT',data:{upsertData:upsertData,key:key},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+  console.log('[DEBUG] Full upsertData before UPSERT:', upsertData);
   // #endregion
   const { data: upsertResult, error: upsertError } = await client
     .from('titlelab_snapshot')
@@ -713,12 +707,17 @@ async function cloudSave(key = DEFAULT_SNAPSHOT_KEY) {
     .maybeSingle();
 
   // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:710',message:'[HYP-A,C] UPSERT result',data:{hasError:!!upsertError,error:upsertError,result:upsertResult},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,C'})}).catch(()=>{});
+  console.log('[DEBUG] UPSERT result:', {hasError: !!upsertError, error: upsertError, result: upsertResult});
   // #endregion
 
   if (upsertError) {
     // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:716',message:'[HYP-A,C] UPSERT ERROR DETAILS',data:{code:upsertError.code,message:upsertError.message,details:upsertError.details,hint:upsertError.hint},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,C'})}).catch(()=>{});
+    console.error('[DEBUG] UPSERT ERROR DETAILS:', {
+      code: upsertError.code,
+      message: upsertError.message,
+      details: upsertError.details,
+      hint: upsertError.hint
+    });
     // #endregion
     throw upsertError;
   }
@@ -762,9 +761,6 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
 
   const client = window.supabaseApi ? window.supabaseApi.getClient() : null;
   const lastSyncTimeKey = `last_sync_time_${key}`;
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:502',message:'cloudLoadLatest - got client',data:{hasClient:!!client,hasSupabaseApi:!!window.supabaseApi},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'FIX',runId:'post-fix'})}).catch(()=>{});
-  // #endregion
   if (!client) {
     throw new Error('Supabase 客户端未初始化');
   }
@@ -772,9 +768,6 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
   // 检查认证
   if (window.supabaseApi && window.supabaseApi.requireAuth) {
     const isAuthed = await window.supabaseApi.requireAuth();
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:508',message:'requireAuth result',data:{isAuthed:isAuthed},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'FIX',runId:'post-fix'})}).catch(()=>{});
-    // #endregion
     if (!isAuthed) {
       throw new Error('未登录，无法加载云端');
     }
@@ -787,9 +780,6 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
   });
 
   const sessionUser = window.supabaseApi ? window.supabaseApi.getSessionUser() : null;
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:522',message:'cloudLoadLatest - got sessionUser',data:{hasSessionUser:!!sessionUser,username:sessionUser?sessionUser.username:null,key:key},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'FIX',runId:'post-fix'})}).catch(()=>{});
-  // #endregion
 
   // 查询云端快照
   const { data, error } = await client
@@ -798,25 +788,15 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
     .eq('key', key)
     .maybeSingle();
   
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:532',message:'cloudLoadLatest - query result',data:{hasData:!!data,hasError:!!error,errorCode:error?error.code:null,errorMessage:error?error.message:null},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'FIX',runId:'post-fix'})}).catch(()=>{});
-  // #endregion
-
   if (error && error.code !== 'PGRST116') {
     throw error;
   }
 
   // 如果查询不到记录，自动保存创建（不弹确认框）
   if (!data || !data.payload) {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:537',message:'cloudLoadLatest - no data, creating new snapshot',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'FIX',runId:'post-fix'})}).catch(()=>{});
-    // #endregion
     // 自动保存，然后自动再加载一次
     try {
       const saveResult = await cloudSave(key);
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:544',message:'cloudSave result',data:{saved:saveResult.saved,skipped:saveResult.skipped,message:saveResult.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'FIX',runId:'post-fix'})}).catch(()=>{});
-      // #endregion
       if (saveResult.saved) {
         // 保存成功后，递归调用自身加载
         return await cloudLoadLatest(key);
@@ -824,9 +804,6 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
         throw new Error('保存失败：' + (saveResult.message || '未知错误'));
       }
     } catch (saveError) {
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:555',message:'cloudSave threw error',data:{errorMessage:saveError.message,errorStack:saveError.stack},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'FIX',runId:'post-fix'})}).catch(()=>{});
-      // #endregion
       throw saveError;
     }
   }
@@ -916,10 +893,6 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
   const titleCatsKey = `title_categories_v1_${username}`;
   const contentCatsKey = `content_categories_v1_${username}`;
   const viewSettingsKey = `display_settings_v1_${username}`;
-
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:612',message:'cloudLoadLatest restoring categories',data:{hasTitleCats:!!(payload.cats&&payload.cats.title),hasContentCats:!!(payload.cats&&payload.cats.content),titleCats:payload.cats&&payload.cats.title?payload.cats.title:[],contentCats:payload.cats&&payload.cats.content?payload.cats.content:[]},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
-  // #endregion
 
   if (payload.cats && payload.cats.title) {
     localStorage.setItem(titleCatsKey, JSON.stringify(payload.cats.title));
