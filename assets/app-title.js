@@ -751,7 +751,15 @@ async function loadTitlesFromCloud() {
       : (data || []);
     state.titles = filtered;
     // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:753',message:'从云端加载标题数据',data:{count:state.titles.length,firstThree:state.titles.slice(0,3).map(t=>({id:t.id,text:t.text?.substring(0,20),created_at:t.created_at,is_starred:t.is_starred}))},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1-D,H2-C'})}).catch(()=>{});
+    console.log('[DEBUG] 从云端加载标题数据:', {
+      count: state.titles.length,
+      firstThree: state.titles.slice(0, 3).map(t => ({
+        id: t.id,
+        text: t.text?.substring(0, 20),
+        created_at: t.created_at,
+        is_starred: t.is_starred
+      }))
+    });
     // #endregion
     console.log('[TitleApp] 从云端加载标题条数：', state.titles.length);
     // 云端数据变化后，需要同步刷新分类数量
@@ -783,7 +791,7 @@ function applyFilters(list) {
     return true;
   });
   
-  // 排序：星标数据永远置顶，按星标时间倒序，然后按创建时间倒序
+  // 排序：星标数据永远置顶，按星标时间倒序，然后按创建时间升序（旧的在前，新的在后）
   const sorted = filtered.sort((a, b) => {
     const aStarred = a.is_starred === true;
     const bStarred = b.is_starred === true;
@@ -799,13 +807,22 @@ function applyFilters(list) {
     if (aStarred && !bStarred) return -1;
     if (!aStarred && bStarred) return 1;
     
-    // 都不是星标，按创建时间倒序
+    // 都不是星标，按创建时间升序（旧的在前，新的在后）
     const aCreated = a.created_at ? new Date(a.created_at).getTime() : 0;
     const bCreated = b.created_at ? new Date(b.created_at).getTime() : 0;
-    return bCreated - aCreated;
+    return aCreated - bCreated;  // 改为升序
   });
   // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:806',message:'排序后准备渲染',data:{sortedCount:sorted.length,firstThree:sorted.slice(0,3).map((t,i)=>({index:i,id:t.id,text:t.text?.substring(0,20),is_starred:t.is_starred,created_at:t.created_at}))},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1-C'})}).catch(()=>{});
+  console.log('[DEBUG] 排序后准备渲染:', {
+    sortedCount: sorted.length,
+    firstThree: sorted.slice(0, 3).map((t, i) => ({
+      index: i,
+      id: t.id,
+      text: t.text?.substring(0, 20),
+      is_starred: t.is_starred,
+      created_at: t.created_at
+    }))
+  });
   // #endregion
   
   return sorted;
@@ -1146,7 +1163,12 @@ function openTitleModal(item) {
       btnStar.classList.toggle('active');
       const nowActive = btnStar.classList.contains('active');
       // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:1140',message:'星标按钮点击',data:{wasActive:wasActive,nowActive:nowActive,editingId:state.editingId,note:'只改变UI状态，未立即保存到数据库'},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2-A'})}).catch(()=>{});
+      console.log('[DEBUG] 星标按钮点击:', {
+        wasActive: wasActive,
+        nowActive: nowActive,
+        editingId: state.editingId,
+        note: '只改变UI状态，未立即保存到数据库'
+      });
       // #endregion
     };
   }
@@ -1330,7 +1352,12 @@ async function saveTitleFromModal() {
   };
 
   // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:1320',message:'保存标题时的payload',data:{editingId:state.editingId,isStarred:payload.is_starred,starred_at:payload.starred_at,text:payload.text?.substring(0,30)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2-A,H2-B'})}).catch(()=>{});
+  console.log('[DEBUG] 保存标题时的payload:', {
+    editingId: state.editingId,
+    isStarred: payload.is_starred,
+    starred_at: payload.starred_at,
+    text: payload.text?.substring(0, 30)
+  });
   // #endregion
   console.log(
     '[TitleApp] 保存标题 payload =',
@@ -1427,7 +1454,16 @@ async function saveTitleFromModal() {
       // 新增的加到数组头部，使最新一条在最上
       if (data) {
         // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:1415',message:'新增标题后插入数组',data:{insertedData:{id:data.id,text:data.text?.substring(0,30),created_at:data.created_at,is_starred:data.is_starred},currentArrayLength:state.titles.length,action:'unshift到数组头部'},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1-A,H1-B'})}).catch(()=>{});
+        console.log('[DEBUG] 新增标题后插入数组:', {
+          insertedData: {
+            id: data.id,
+            text: data.text?.substring(0, 30),
+            created_at: data.created_at,
+            is_starred: data.is_starred
+          },
+          currentArrayLength: state.titles.length,
+          action: 'unshift到数组头部'
+        });
         // #endregion
         state.titles.unshift(data);
       }
