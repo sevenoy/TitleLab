@@ -340,8 +340,8 @@ function initSettingsPage() {
   bindImportExport();
   const badge = document.getElementById('currentUserName');
   if (user && badge) {
-    // 显示完整用户名
-    badge.textContent = user.username || '';
+    // 显示用户名首字母
+    badge.textContent = getUserInitial(user.username);
     badge.className = 'user-badge text-xs';
   }
   const btnLogout = document.getElementById('btnLogout');
