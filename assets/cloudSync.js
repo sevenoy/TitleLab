@@ -911,7 +911,7 @@ function bindCloudButtons(options = {}) {
   const {
     saveBtnSelector = '#btnSaveCloud',
     loadBtnSelector = '#btnLoadCloud',
-    statusSelector = '#cloudSyncStatus'
+    statusSelector = '#autoSyncStatus'
   } = options;
 
   const btnSave = typeof saveBtnSelector === 'string'
@@ -1025,7 +1025,7 @@ function bindCloudButtons(options = {}) {
 
 function initAutoSync(options = {}) {
   const {
-    statusSelector = '#cloudSyncStatus',
+    statusSelector = '#autoSyncStatus',
     saveBtnSelector = '#btnSaveCloud',
     loadBtnSelector = '#btnLoadCloud',
     debounceMs
@@ -1041,10 +1041,44 @@ function initAutoSync(options = {}) {
     ? document.querySelector(loadBtnSelector)
     : loadBtnSelector;
 
-  const setStatus = (text) => {
-    if (statusEl) {
-      statusEl.textContent = text;
+  const autoSyncStatusMap = {
+    initial: { text: '自动同步准备中…', className: 'text-gray-500' },
+    syncing: { text: '自动同步中…', className: 'text-blue-500' },
+    idle: { text: '自动同步完成', className: 'text-gray-500' },
+    listening: { text: '自动同步已开启', className: 'text-blue-500' },
+    stopped: { text: '自动同步已停止', className: 'text-gray-500' },
+    error: {
+      className: 'text-red-500',
+      text: (payload) => '自动同步失败：' + (payload && payload.error && payload.error.message ? payload.error.message : '未知错误')
+    },
+    noAuth: { text: '未登录，自动同步已停用', className: 'text-red-500' },
+    fallback: { text: '自动同步状态未知', className: 'text-gray-500' }
+  };
+  const autoSyncStatusClasses = Array.from(new Set(
+    Object.values(autoSyncStatusMap)
+      .map((item) => item && item.className)
+      .filter(Boolean)
+  ));
+  let missingStatusWarned = false;
+  const setAutoSyncStatus = (statusKey, payload) => {
+    const statusConfig = autoSyncStatusMap[statusKey] || autoSyncStatusMap.fallback;
+    const text = typeof statusConfig.text === 'function'
+      ? statusConfig.text(payload)
+      : statusConfig.text;
+    if (!statusEl) {
+      if (!missingStatusWarned) {
+        console.warn(`[cloudSync] 未找到自动同步状态元素：${statusSelector}`);
+        missingStatusWarned = true;
+      }
+      return;
     }
+    if (autoSyncStatusClasses.length) {
+      statusEl.classList.remove(...autoSyncStatusClasses);
+    }
+    if (statusConfig.className) {
+      statusEl.classList.add(statusConfig.className);
+    }
+    statusEl.textContent = text;
   };
 
   const setButtonsEnabled = (enabled) => {
@@ -1066,26 +1100,19 @@ function initAutoSync(options = {}) {
   const handleStatusChange = (payload) => {
     if (!payload || typeof payload !== 'object') return;
     switch (payload.status) {
-      case 'syncing':
-        setStatus('自动同步中…');
-        break;
-      case 'idle':
-        setStatus('自动同步完成');
-        break;
-      case 'listening':
-        setStatus('自动同步已开启');
-        break;
-      case 'stopped':
-        setStatus('自动同步已停止');
-        break;
-      case 'error':
-        setStatus('自动同步失败：' + (payload.error && payload.error.message ? payload.error.message : '未知错误'));
-        break;
       case 'noAuth':
         setButtonsEnabled(false);
-        setStatus('未登录，自动同步已停用');
+        setAutoSyncStatus('noAuth');
         return;
+      case 'syncing':
+      case 'idle':
+      case 'listening':
+      case 'stopped':
+      case 'error':
+        setAutoSyncStatus(payload.status, payload);
+        break;
       default:
+        setAutoSyncStatus('fallback', payload);
         break;
     }
   };
@@ -1105,10 +1132,11 @@ function initAutoSync(options = {}) {
         stopListening = null;
       }
       setButtonsEnabled(false);
-      setStatus('未登录，自动同步已停用');
+      setAutoSyncStatus('noAuth');
       return;
     }
     setButtonsEnabled(true);
+    setAutoSyncStatus('initial');
     restartAutoSync();
   };
 
@@ -1118,6 +1146,7 @@ function initAutoSync(options = {}) {
     }
   };
 
+  setAutoSyncStatus('initial');
   refreshAuthState();
   window.addEventListener('storage', storageHandler);
 
