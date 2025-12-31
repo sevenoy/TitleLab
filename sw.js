@@ -1,4 +1,4 @@
-const CACHE_NAME = 'titlelab-pwa-v15-20250101-settings-sync';
+const CACHE_NAME = 'titlelab-pwa-v16-20250101-supabase-sdk';
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',

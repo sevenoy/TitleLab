@@ -2,8 +2,8 @@
 // 云端同步统一协议（对齐 XHSPHONE 白皮书思路）
 // Version: 2.0.0 - Batch delete fix
 
-const CLOUDSYNC_VERSION = '2.5.0';
-console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (修复设置页面云同步)`);
+const CLOUDSYNC_VERSION = '2.5.1';
+console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (修复设置页面Supabase SDK加载)`);
 
 const DEFAULT_SNAPSHOT_KEY = 'default';
 const DEVICE_ID_STORAGE_KEY = 'cloudsync_device_id';
