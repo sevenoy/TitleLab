@@ -11,6 +11,10 @@ function validateUser(user) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:13',message:'DOMContentLoaded',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'INIT1'})}).catch(()=>{});
+  // #endregion
+  
   const user = getCurrentUser();
   if (!user || !validateUser(user)) { 
     // 清除无效的用户信息
@@ -35,7 +39,13 @@ document.addEventListener('DOMContentLoaded', () => {
   bindSnapshotControls();
   bindDataOps();
   bindCategoryOps();
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:38',message:'Before bindDangerOps',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'INIT1'})}).catch(()=>{});
+  // #endregion
   bindDangerOps();
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:43',message:'After bindDangerOps',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'INIT1'})}).catch(()=>{});
+  // #endregion
 });
 
 function getCurrentUser() {
@@ -429,9 +439,22 @@ function bindDangerOps() {
     });
   });
   
-  if (btnClearAll) btnClearAll.addEventListener('click', async () => {
-    if (!supabase) { showToast('未配置 Supabase', 'error'); return; }
-    openDangerConfirm('⚠️ 警告：此操作将清除所有数据（标题、文案、分类、账号分类、设置、星标），不可恢复！请输入：清空所有数据', async () => {
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:420',message:'bindDangerOps check',data:{btnClearAll:!!btnClearAll,btnCT:!!btnCT,btnCC:!!btnCC},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'BTN1'})}).catch(()=>{});
+  // #endregion
+  
+  if (btnClearAll) {
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:426',message:'Binding btnClearAll',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'BTN1'})}).catch(()=>{});
+    // #endregion
+    
+    btnClearAll.addEventListener('click', async () => {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:432',message:'btnClearAll clicked',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'BTN1'})}).catch(()=>{});
+      // #endregion
+      
+      if (!supabase) { showToast('未配置 Supabase', 'error'); return; }
+      openDangerConfirm('⚠️ 警告：此操作将清除所有数据（标题、文案、分类、账号分类、设置、星标），不可恢复！请输入：清空所有数据', async () => {
       try {
         // 清除Supabase中的数据
         const titleResult = await supabase.from('titles').delete().not('id', 'is', null);
