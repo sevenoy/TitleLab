@@ -24,6 +24,11 @@ body.bg-page {
   color: var(--text-main);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
     "PingFang SC", "Microsoft Yahei", sans-serif;
+  font-size: 13px;
+}
+
+body, input, button, select, textarea {
+  font-size: 13px;
 }
 
 .wrap {
