@@ -571,7 +571,8 @@ async function loadContentsFromCloud() {
     const { data, error } = await supabase
       .from('contents')
       .select('*')
-      .order('created_at', { ascending: false });
+      // 按 created_at 升序：最早创建的在前，新添加的在后
+      .order('created_at', { ascending: true });
     if (error) throw error;
     const user = getCurrentUser();
     const tag = user ? userTag(user.username) : null;
@@ -612,26 +613,26 @@ function applyFilters(list) {
     return true;
   });
   
-  // 排序：星标数据永远置顶，按星标时间倒序，然后按创建时间倒序
+  // 排序：星标数据永远置顶，按星标时间升序（先标记的在前），然后按创建时间升序（先创建的在前）
   const sorted = filtered.sort((a, b) => {
     const aStarred = a.is_starred === true;
     const bStarred = b.is_starred === true;
     
-    // 如果都是星标，按星标时间倒序（最新星标的在最前）
+    // 如果都是星标，按星标时间升序（先标记的在前，后标记的在后）
     if (aStarred && bStarred) {
       const aTime = a.starred_at ? new Date(a.starred_at).getTime() : 0;
       const bTime = b.starred_at ? new Date(b.starred_at).getTime() : 0;
-      return bTime - aTime;
+      return aTime - bTime; // 升序：先标记的在前
     }
     
     // 如果只有一个是星标，星标的永远在前
     if (aStarred && !bStarred) return -1;
     if (!aStarred && bStarred) return 1;
     
-    // 都不是星标，按创建时间倒序
+    // 都不是星标，按创建时间升序（先创建的在前，后创建的在后）
     const aCreated = a.created_at ? new Date(a.created_at).getTime() : 0;
     const bCreated = b.created_at ? new Date(b.created_at).getTime() : 0;
-    return bCreated - aCreated;
+    return aCreated - bCreated; // 升序：先创建的在前
   });
   
   console.log('[ContentApp] 筛选结果:', {
