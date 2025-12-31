@@ -523,30 +523,64 @@ function bindDangerOps() {
         fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:clearAllData',message:'Start clearing user data',data:{username:user.username,userTag},timestamp:Date.now(),sessionId:'debug-session',runId:'user-isolation',hypothesisId:'ISOLATION'})}).catch(()=>{});
         // #endregion
         
-        // 清除Supabase中的数据 - 只删除当前用户的数据
-        // 使用 cs (contains) 筛选包含当前用户标签的记录
-        const titleResult = await supabase
+        // 清除Supabase中的数据 - 使用客户端过滤方案（最可靠）
+        // 步骤1：获取所有标题
+        const { data: allTitles, error: fetchTitlesError } = await supabase
           .from('titles')
-          .delete()
-          .filter('scene_tags', 'cs', `["${userTag}"]`);
+          .select('id, scene_tags');
         
-        if (titleResult.error) throw titleResult.error;
-        console.log('[Admin] Titles cleared for user:', user.username);
+        if (fetchTitlesError) throw fetchTitlesError;
+        
+        // 步骤2：客户端过滤出当前用户的标题
+        const userTitles = (allTitles || []).filter(t => 
+          Array.isArray(t.scene_tags) && t.scene_tags.includes(userTag)
+        );
+        
+        // 步骤3：逐个删除
+        if (userTitles.length > 0) {
+          const titleIds = userTitles.map(t => t.id);
+          const titleResult = await supabase
+            .from('titles')
+            .delete()
+            .in('id', titleIds);
+          
+          if (titleResult.error) throw titleResult.error;
+          console.log('[Admin] Titles cleared for user:', user.username, 'count:', userTitles.length);
+        } else {
+          console.log('[Admin] No titles to clear for user:', user.username);
+        }
         
         // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:afterTitleDelete',message:'Titles deleted',data:{username:user.username,deletedCount:titleResult.data?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'user-isolation',hypothesisId:'ISOLATION'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:afterTitleDelete',message:'Titles deleted',data:{username:user.username,deletedCount:userTitles.length},timestamp:Date.now(),sessionId:'debug-session',runId:'user-isolation',hypothesisId:'ISOLATION'})}).catch(()=>{});
         // #endregion
         
-        const contentResult = await supabase
+        // 对 contents 表做同样的操作
+        const { data: allContents, error: fetchContentsError } = await supabase
           .from('contents')
-          .delete()
-          .filter('scene_tags', 'cs', `["${userTag}"]`);
+          .select('id, scene_tags');
         
-        if (contentResult.error) throw contentResult.error;
-        console.log('[Admin] Contents cleared for user:', user.username);
+        if (fetchContentsError) throw fetchContentsError;
+        
+        const userContents = (allContents || []).filter(c => 
+          Array.isArray(c.scene_tags) && c.scene_tags.includes(userTag)
+        );
+        
+        let contentResult = { error: null };
+        if (userContents.length > 0) {
+          const contentIds = userContents.map(c => c.id);
+          contentResult = await supabase
+            .from('contents')
+            .delete()
+            .in('id', contentIds);
+          
+          if (contentResult.error) throw contentResult.error;
+          console.log('[Admin] Contents cleared for user:', user.username, 'count:', userContents.length);
+        } else {
+          console.log('[Admin] No contents to clear for user:', user.username);
+        }
         
         // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:afterContentDelete',message:'Contents deleted',data:{username:user.username,deletedCount:contentResult.data?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'user-isolation',hypothesisId:'ISOLATION'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:afterContentDelete',message:'Contents deleted',data:{username:user.username,deletedCount:userContents.length},timestamp:Date.now(),sessionId:'debug-session',runId:'user-isolation',hypothesisId:'ISOLATION'})}).catch(()=>{});
         // #endregion
         
         // 清除localStorage中的数据，但保留"全部"分类
