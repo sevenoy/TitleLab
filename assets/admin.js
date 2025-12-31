@@ -650,7 +650,11 @@ function bindDangerOps() {
   // 清除 PWA 缓存按钮
   const btnClearCache = document.getElementById('btnClearCache');
   if (btnClearCache) {
-    btnClearCache.addEventListener('click', async () => {
+    console.log('[Admin] Binding btnClearCache event listener');
+    
+    const handleClearCache = async (e) => {
+      console.log('[Admin] btnClearCache clicked!', {eventType: e.type});
+      
       const confirmed = confirm(
         '确定要清除所有缓存吗？\n\n' +
         '此操作将：\n' +
@@ -661,7 +665,10 @@ function bindDangerOps() {
         '建议在代码更新后使用。'
       );
       
-      if (!confirmed) return;
+      if (!confirmed) {
+        console.log('[Admin] User cancelled clear cache');
+        return;
+      }
       
       try {
         console.log('[Admin] 开始清除缓存...');
@@ -700,9 +707,16 @@ function bindDangerOps() {
         console.error('[Admin] 清除缓存失败:', err);
         showToast('清除缓存失败：' + err.message, 'error');
       }
+    };
+    
+    btnClearCache.addEventListener('click', handleClearCache);
+    // 移动端兼容：同时监听 touchend 事件
+    btnClearCache.addEventListener('touchend', (e) => {
+      e.preventDefault(); // 防止触发click事件
+      handleClearCache(e);
     });
     
-    console.log('[Admin] btnClearCache event listener bound');
+    console.log('[Admin] btnClearCache event listeners bound (click + touchend)');
   }
 }
 

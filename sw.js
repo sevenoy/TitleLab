@@ -1,4 +1,4 @@
-const CACHE_NAME = 'titlelab-pwa-v20-20250101-sort-fix';
+const CACHE_NAME = 'titlelab-pwa-v21-20250101-clear-cache-mobile';
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',
