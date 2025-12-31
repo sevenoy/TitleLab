@@ -253,6 +253,14 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('[TitleApp] supabaseClient 已就绪');
   }
 
+  // 云端加载完成时刷新分类与场景
+  window.addEventListener('cloudSyncLoaded', () => {
+    loadCategoriesFromLocal();
+    renderCategoryList();
+    applyDisplaySettings();
+    refreshSceneSelects();
+  });
+
   // 初始从云端加载一遍 titles
   loadTitlesFromCloud();
   initAutoSync();
