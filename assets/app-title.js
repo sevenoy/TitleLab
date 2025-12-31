@@ -64,6 +64,12 @@ function getDisplaySettings() {
   const key = getDisplaySettingsLSKey();
   const raw = localStorage.getItem(key);
   
+  console.log('[TitleApp] getDisplaySettings 读取 localStorage:', {
+    key,
+    hasData: !!raw,
+    rawLength: raw ? raw.length : 0
+  });
+  
   // 根据用户获取默认场景
   const user = getCurrentUser();
   const defaultScenes = user && user.username === 'olina' 
@@ -71,6 +77,7 @@ function getDisplaySettings() {
     : DEFAULT_DISPLAY_SETTINGS.scenes;
   
   if (!raw) {
+    console.log('[TitleApp] localStorage 为空，使用默认场景:', defaultScenes);
     return { 
       ...DEFAULT_DISPLAY_SETTINGS,
       scenes: defaultScenes
@@ -82,6 +89,10 @@ function getDisplaySettings() {
     const scenes = parsed.hasOwnProperty('scenes') && Array.isArray(parsed.scenes) 
       ? parsed.scenes 
       : defaultScenes;
+    console.log('[TitleApp] getDisplaySettings 返回账号列表:', {
+      scenesCount: scenes.length,
+      scenes: scenes
+    });
     return {
       ...DEFAULT_DISPLAY_SETTINGS,
       ...parsed,

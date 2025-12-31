@@ -286,6 +286,14 @@ function buildSnapshotLabel(user) {
  */
 function buildLocalPayload(snapshotLabel, localData) {
   const deviceId = ensureDeviceId();
+  console.log('[cloudSync] buildLocalPayload 构建数据包:', {
+    titlesCount: localData.titles?.length,
+    contentsCount: localData.contents?.length,
+    titleCats: localData.cats?.title,
+    contentCats: localData.cats?.content,
+    scenes: localData.view?.scenes,
+    scenesCount: localData.view?.scenes?.length
+  });
   return {
     ver: 1,
     snapshot_label: snapshotLabel,
@@ -357,6 +365,12 @@ async function aggregateLocalData() {
     const viewSettingsRaw = localStorage.getItem(viewSettingsKey);
     viewSettings = viewSettingsRaw ? JSON.parse(viewSettingsRaw) : {};
   } catch (_) {}
+
+  console.log('[cloudSync] aggregateLocalData 从 localStorage 读取:', {
+    key: viewSettingsKey,
+    scenes: viewSettings.scenes,
+    scenesCount: viewSettings.scenes?.length
+  });
 
   return {
     titles,
@@ -933,12 +947,19 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
   if (payload.cats && payload.cats.title) {
     localStorage.setItem(titleCatsKey, JSON.stringify(payload.cats.title));
     categoriesUpdated = true;
+    console.log('[cloudSync] 恢复标题分类:', payload.cats.title);
   }
   if (payload.cats && payload.cats.content) {
     localStorage.setItem(contentCatsKey, JSON.stringify(payload.cats.content));
     categoriesUpdated = true;
+    console.log('[cloudSync] 恢复文案分类:', payload.cats.content);
   }
   if (payload.view) {
+    console.log('[cloudSync] 恢复场景设置:', {
+      key: viewSettingsKey,
+      scenes: payload.view.scenes,
+      scenesCount: payload.view.scenes?.length
+    });
     localStorage.setItem(viewSettingsKey, JSON.stringify(payload.view));
     settingsUpdated = true;
   }
