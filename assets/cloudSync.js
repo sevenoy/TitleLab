@@ -617,11 +617,16 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
       .map((r) => r.id);
 
     if (idsToDelete.length > 0) {
-      const { error: delError } = await client
-        .from('titles')
-        .delete()
-        .in('id', idsToDelete);
-      if (delError) throw delError;
+      // 分批删除，避免URL过长（每批最多50个ID）
+      const BATCH_SIZE = 50;
+      for (let i = 0; i < idsToDelete.length; i += BATCH_SIZE) {
+        const batch = idsToDelete.slice(i, i + BATCH_SIZE);
+        const { error: delError } = await client
+          .from('titles')
+          .delete()
+          .in('id', batch);
+        if (delError) throw delError;
+      }
     }
 
     // 插入新的 titles（移除 is_starred 和 starred_at 字段，避免 schema 不匹配）
@@ -649,11 +654,16 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
       .map((r) => r.id);
 
     if (idsToDelete.length > 0) {
-      const { error: delError } = await client
-        .from('contents')
-        .delete()
-        .in('id', idsToDelete);
-      if (delError) throw delError;
+      // 分批删除，避免URL过长（每批最多50个ID）
+      const BATCH_SIZE = 50;
+      for (let i = 0; i < idsToDelete.length; i += BATCH_SIZE) {
+        const batch = idsToDelete.slice(i, i + BATCH_SIZE);
+        const { error: delError } = await client
+          .from('contents')
+          .delete()
+          .in('id', batch);
+        if (delError) throw delError;
+      }
     }
 
     // 插入新的 contents（移除 is_starred 和 starred_at 字段，避免 schema 不匹配）
