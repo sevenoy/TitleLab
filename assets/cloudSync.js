@@ -1,5 +1,9 @@
 // assets/cloudSync.js
 // 云端同步统一协议（对齐 XHSPHONE 白皮书思路）
+// Version: 2.0.0 - Batch delete fix
+
+const CLOUDSYNC_VERSION = '2.0.0';
+console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (批量删除修复版)`);
 
 const DEFAULT_SNAPSHOT_KEY = 'default';
 
