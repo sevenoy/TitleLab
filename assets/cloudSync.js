@@ -6,6 +6,25 @@ const CLOUDSYNC_VERSION = '2.0.0';
 console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (批量删除修复版)`);
 
 const DEFAULT_SNAPSHOT_KEY = 'default';
+const DEVICE_ID_STORAGE_KEY = 'cloudsync_device_id';
+
+function getDeviceId() {
+  try {
+    let deviceId = localStorage.getItem(DEVICE_ID_STORAGE_KEY);
+    if (!deviceId) {
+      const rand = Math.random().toString(16).slice(2);
+      const uuid = (window.crypto && window.crypto.randomUUID)
+        ? window.crypto.randomUUID()
+        : `dev_${Date.now()}_${rand}`;
+      deviceId = uuid;
+      localStorage.setItem(DEVICE_ID_STORAGE_KEY, deviceId);
+    }
+    return deviceId;
+  } catch (e) {
+    console.warn('[cloudSync] 获取 device_id 失败，使用 fallback', e);
+    return 'unknown_device';
+  }
+}
 
 function debounce(fn, wait = 1000) {
   let timer = null;
@@ -26,6 +45,12 @@ function getUserLiveKey() {
 async function push() {
   const key = getUserLiveKey();
   return cloudSave(key);
+}
+
+async function pull(source = 'manual') {
+  const key = getUserLiveKey();
+  console.log(`[cloudSync] pull triggered by ${source}, key=${key}`);
+  return cloudLoadLatest(key);
 }
 
 /**
@@ -108,7 +133,8 @@ function buildLocalPayload(snapshotLabel, localData) {
     ver: 1,
     snapshot_label: snapshotLabel,
     meta: {
-      client_version: getClientVersion()
+      client_version: getClientVersion(),
+      device_id: getDeviceId()
     },
     titles: localData.titles,
     contents: localData.contents,
@@ -205,6 +231,7 @@ function normalizePayload(payload) {
   
   if (normalized.meta) {
     delete normalized.meta.client_version;
+    delete normalized.meta.device_id;
     delete normalized.meta.generated_at;
     delete normalized.meta.created_at;  // 移除时间戳字段
     // 删除任何其他 meta 中的临时字段
@@ -769,6 +796,14 @@ function startAutoSync(onStatusChange, options = {}) {
   const user = window.supabaseApi && window.supabaseApi.getSessionUser
     ? window.supabaseApi.getSessionUser()
     : null;
+  const client = window.supabaseApi && window.supabaseApi.getClient
+    ? window.supabaseApi.getClient()
+    : null;
+  const username = user && user.username ? user.username : (user && user.email ? user.email : 'default');
+  const userTag = username ? `user:${username}` : null;
+  const deviceId = getDeviceId();
+  const cleanupFns = [];
+
   if (!user) {
     if (typeof onStatusChange === 'function') {
       onStatusChange({ status: 'noAuth', reason: 'not_logged_in' });
@@ -795,12 +830,76 @@ function startAutoSync(onStatusChange, options = {}) {
   }, debounceMs);
 
   window.addEventListener('dataChanged', handler);
+  cleanupFns.push(() => window.removeEventListener('dataChanged', handler));
   if (typeof onStatusChange === 'function') {
     onStatusChange({ status: 'listening' });
   }
 
+  const handleRealtimeChange = async (payload) => {
+    const tagsNew = payload && payload.new && Array.isArray(payload.new.scene_tags) ? payload.new.scene_tags : [];
+    const tagsOld = payload && payload.old && Array.isArray(payload.old.scene_tags) ? payload.old.scene_tags : [];
+    const hasUserTag = !userTag || tagsNew.includes(userTag) || tagsOld.includes(userTag);
+    if (!hasUserTag) return;
+
+    const payloadDeviceId = payload && payload.new && payload.new.payload && payload.new.payload.meta
+      ? payload.new.payload.meta.device_id
+      : null;
+    if (payloadDeviceId && payloadDeviceId === deviceId) {
+      return;
+    }
+
+    if (typeof onStatusChange === 'function') {
+      onStatusChange({ status: 'syncing' });
+    }
+    try {
+      await pull('realtime');
+      if (typeof onStatusChange === 'function') {
+        onStatusChange({ status: 'idle' });
+      }
+    } catch (error) {
+      console.error('[cloudSync] realtime pull failed', error);
+      if (typeof onStatusChange === 'function') {
+        onStatusChange({ status: 'error', error });
+      }
+    }
+  };
+
+  const subscribeRealtime = () => {
+    if (!client || !client.channel || !userTag) return null;
+    const tables = ['titles', 'contents'];
+    const channels = tables.map((table) => {
+      const filter = `scene_tags.cs.{${userTag}}`;
+      const channel = client.channel(`realtime-${table}-${userTag}`);
+      channel.on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table, filter },
+        handleRealtimeChange
+      );
+      channel.subscribe();
+      return channel;
+    });
+
+    return () => {
+      channels.forEach((channel) => {
+        if (!channel) return;
+        if (typeof client.removeChannel === 'function') {
+          client.removeChannel(channel);
+        } else if (typeof channel.unsubscribe === 'function') {
+          channel.unsubscribe();
+        }
+      });
+    };
+  };
+
+  const stopRealtime = subscribeRealtime();
+  if (stopRealtime) {
+    cleanupFns.push(stopRealtime);
+  }
+
   return () => {
-    window.removeEventListener('dataChanged', handler);
+    cleanupFns.forEach((fn) => {
+      try { fn(); } catch (_) {}
+    });
     if (typeof onStatusChange === 'function') {
       onStatusChange({ status: 'stopped' });
     }
@@ -1046,6 +1145,7 @@ if (typeof window !== 'undefined') {
     formatYYYYMMDDLocal,
     getClientVersion,
     push,
+    pull,
     startAutoSync,
     bindCloudButtons,
     initAutoSync,
