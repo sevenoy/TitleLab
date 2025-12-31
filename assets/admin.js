@@ -20,10 +20,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   const badge = document.getElementById('currentUserName');
   if (badge) {
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:21',message:'Setting user badge',data:{username:user.username,initial:getUserInitial(user.username),userObj:user},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'G'})}).catch(()=>{});
+    // #endregion
     // 显示用户名首字母，节省空间
     badge.textContent = getUserInitial(user.username);
     badge.title = user.username || ''; // 完整用户名显示在tooltip中
     badge.className = 'user-badge text-xs';
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:27',message:'User badge set',data:{badgeText:badge.textContent,badgeTitle:badge.title,badgeClassName:badge.className},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'G'})}).catch(()=>{});
+    // #endregion
   }
   const btnLogout = document.getElementById('btnLogout');
   const btnLoginHeader = document.getElementById('btnLoginHeader');
@@ -90,8 +96,14 @@ function bindOverview() {
 }
 
 async function renderOverview() {
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:92',message:'renderOverview ENTRY',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
   const titles = await fetchAll('titles');
   const contents = await fetchAll('contents');
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:96',message:'fetchAll result BEFORE filter',data:{titlesCount:titles.length,contentsCount:contents.length,sampleTitle:titles[0]?{id:titles[0].id,text:titles[0].text?titles[0].text.substring(0,30):null,scene_tags:titles[0].scene_tags}:null},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
   const elT = document.getElementById('overviewTitleCount');
   const elC = document.getElementById('overviewContentCount');
   const elS = document.getElementById('overviewLatestSnapshot');
