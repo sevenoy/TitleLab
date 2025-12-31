@@ -7,6 +7,48 @@ console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (批量删除修复�
 
 const DEFAULT_SNAPSHOT_KEY = 'default';
 const DEVICE_ID_STORAGE_KEY = 'cloudsync_device_id';
+const AUTO_SYNC_STATUS_MAP = {
+  initial: { text: '自动同步准备中…', className: 'text-gray-500' },
+  syncing: { text: '自动同步中…', className: 'text-blue-500' },
+  idle: { text: '自动同步完成', className: 'text-gray-500' },
+  listening: { text: '自动同步已开启', className: 'text-blue-500' },
+  stopped: { text: '自动同步已停止', className: 'text-gray-500' },
+  error: {
+    className: 'text-red-500',
+    text: (payload) => '自动同步失败：' + (payload && payload.error && payload.error.message ? payload.error.message : '未知错误')
+  },
+  noAuth: { text: '未登录，自动同步已停用', className: 'text-red-500' },
+  fallback: { text: '自动同步状态未知', className: 'text-gray-500' }
+};
+const AUTO_SYNC_STATUS_CLASSES = Array.from(new Set(
+  Object.values(AUTO_SYNC_STATUS_MAP)
+    .map((item) => item && item.className)
+    .filter(Boolean)
+));
+
+function createAutoSyncStatusSetter(statusEl, statusSelector) {
+  let missingStatusWarned = false;
+  return (statusKey, payload) => {
+    const statusConfig = AUTO_SYNC_STATUS_MAP[statusKey] || AUTO_SYNC_STATUS_MAP.fallback;
+    const text = typeof statusConfig.text === 'function'
+      ? statusConfig.text(payload)
+      : statusConfig.text;
+    if (!statusEl) {
+      if (!missingStatusWarned) {
+        console.warn(`[cloudSync] 未找到自动同步状态元素：${statusSelector}`);
+        missingStatusWarned = true;
+      }
+      return;
+    }
+    if (AUTO_SYNC_STATUS_CLASSES.length) {
+      statusEl.classList.remove(...AUTO_SYNC_STATUS_CLASSES);
+    }
+    if (statusConfig.className) {
+      statusEl.classList.add(statusConfig.className);
+    }
+    statusEl.textContent = text;
+  };
+}
 
 function getDeviceId() {
   try {
@@ -923,6 +965,7 @@ function bindCloudButtons(options = {}) {
   const statusEl = typeof statusSelector === 'string'
     ? document.querySelector(statusSelector)
     : statusSelector;
+  const setAutoSyncStatus = createAutoSyncStatusSetter(statusEl, statusSelector);
 
   const setStatus = (text) => {
     if (statusEl) {
@@ -944,6 +987,33 @@ function bindCloudButtons(options = {}) {
   const getUser = () => (window.supabaseApi && window.supabaseApi.getSessionUser
     ? window.supabaseApi.getSessionUser()
     : null);
+  const getSyncKey = () => getLiveKey();
+
+  const refreshPageData = async () => {
+    const tasks = [];
+    const isTitlePage = window.location.pathname.includes('title.html');
+    const isContentPage = window.location.pathname.includes('content.html');
+    if (isTitlePage) {
+      if (typeof loadTitlesFromCloud === 'function') {
+        tasks.push(loadTitlesFromCloud());
+      } else if (window.loadTitlesFromCloud && typeof window.loadTitlesFromCloud === 'function') {
+        tasks.push(window.loadTitlesFromCloud());
+      }
+    }
+    if (isContentPage) {
+      if (typeof loadContentsFromCloud === 'function') {
+        tasks.push(loadContentsFromCloud());
+      } else if (window.loadContentsFromCloud && typeof window.loadContentsFromCloud === 'function') {
+        tasks.push(window.loadContentsFromCloud());
+      }
+    }
+    if (!tasks.length) return;
+    try {
+      await Promise.all(tasks);
+    } catch (e) {
+      console.warn('[cloudSync] 刷新页面数据失败', e);
+    }
+  };
 
   const handleSave = async (event) => {
     if (event && typeof event.stopPropagation === 'function') {
@@ -953,16 +1023,21 @@ function bindCloudButtons(options = {}) {
     const user = getUser();
     if (!user) {
       setStatus('未登录，无法保存到云端');
+      setAutoSyncStatus('noAuth');
       return;
     }
     setStatus('保存中…');
+    setAutoSyncStatus('syncing');
     try {
-      const result = await cloudSave(getLiveKey());
+      const syncKey = getSyncKey();
+      const result = await cloudSave(syncKey);
       const message = (result && result.message) || '已保存到云端';
       setStatus(message);
+      setAutoSyncStatus('idle', { result });
     } catch (error) {
       console.error('[cloudSync] 手动保存失败', error);
       setStatus('保存失败：' + (error && error.message ? error.message : '未知错误'));
+      setAutoSyncStatus('error', { error });
     }
   };
 
@@ -974,16 +1049,22 @@ function bindCloudButtons(options = {}) {
     const user = getUser();
     if (!user) {
       setStatus('未登录，无法加载云端');
+      setAutoSyncStatus('noAuth');
       return;
     }
     setStatus('加载中…');
+    setAutoSyncStatus('syncing');
     try {
-      const result = await cloudLoadLatest(getLiveKey());
+      const syncKey = getSyncKey();
+      const result = await cloudLoadLatest(syncKey);
       const message = (result && result.message) || '已加载云端数据';
       setStatus(message);
+      await refreshPageData();
+      setAutoSyncStatus('idle', { result });
     } catch (error) {
       console.error('[cloudSync] 加载云端失败', error);
       setStatus('加载失败：' + (error && error.message ? error.message : '未知错误'));
+      setAutoSyncStatus('error', { error });
     }
   };
 
@@ -1040,46 +1121,7 @@ function initAutoSync(options = {}) {
   const btnLoad = typeof loadBtnSelector === 'string'
     ? document.querySelector(loadBtnSelector)
     : loadBtnSelector;
-
-  const autoSyncStatusMap = {
-    initial: { text: '自动同步准备中…', className: 'text-gray-500' },
-    syncing: { text: '自动同步中…', className: 'text-blue-500' },
-    idle: { text: '自动同步完成', className: 'text-gray-500' },
-    listening: { text: '自动同步已开启', className: 'text-blue-500' },
-    stopped: { text: '自动同步已停止', className: 'text-gray-500' },
-    error: {
-      className: 'text-red-500',
-      text: (payload) => '自动同步失败：' + (payload && payload.error && payload.error.message ? payload.error.message : '未知错误')
-    },
-    noAuth: { text: '未登录，自动同步已停用', className: 'text-red-500' },
-    fallback: { text: '自动同步状态未知', className: 'text-gray-500' }
-  };
-  const autoSyncStatusClasses = Array.from(new Set(
-    Object.values(autoSyncStatusMap)
-      .map((item) => item && item.className)
-      .filter(Boolean)
-  ));
-  let missingStatusWarned = false;
-  const setAutoSyncStatus = (statusKey, payload) => {
-    const statusConfig = autoSyncStatusMap[statusKey] || autoSyncStatusMap.fallback;
-    const text = typeof statusConfig.text === 'function'
-      ? statusConfig.text(payload)
-      : statusConfig.text;
-    if (!statusEl) {
-      if (!missingStatusWarned) {
-        console.warn(`[cloudSync] 未找到自动同步状态元素：${statusSelector}`);
-        missingStatusWarned = true;
-      }
-      return;
-    }
-    if (autoSyncStatusClasses.length) {
-      statusEl.classList.remove(...autoSyncStatusClasses);
-    }
-    if (statusConfig.className) {
-      statusEl.classList.add(statusConfig.className);
-    }
-    statusEl.textContent = text;
-  };
+  const setAutoSyncStatus = createAutoSyncStatusSetter(statusEl, statusSelector);
 
   const setButtonsEnabled = (enabled) => {
     [btnSave, btnLoad].forEach((btn) => {
