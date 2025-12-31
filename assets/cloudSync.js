@@ -2,10 +2,39 @@
 // 云端同步统一协议（对齐 XHSPHONE 白皮书思路）
 // Version: 2.0.0 - Batch delete fix
 
-const CLOUDSYNC_VERSION = '2.0.0';
-console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (批量删除修复版)`);
+const CLOUDSYNC_VERSION = '2.1.0';
+console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (自动同步版)`);
 
 const DEFAULT_SNAPSHOT_KEY = 'default';
+const DEFAULT_AUTOSYNC_INTERVAL = 15000;
+
+const DEVICE_ID_KEY = 'titlelab_device_id';
+
+function debounce(fn, delay = 800) {
+  let timer = null;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
+
+function getUserLiveKey(fallback = DEFAULT_SNAPSHOT_KEY) {
+  try {
+    const sessionUser = window.supabaseApi ? window.supabaseApi.getSessionUser() : null;
+    if (sessionUser && sessionUser.username) {
+      return `user_${sessionUser.username}_live`;
+    }
+  } catch (_) {}
+  return fallback;
+}
+
+function ensureDeviceId() {
+  const cached = localStorage.getItem(DEVICE_ID_KEY);
+  if (cached) return cached;
+  const newId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : `device-${Date.now()}`;
+  localStorage.setItem(DEVICE_ID_KEY, newId);
+  return newId;
+}
 
 /**
  * 将字符串转换为稳定的UUID（基于简单哈希）
@@ -83,11 +112,14 @@ function buildSnapshotLabel(user) {
  * 构建本地 payload（包含 snapshot_label 等完整信息）
  */
 function buildLocalPayload(snapshotLabel, localData) {
+  const deviceId = ensureDeviceId();
   return {
     ver: 1,
     snapshot_label: snapshotLabel,
     meta: {
-      client_version: getClientVersion()
+      client_version: getClientVersion(),
+      device_id: deviceId,
+      generated_at: new Date().toISOString()
     },
     titles: localData.titles,
     contents: localData.contents,
@@ -186,6 +218,7 @@ function normalizePayload(payload) {
     delete normalized.meta.client_version;
     delete normalized.meta.generated_at;
     delete normalized.meta.created_at;  // 移除时间戳字段
+    delete normalized.meta.device_id;   // 不参与哈希
     // 删除任何其他 meta 中的临时字段
     if (Object.keys(normalized.meta).length === 0) {
       delete normalized.meta;
@@ -587,13 +620,13 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
     // #endregion
     // 自动保存，然后自动再加载一次
     try {
-      const saveResult = await cloudSave(DEFAULT_SNAPSHOT_KEY);
+      const saveResult = await cloudSave(key);
       // #region agent log
       fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:544',message:'cloudSave result',data:{saved:saveResult.saved,skipped:saveResult.skipped,message:saveResult.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'FIX',runId:'post-fix'})}).catch(()=>{});
       // #endregion
       if (saveResult.saved) {
         // 保存成功后，递归调用自身加载
-        return await cloudLoadLatest(DEFAULT_SNAPSHOT_KEY);
+        return await cloudLoadLatest(key);
       } else {
         throw new Error('保存失败：' + (saveResult.message || '未知错误'));
       }
@@ -744,13 +777,171 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
   };
 }
 
+let autoSyncSessions = {};
+
+async function startAutoSync(options = {}) {
+  const key = options.key || getUserLiveKey();
+  const interval = options.interval || DEFAULT_AUTOSYNC_INTERVAL;
+  const onStatus = typeof options.onStatus === 'function' ? options.onStatus : () => {};
+
+  if (autoSyncSessions[key]) {
+    return autoSyncSessions[key];
+  }
+
+  const client = window.supabaseApi ? window.supabaseApi.getClient() : null;
+  if (!client) {
+    console.warn('[cloudSync] 自动同步跳过：Supabase 未初始化');
+    onStatus({ status: 'offline', message: 'Supabase 未初始化' });
+    return null;
+  }
+
+  const sessionUser = window.supabaseApi ? window.supabaseApi.getSessionUser() : null;
+  if (!sessionUser) {
+    console.warn('[cloudSync] 自动同步跳过：未登录用户');
+    onStatus({ status: 'noAuth', message: '未登录，暂停自动同步' });
+    return null;
+  }
+
+  const deviceId = ensureDeviceId();
+  const session = {
+    key,
+    interval,
+    timer: null,
+    channel: null,
+    running: false,
+    cleanupFns: [],
+    stop() {
+      if (this.timer) clearInterval(this.timer);
+      if (this.channel) client.removeChannel(this.channel);
+      this.cleanupFns.forEach((fn) => {
+        try { fn(); } catch (_) {}
+      });
+      autoSyncSessions[key] = null;
+    }
+  };
+
+  function notify(status, extra = {}) {
+    onStatus({ status, ...extra });
+    window.dispatchEvent(new CustomEvent('autoSyncStatus', { detail: { status, ...extra } }));
+  }
+
+  async function push(reason = 'interval') {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      notify('offline', { reason });
+      return;
+    }
+    if (session.running) return;
+    session.running = true;
+    notify('syncing', { reason });
+    try {
+      const result = await cloudSave(key);
+      if (result && result.saved) {
+        notify('synced', { message: result.message });
+      } else if (result && result.skipped) {
+        notify('idle', { message: result.message });
+      } else {
+        notify('idle');
+      }
+    } catch (err) {
+      console.warn('[cloudSync] 自动保存失败', err);
+      notify('error', { message: err.message || '自动保存失败' });
+    } finally {
+      session.running = false;
+    }
+  }
+
+  async function pull(reason = 'remote') {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      notify('offline', { reason });
+      return;
+    }
+    notify('pulling', { reason });
+    try {
+      await cloudLoadLatest(key);
+      notify('synced', { reason });
+    } catch (err) {
+      console.warn('[cloudSync] 自动拉取失败', err);
+      notify('error', { message: err.message || '自动拉取失败' });
+    }
+  }
+
+  // 本地变更监听（去抖自动推送）
+  const debouncedPush = debounce(() => push('local_change'), 800);
+  window.addEventListener('dataChanged', debouncedPush);
+  session.cleanupFns.push(() => window.removeEventListener('dataChanged', debouncedPush));
+
+  // 立即拉取一次，确保最新
+  pull('init');
+
+  // 周期性推送
+  session.timer = setInterval(push, interval);
+
+  // Realtime 订阅：其他设备更新时自动拉取
+  const userTag = sessionUser ? `user:${sessionUser.username}` : null;
+
+  session.channel = client.channel(`titlelab_autosync_${key}`)
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'titlelab_snapshot',
+      filter: `key=eq.${key}`
+    }, (payload) => {
+      const remoteDevice = payload?.new?.payload?.meta?.device_id;
+      if (remoteDevice && remoteDevice === deviceId) {
+        return;
+      }
+      pull('realtime_snapshot');
+    })
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'titles'
+    }, (payload) => {
+      const tags = payload?.new?.scene_tags || payload?.old?.scene_tags;
+      if (userTag && (!Array.isArray(tags) || !tags.includes(userTag))) return;
+      pull('realtime_titles');
+    })
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'contents'
+    }, (payload) => {
+      const tags = payload?.new?.scene_tags || payload?.old?.scene_tags;
+      if (userTag && (!Array.isArray(tags) || !tags.includes(userTag))) return;
+      pull('realtime_contents');
+    })
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        notify('listening');
+      }
+    });
+
+  // 页面激活时的监听需要可清理
+  const focusHandler = () => push('focus');
+  const visibilityHandler = () => {
+    if (document.visibilityState === 'visible') {
+      push('visible');
+    }
+  };
+  window.addEventListener('focus', focusHandler);
+  document.addEventListener('visibilitychange', visibilityHandler);
+  session.cleanupFns.push(() => window.removeEventListener('focus', focusHandler));
+  session.cleanupFns.push(() => document.removeEventListener('visibilitychange', visibilityHandler));
+
+  autoSyncSessions[key] = session;
+  notify('ready', { deviceId, key, interval });
+  return session;
+}
+
 // 导出 API
 if (typeof window !== 'undefined') {
   window.cloudSync = {
     DEFAULT_SNAPSHOT_KEY,
+    getUserLiveKey,
     cloudSave,
     cloudLoadLatest,
     hasLocalDirty,
+    startAutoSync,
     aggregateLocalData,
     normalizePayload,
     getPayloadHash,
@@ -763,4 +954,3 @@ if (typeof window !== 'undefined') {
   // 同时将 cloudLoadLatest 导出到全局，方便页面直接调用
   window.cloudLoadLatest = cloudLoadLatest;
 }
-

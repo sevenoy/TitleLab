@@ -31,6 +31,9 @@
     <!-- Supabase 配置 -->
     <script src="assets/supabase.js"></script>
 
+    <!-- 云端同步（必须在app-title.js之前加载） -->
+    <script src="assets/cloudSync.js?v=3"></script>
+
     <!-- 分类识别（可选） -->
     <script src="assets/classifier.js"></script>
 
@@ -140,8 +143,9 @@
               <button id="btnBatchImport" class="function-btn ghost text-xs" onclick="openImportModal()">批量导入</button>
               <button id="btnClearAll" class="function-btn ghost text-xs">清空全部</button>
               <button id="btnSettings" class="function-btn ghost text-xs">设置页面</button>
-              <button id="btnSaveCloud" class="function-btn ghost">保存云端</button>
-              <button id="btnLoadCloud" class="function-btn ghost">加载云端</button>
+              <button id="btnSaveCloud" class="function-btn ghost">立即同步</button>
+              <button id="btnLoadCloud" class="function-btn ghost">立即拉取</button>
+              <span id="autoSyncStatus" class="text-xs text-gray-500">自动同步已开启</span>
               <button id="btnManagePage" class="function-btn ghost" onclick="window.location.href='admin-center.html'">管理页面</button>
             </div>
           </div>

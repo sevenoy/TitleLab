@@ -40,6 +40,56 @@ const state = {
 
 let toastTimer = null;
 
+function dispatchDataChanged(scope) {
+  try {
+    window.dispatchEvent(new CustomEvent('dataChanged', { detail: { scope, ts: Date.now() } }));
+  } catch (_) {}
+}
+
+function setAutoSyncStatus(info = {}) {
+  const el = document.getElementById('autoSyncStatus');
+  if (!el) return;
+  const { status, message } = info;
+  const map = {
+    ready: '自动同步已开启',
+    listening: '实时监听中…',
+    syncing: '自动保存中…',
+    pulling: '正在从云端更新…',
+    synced: '已与云端同步',
+    idle: '云端已最新',
+    error: `同步异常：${message || '请稍后重试'}`,
+    noAuth: '请先登录以同步',
+    offline: '离线模式，待联网后同步',
+    stopped: '自动同步已暂停'
+  };
+  el.textContent = map[status] || '自动同步';
+  el.classList.remove('text-red-500', 'text-blue-500', 'text-gray-500');
+  if (status === 'error') {
+    el.classList.add('text-red-500');
+  } else if (status === 'syncing' || status === 'pulling') {
+    el.classList.add('text-blue-500');
+  } else {
+    el.classList.add('text-gray-500');
+  }
+}
+
+async function initAutoSync() {
+  if (!window.cloudSync || !window.cloudSync.startAutoSync) return;
+  try {
+    setAutoSyncStatus({ status: 'ready' });
+    const syncKey = window.cloudSync.getUserLiveKey
+      ? window.cloudSync.getUserLiveKey()
+      : window.cloudSync.DEFAULT_SNAPSHOT_KEY;
+    await window.cloudSync.startAutoSync({
+      key: syncKey,
+      onStatus: setAutoSyncStatus
+    });
+  } catch (err) {
+    console.warn('[ContentApp] 初始化自动同步失败', err);
+    setAutoSyncStatus({ status: 'error', message: err.message });
+  }
+}
+
 // 允许登录的用户列表（与 login.html 保持一致）
 const ALLOWED_USERS = ['sevenoy', 'olina'];
 
@@ -107,6 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnLogout) btnLogout.classList.remove('hidden');
   if (btnLoginHeader) btnLoginHeader.classList.add('hidden');
   loadContentsFromCloud();
+  initAutoSync();
 });
 
 let pendingSnapshotKeyContent = null;
@@ -237,6 +288,7 @@ function loadCategoriesFromLocal() {
 function saveCategoriesToLocal() {
   const key = getCategoryLSKey();
   localStorage.setItem(key, JSON.stringify(state.categories));
+  dispatchDataChanged('contents');
 }
 
 function renderCategoryList() {
@@ -1073,6 +1125,7 @@ async function saveContentFromModal() {
     // 刷新场景下拉列表，更新数据条数
     refreshSceneSelects();
     closeContentModal();
+    dispatchDataChanged('contents');
   } catch (e) {
     showToast('保存失败：' + (e.message || ''), 'error');
   }
@@ -1255,6 +1308,7 @@ async function runImport() {
     showToast(`批量导入成功，共 ${rows.length} 条`);
     closeImportModal();
     await loadContentsFromCloud();
+    dispatchDataChanged('contents');
   } catch (e) {
     showToast('云端导入失败', 'error');
   }
@@ -1263,8 +1317,47 @@ async function runImport() {
 function bindCloudButtons() {
   const btnSave = document.getElementById('btnSaveCloud');
   const btnLoad = document.getElementById('btnLoadCloud');
-  if (btnSave) btnSave.addEventListener('click', () => { hideCloudHistoryPanel(); openCloudLabelModal(); });
-  if (btnLoad) btnLoad.addEventListener('click', toggleCloudHistoryPanel);
+  if (btnSave) {
+    btnSave.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      try {
+        setAutoSyncStatus({ status: 'syncing' });
+        const syncKey = window.cloudSync.getUserLiveKey
+          ? window.cloudSync.getUserLiveKey()
+          : window.cloudSync.DEFAULT_SNAPSHOT_KEY;
+        const result = await window.cloudSync.cloudSave(syncKey);
+        if (result && result.saved) {
+          showToast(result.message || '已同步到云端');
+        } else if (result && result.skipped) {
+          showToast(result.message || '云端已是最新', 'info');
+        }
+        setAutoSyncStatus({ status: 'synced' });
+      } catch (err) {
+        console.error('[ContentApp] 立即同步失败', err);
+        setAutoSyncStatus({ status: 'error', message: err.message });
+        showToast('同步失败，请稍后再试', 'error');
+      }
+    });
+  }
+  if (btnLoad) {
+    btnLoad.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      try {
+        setAutoSyncStatus({ status: 'pulling' });
+        const syncKey = window.cloudSync.getUserLiveKey
+          ? window.cloudSync.getUserLiveKey()
+          : window.cloudSync.DEFAULT_SNAPSHOT_KEY;
+        await window.cloudSync.cloudLoadLatest(syncKey);
+        await loadContentsFromCloud();
+        showToast('已从云端刷新');
+        setAutoSyncStatus({ status: 'synced' });
+      } catch (err) {
+        console.error('[ContentApp] 立即拉取失败', err);
+        setAutoSyncStatus({ status: 'error', message: err.message });
+        showToast('拉取失败，请稍后重试', 'error');
+      }
+    });
+  }
 }
 
 function bindGlobalNavButtons() {
@@ -1426,6 +1519,7 @@ function openClearConfirmModal() {
       state.contents = [];
       renderContents();
       showToast('已清空全部文案');
+      dispatchDataChanged('contents');
     } catch (e) {
       showToast('清空失败：' + (e.message || ''), 'error');
     } finally {
@@ -1439,6 +1533,7 @@ async function deleteContent(item) {
   renderContents();
   // 刷新场景下拉列表，更新数据条数
   refreshSceneSelects();
+  dispatchDataChanged('contents');
   if (!supabase || !item.id) return;
   try {
     await supabase.from('contents').delete().eq('id', item.id);

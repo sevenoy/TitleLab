@@ -19,6 +19,12 @@ function getDisplaySettingsLSKey() {
 
 let settingsState = { ...DEFAULT_DISPLAY_SETTINGS };
 
+function dispatchDataChanged(scope) {
+  try {
+    window.dispatchEvent(new CustomEvent('dataChanged', { detail: { scope, ts: Date.now() } }));
+  } catch (_) {}
+}
+
 function loadDisplaySettings() {
   const key = getDisplaySettingsLSKey();
   const raw = localStorage.getItem(key);
@@ -60,6 +66,7 @@ function saveDisplaySettings(nextSettings) {
   showSettingsToast('已保存并应用');
   // 触发自定义事件，通知其他页面更新场景下拉菜单
   window.dispatchEvent(new CustomEvent('settingsUpdated'));
+  dispatchDataChanged('settings');
 }
 
 function applyDisplayPreview() {
