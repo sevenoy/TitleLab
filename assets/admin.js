@@ -76,6 +76,17 @@ async function fetchAll(table) {
 
 function bindOverview() {
   renderOverview();
+
+  // 同步事件：云端加载完成或本地数据变更时，自动刷新统计
+  window.addEventListener('cloudSyncLoaded', () => renderOverview());
+  window.addEventListener('autoSyncStatus', (e) => {
+    const st = e.detail && e.detail.status;
+    if (st === 'synced' || st === 'pulling' || st === 'syncing') {
+      // 状态进入同步/拉取后刷新一次
+      renderOverview();
+    }
+  });
+  window.addEventListener('dataChanged', debounce(() => renderOverview(), 600));
 }
 
 async function renderOverview() {
