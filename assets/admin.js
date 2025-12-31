@@ -20,16 +20,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   const badge = document.getElementById('currentUserName');
   if (badge) {
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:21',message:'Setting user badge',data:{username:user.username,initial:getUserInitial(user.username),userObj:user},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'G'})}).catch(()=>{});
-    // #endregion
     // 显示用户名首字母，节省空间
     badge.textContent = getUserInitial(user.username);
     badge.title = user.username || ''; // 完整用户名显示在tooltip中
     badge.className = 'user-badge text-xs';
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:27',message:'User badge set',data:{badgeText:badge.textContent,badgeTitle:badge.title,badgeClassName:badge.className},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'G'})}).catch(()=>{});
-    // #endregion
   }
   const btnLogout = document.getElementById('btnLogout');
   const btnLoginHeader = document.getElementById('btnLoginHeader');
@@ -96,14 +90,8 @@ function bindOverview() {
 }
 
 async function renderOverview() {
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:92',message:'renderOverview ENTRY',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A',runId:'post-fix'})}).catch(()=>{});
-  // #endregion
   const allTitles = await fetchAll('titles');
   const allContents = await fetchAll('contents');
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:96',message:'fetchAll result BEFORE filter',data:{titlesCount:allTitles.length,contentsCount:allContents.length,sampleTitle:allTitles[0]?{id:allTitles[0].id,text:allTitles[0].text?allTitles[0].text.substring(0,30):null,scene_tags:allTitles[0].scene_tags}:null},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A',runId:'post-fix'})}).catch(()=>{});
-  // #endregion
   
   // 应用用户过滤：只显示当前用户的数据
   const user = getCurrentUser();
@@ -116,10 +104,6 @@ async function renderOverview() {
   const contents = userTagValue
     ? allContents.filter((it) => Array.isArray(it.scene_tags) && it.scene_tags.includes(userTagValue))
     : allContents;
-  
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:113',message:'After user filter',data:{userTag:userTagValue,filteredTitlesCount:titles.length,filteredContentsCount:contents.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A',runId:'post-fix'})}).catch(()=>{});
-  // #endregion
   
   const elT = document.getElementById('overviewTitleCount');
   const elC = document.getElementById('overviewContentCount');

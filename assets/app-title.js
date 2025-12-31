@@ -179,9 +179,6 @@ document.addEventListener('DOMContentLoaded', () => {
     return; 
   }
   console.log('[TitleApp] DOMContentLoaded: init');
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:173',message:'DOMContentLoaded starting',data:{username:user?user.username:null},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
-  // #endregion
 
   applyDisplaySettings();
 
@@ -212,9 +209,6 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // 监听 localStorage 变化，当场景设置改变时自动更新
   window.addEventListener('storage', (e) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:208',message:'storage event fired',data:{key:e.key,newValue:e.newValue?e.newValue.substring(0,100):null},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
-    // #endregion
     const settingsKey = getDisplaySettingsLSKey();
     if (e.key === settingsKey) {
       refreshSceneSelects();
@@ -235,16 +229,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const badge = document.getElementById('currentUserName');
   if (badge) {
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:236',message:'Setting user badge in title page',data:{username:user.username,initial:getUserInitial(user.username),userObj:user},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H'})}).catch(()=>{});
-    // #endregion
     // 显示用户名首字母，节省空间
     badge.textContent = getUserInitial(user.username);
     badge.className = 'user-badge text-xs';
     badge.title = user.username || ''; // 完整用户名显示在tooltip中
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:243',message:'User badge set in title page',data:{badgeText:badge.textContent,badgeClassName:badge.className,badgeTitle:badge.title},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H'})}).catch(()=>{});
-    // #endregion
   }
   const btnLogout = document.getElementById('btnLogout');
   const btnLoginHeader = document.getElementById('btnLoginHeader');
@@ -295,14 +283,8 @@ function stripLeadingIndex(s) {
 // =============== 2. 分类逻辑 ===============
 
 function loadCategoriesFromLocal() {
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:266',message:'loadCategoriesFromLocal ENTRY',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
-  // #endregion
   const key = getCategoryLSKey();
   const raw = localStorage.getItem(key);
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:269',message:'localStorage read result',data:{key:key,raw:raw,rawLength:raw?raw.length:0},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
-  // #endregion
   if (!raw) {
     state.categories = [...DEFAULT_CATEGORIES];
     return;
@@ -316,9 +298,6 @@ function loadCategoriesFromLocal() {
       set.delete('全部');
       state.categories = ['全部', ...set];
     }
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:281',message:'loadCategoriesFromLocal EXIT',data:{categories:state.categories,categoriesCount:state.categories.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
   } catch (e) {
     console.error('[TitleApp] loadCategoriesFromLocal error', e);
     state.categories = [...DEFAULT_CATEGORIES];
@@ -356,9 +335,6 @@ function renderCategoryList() {
     let count = 0;
     if (cat === '全部') {
       count = state.titles.length;
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:351',message:'Rendering category 全部',data:{count:count,stateTitlesLength:state.titles.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
     } else {
       count = state.titles.filter((t) => t.main_category === cat).length;
     }
@@ -751,16 +727,10 @@ async function loadTitlesFromCloud() {
     if (error) throw error;
     const user = getCurrentUser();
     const tag = user ? userTag(user.username) : null;
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:744',message:'loadTitlesFromCloud filtering',data:{username:user?user.username:null,userTag:tag,totalDataCount:data?data.length:0,sampleData:data&&data[0]?{scene_tags:data[0].scene_tags}:null},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
     const filtered = tag
       ? (data || []).filter((it) => Array.isArray(it.scene_tags) && it.scene_tags.includes(tag))
       : (data || []);
     state.titles = filtered;
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:749',message:'loadTitlesFromCloud filtered result',data:{filteredCount:filtered.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
     console.log('[TitleApp] 从云端加载标题条数：', state.titles.length);
     // 云端数据变化后，需要同步刷新分类数量
     renderCategoryList();
