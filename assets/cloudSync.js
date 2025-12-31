@@ -4,6 +4,32 @@
 const DEFAULT_SNAPSHOT_KEY = 'default';
 
 /**
+ * 将字符串转换为稳定的UUID（基于简单哈希）
+ * 用于为本地用户名生成一个稳定的UUID作为owner_id
+ */
+function stringToUUID(str) {
+  // 使用简单的哈希算法将字符串转换为128位（32个十六进制字符）
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // 转换为32位整数
+  }
+  
+  // 生成一个看起来像UUID的字符串（符合UUID v4格式）
+  // 基于用户名的哈希值生成稳定的UUID
+  const hashStr = Math.abs(hash).toString(16).padStart(8, '0');
+  const username_hash = str.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const part1 = hashStr.substring(0, 8);
+  const part2 = (username_hash & 0xFFFF).toString(16).padStart(4, '0');
+  const part3 = '4' + (username_hash >> 16 & 0xFFF).toString(16).padStart(3, '0'); // UUID v4
+  const part4 = ((username_hash >> 8 & 0x3F) | 0x80).toString(16).padStart(2, '0') + (username_hash & 0xFF).toString(16).padStart(2, '0');
+  const part5 = (str.length.toString(16).padStart(2, '0') + str.charCodeAt(0).toString(16).padStart(2, '0') + hashStr.substring(0, 8)).padStart(12, '0').substring(0, 12);
+  
+  return `${part1}-${part2}-${part3}-${part4}-${part5}`;
+}
+
+/**
  * 获取客户端版本号
  */
 function getClientVersion() {
@@ -438,19 +464,20 @@ async function cloudSave(key = DEFAULT_SNAPSHOT_KEY) {
     updated_at: new Date().toISOString()
   };
 
-  // 设置 owner_id：优先使用真实的user.id，否则使用username作为标识
-  // 这样可以避免数据库NOT NULL约束错误
+  // 设置 owner_id：必须是UUID格式
+  // 优先使用真实的user.id，否则基于username生成稳定的UUID
   if (user && user.id) {
     // Supabase Auth用户有真实的UUID
     upsertData.owner_id = user.id;
   } else if (sessionUser && sessionUser.username) {
-    // 本地用户使用username作为owner_id
-    upsertData.owner_id = sessionUser.username;
+    // 本地用户：将username转换为稳定的UUID
+    upsertData.owner_id = stringToUUID(sessionUser.username);
   } else if (user && user.username) {
-    upsertData.owner_id = user.username;
+    // 使用username生成UUID
+    upsertData.owner_id = stringToUUID(user.username);
   } else {
-    // 最后的fallback
-    upsertData.owner_id = 'default_user';
+    // 最后的fallback：生成默认UUID
+    upsertData.owner_id = stringToUUID('default_user');
   }
 
   // 执行 upsert
