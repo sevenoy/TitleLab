@@ -40,53 +40,11 @@ const state = {
 
 let toastTimer = null;
 
-function dispatchDataChanged(scope) {
+function dispatchDataChanged(detail = {}) {
   try {
-    window.dispatchEvent(new CustomEvent('dataChanged', { detail: { scope, ts: Date.now() } }));
-  } catch (_) {}
-}
-
-function setAutoSyncStatus(info = {}) {
-  const el = document.getElementById('autoSyncStatus');
-  if (!el) return;
-  const { status, message } = info;
-  const map = {
-    ready: '自动同步已开启',
-    listening: '实时监听中…',
-    syncing: '自动保存中…',
-    pulling: '正在从云端更新…',
-    synced: '已与云端同步',
-    idle: '云端已最新',
-    error: `同步异常：${message || '请稍后重试'}`,
-    noAuth: '请先登录以同步',
-    offline: '离线模式，待联网后同步',
-    stopped: '自动同步已暂停'
-  };
-  el.textContent = map[status] || '自动同步';
-  el.classList.remove('text-red-500', 'text-blue-500', 'text-gray-500');
-  if (status === 'error') {
-    el.classList.add('text-red-500');
-  } else if (status === 'syncing' || status === 'pulling') {
-    el.classList.add('text-blue-500');
-  } else {
-    el.classList.add('text-gray-500');
-  }
-}
-
-async function initAutoSync() {
-  if (!window.cloudSync || !window.cloudSync.startAutoSync) return;
-  try {
-    setAutoSyncStatus({ status: 'ready' });
-    const syncKey = window.cloudSync.getUserLiveKey
-      ? window.cloudSync.getUserLiveKey()
-      : window.cloudSync.DEFAULT_SNAPSHOT_KEY;
-    await window.cloudSync.startAutoSync({
-      key: syncKey,
-      onStatus: setAutoSyncStatus
-    });
-  } catch (err) {
-    console.warn('[ContentApp] 初始化自动同步失败', err);
-    setAutoSyncStatus({ status: 'error', message: err.message });
+    window.dispatchEvent(new CustomEvent('dataChanged', { detail }));
+  } catch (e) {
+    console.warn('[ContentApp] dispatchDataChanged failed', e);
   }
 }
 
@@ -288,7 +246,7 @@ function loadCategoriesFromLocal() {
 function saveCategoriesToLocal() {
   const key = getCategoryLSKey();
   localStorage.setItem(key, JSON.stringify(state.categories));
-  dispatchDataChanged('contents');
+  dispatchDataChanged({ scope: 'categories', target: 'content' });
 }
 
 function renderCategoryList() {
@@ -811,6 +769,7 @@ async function copyContent(item) {
     await supabase.from('contents').update({ usage_count: newCount }).eq('id', item.id);
     const idx = state.contents.findIndex((t) => t.id === item.id);
     if (idx !== -1) state.contents[idx] = { ...state.contents[idx], usage_count: newCount };
+    dispatchDataChanged({ scope: 'contents', target: 'content', action: 'usage_increment' });
   } catch (_) {}
 }
 
@@ -1125,7 +1084,7 @@ async function saveContentFromModal() {
     // 刷新场景下拉列表，更新数据条数
     refreshSceneSelects();
     closeContentModal();
-    dispatchDataChanged('contents');
+    dispatchDataChanged({ scope: 'contents', target: 'content' });
   } catch (e) {
     showToast('保存失败：' + (e.message || ''), 'error');
   }
@@ -1308,13 +1267,21 @@ async function runImport() {
     showToast(`批量导入成功，共 ${rows.length} 条`);
     closeImportModal();
     await loadContentsFromCloud();
-    dispatchDataChanged('contents');
+    dispatchDataChanged({ scope: 'contents', target: 'content', action: 'import' });
   } catch (e) {
     showToast('云端导入失败', 'error');
   }
 }
 
 function bindCloudButtons() {
+  const statusSelector = '#autoSyncStatus';
+  if (window.cloudSync && typeof window.cloudSync.bindCloudButtons === 'function') {
+    window.cloudSync.bindCloudButtons({ statusSelector });
+    if (typeof window.cloudSync.initAutoSync === 'function') {
+      window.cloudSync.initAutoSync({ statusSelector });
+    }
+    return;
+  }
   const btnSave = document.getElementById('btnSaveCloud');
   const btnLoad = document.getElementById('btnLoadCloud');
   if (btnSave) {
@@ -1519,7 +1486,7 @@ function openClearConfirmModal() {
       state.contents = [];
       renderContents();
       showToast('已清空全部文案');
-      dispatchDataChanged('contents');
+      dispatchDataChanged({ scope: 'contents', target: 'content', action: 'clear_all' });
     } catch (e) {
       showToast('清空失败：' + (e.message || ''), 'error');
     } finally {
@@ -1541,6 +1508,7 @@ async function deleteContent(item) {
   } catch (_) {
     showToast('删除失败（云端）', 'error');
   }
+  dispatchDataChanged({ scope: 'contents', target: 'content', action: 'delete' });
 }
 
 let pendingDeleteContent = null;
