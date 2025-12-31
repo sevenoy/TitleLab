@@ -60,9 +60,36 @@ document.addEventListener('DOMContentLoaded', () => {
   fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:59',message:'DOMContentLoaded starting (content page)',data:{username:user?user.username:null},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
   // #endregion
   applyDisplaySettings();
+  
+  // 分类 - 先从云端同步最新快照（包括分类数据），然后再从本地加载
   // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:60',message:'About to call loadCategoriesFromLocal (NOT cloudLoadLatest)',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
+  fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:62',message:'About to auto-sync categories from cloud',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'FIX',runId:'post-fix'})}).catch(()=>{});
   // #endregion
+  
+  // 自动从云端加载最新快照（静默加载，确保分类数据同步）
+  (async () => {
+    try {
+      if (window.cloudLoadLatest && typeof window.cloudLoadLatest === 'function') {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:70',message:'Calling cloudLoadLatest',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'FIX',runId:'post-fix'})}).catch(()=>{});
+        // #endregion
+        await window.cloudLoadLatest();
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:75',message:'cloudLoadLatest completed',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'FIX',runId:'post-fix'})}).catch(()=>{});
+        // #endregion
+        // 云端加载完成后，重新从localStorage读取分类（此时已是最新数据）
+        loadCategoriesFromLocal();
+        renderCategoryList();
+      }
+    } catch (e) {
+      console.warn('[ContentApp] 自动云端同步失败，使用本地数据:', e);
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:84',message:'cloudLoadLatest failed',data:{error:e.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'FIX',runId:'post-fix'})}).catch(()=>{});
+      // #endregion
+    }
+  })();
+  
+  // 先用本地数据初始化（避免页面空白），云端加载完成后会自动更新
   loadCategoriesFromLocal();
   renderCategoryList();
   bindCategoryButtons();
@@ -95,9 +122,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   const badge = document.getElementById('currentUserName');
   if (badge) {
-    // 显示完整用户名
-    badge.textContent = user.username || '';
+    // 显示用户名首字母，节省空间
+    badge.textContent = getUserInitial(user.username);
     badge.className = 'user-badge text-xs';
+    badge.title = user.username || ''; // 完整用户名显示在tooltip中
   }
   const btnLogout = document.getElementById('btnLogout');
   const btnLoginHeader = document.getElementById('btnLoginHeader');

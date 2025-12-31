@@ -20,8 +20,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   const badge = document.getElementById('currentUserName');
   if (badge) {
-    // 显示完整用户名
-    badge.textContent = user.username || '';
+    // 显示用户名首字母，节省空间
+    badge.textContent = getUserInitial(user.username);
+    badge.title = user.username || ''; // 完整用户名显示在tooltip中
     badge.className = 'user-badge text-xs';
   }
   const btnLogout = document.getElementById('btnLogout');

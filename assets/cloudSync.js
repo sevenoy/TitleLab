@@ -687,5 +687,7 @@ if (typeof window !== 'undefined') {
     formatYYYYMMDDLocal,
     getClientVersion
   };
+  // 同时将 cloudLoadLatest 导出到全局，方便页面直接调用
+  window.cloudLoadLatest = cloudLoadLatest;
 }
 
