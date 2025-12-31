@@ -51,6 +51,17 @@ function createAutoSyncStatusSetter(statusEl, statusSelector) {
   };
 }
 
+/**
+ * 确保设备ID存在，如果不存在则生成一个
+ */
+function ensureDeviceId() {
+  const cached = localStorage.getItem(DEVICE_ID_STORAGE_KEY);
+  if (cached) return cached;
+  const newId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : `device-${Date.now()}`;
+  localStorage.setItem(DEVICE_ID_STORAGE_KEY, newId);
+  return newId;
+}
+
 function getDeviceId() {
   try {
     let deviceId = localStorage.getItem(DEVICE_ID_STORAGE_KEY);
