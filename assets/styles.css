@@ -1204,9 +1204,8 @@ textarea.field-input {
   .topbar {
     /* 使用 sticky 定位，滚动时固定在顶部 */
     position: sticky !important;
-    top: 0 !important;
-    /* 添加顶部内边距以避开状态栏 */
-    padding-top: calc(8px + env(safe-area-inset-top)) !important;
+    /* top 使用安全区域距离，让 topbar 位于状态栏下方，但不改变自身高度 */
+    top: env(safe-area-inset-top, 0px) !important;
     /* 确保在状态栏之上 */
     z-index: 100 !important;
     /* 使用半透明背景增强可读性 */
@@ -1218,17 +1217,6 @@ textarea.field-input {
   .wrap {
     /* 移除之前的顶部 padding，因为 topbar 现在是 sticky 的 */
     padding-top: 16px !important;
-  }
-  
-  /* 如果是 iPhone X 及以上（有刘海屏），增加额外的安全距离 */
-  @media only screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3),
-         only screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2),
-         only screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3),
-         only screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3),
-         only screen and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) {
-    .topbar {
-      padding-top: calc(8px + max(20px, env(safe-area-inset-top))) !important;
-    }
   }
 }
 
