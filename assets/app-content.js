@@ -1273,7 +1273,7 @@ async function runImport() {
 }
 
 function bindCloudButtons() {
-  const statusSelector = '#cloudSyncStatus';
+  const statusSelector = '#autoSyncStatus';
   if (window.cloudSync && typeof window.cloudSync.bindCloudButtons === 'function') {
     window.cloudSync.bindCloudButtons({ statusSelector });
     if (typeof window.cloudSync.initAutoSync === 'function') {
