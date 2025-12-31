@@ -112,11 +112,17 @@ async function aggregateLocalData() {
   try {
     const titleCatsRaw = localStorage.getItem(titleCatsKey);
     titleCats = titleCatsRaw ? JSON.parse(titleCatsRaw) : [];
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:114',message:'aggregateLocalData titleCats',data:{titleCatsKey:titleCatsKey,titleCats:titleCats,titleCatsCount:titleCats.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
   } catch (_) {}
 
   try {
     const contentCatsRaw = localStorage.getItem(contentCatsKey);
     contentCats = contentCatsRaw ? JSON.parse(contentCatsRaw) : [];
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:122',message:'aggregateLocalData contentCats',data:{contentCatsKey:contentCatsKey,contentCats:contentCats,contentCatsCount:contentCats.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
   } catch (_) {}
 
   try {
@@ -610,6 +616,10 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
   const titleCatsKey = `title_categories_v1_${username}`;
   const contentCatsKey = `content_categories_v1_${username}`;
   const viewSettingsKey = `display_settings_v1_${username}`;
+
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:612',message:'cloudLoadLatest restoring categories',data:{hasTitleCats:!!(payload.cats&&payload.cats.title),hasContentCats:!!(payload.cats&&payload.cats.content),titleCats:payload.cats&&payload.cats.title?payload.cats.title:[],contentCats:payload.cats&&payload.cats.content?payload.cats.content:[]},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
+  // #endregion
 
   if (payload.cats && payload.cats.title) {
     localStorage.setItem(titleCatsKey, JSON.stringify(payload.cats.title));

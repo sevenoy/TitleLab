@@ -56,7 +56,13 @@ document.addEventListener('DOMContentLoaded', () => {
     window.location.href = 'login.html'; 
     return; 
   }
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:59',message:'DOMContentLoaded starting (content page)',data:{username:user?user.username:null},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
   applyDisplaySettings();
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:60',message:'About to call loadCategoriesFromLocal (NOT cloudLoadLatest)',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
   loadCategoriesFromLocal();
   renderCategoryList();
   bindCategoryButtons();
@@ -74,6 +80,9 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // 监听 localStorage 变化，当场景设置改变时自动更新
   window.addEventListener('storage', (e) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:82',message:'storage event fired',data:{key:e.key,newValue:e.newValue?e.newValue.substring(0,100):null},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
     const settingsKey = getDisplaySettingsLSKey();
     if (e.key === settingsKey) {
       refreshSceneSelects();
@@ -198,8 +207,14 @@ function applyDisplaySettings() {
 }
 
 function loadCategoriesFromLocal() {
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:200',message:'loadCategoriesFromLocal ENTRY (content)',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
   const key = getCategoryLSKey();
   const raw = localStorage.getItem(key);
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:203',message:'localStorage read result (content)',data:{key:key,raw:raw,rawLength:raw?raw.length:0},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
+  // #endregion
   if (!raw) { state.categories = [...DEFAULT_CATEGORIES]; return; }
   try {
     const arr = JSON.parse(raw);
@@ -210,6 +225,9 @@ function loadCategoriesFromLocal() {
       set.delete('全部');
       state.categories = ['全部', ...set];
     }
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:213',message:'loadCategoriesFromLocal EXIT (content)',data:{categories:state.categories,categoriesCount:state.categories.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
   } catch (_) {
     state.categories = [...DEFAULT_CATEGORIES];
   }
