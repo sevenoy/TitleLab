@@ -403,6 +403,8 @@ function bindCategoryOps() {
 function bindDangerOps() {
   const btnCT = document.getElementById('btnClearTitlesAdmin');
   const btnCC = document.getElementById('btnClearContentsAdmin');
+  const btnClearAll = document.getElementById('btnClearAllData');
+  
   if (btnCT) btnCT.addEventListener('click', async () => {
     if (!supabase) { showToast('未配置 Supabase', 'error'); return; }
     openDangerConfirm('清空标题表将不可恢复，请输入：清空', async () => {
@@ -414,6 +416,7 @@ function bindDangerOps() {
       } catch (_) { showToast('清空失败', 'error'); }
     });
   });
+  
   if (btnCC) btnCC.addEventListener('click', async () => {
     if (!supabase) { showToast('未配置 Supabase', 'error'); return; }
     openDangerConfirm('清空文案表将不可恢复，请输入：清空', async () => {
@@ -425,9 +428,44 @@ function bindDangerOps() {
       } catch (_) { showToast('清空失败', 'error'); }
     });
   });
+  
+  if (btnClearAll) btnClearAll.addEventListener('click', async () => {
+    if (!supabase) { showToast('未配置 Supabase', 'error'); return; }
+    openDangerConfirm('⚠️ 警告：此操作将清除所有数据（标题、文案、分类、账号分类、设置、星标），不可恢复！请输入：清空所有数据', async () => {
+      try {
+        // 清除Supabase中的数据
+        const titleResult = await supabase.from('titles').delete().not('id', 'is', null);
+        if (titleResult.error) throw titleResult.error;
+        
+        const contentResult = await supabase.from('contents').delete().not('id', 'is', null);
+        if (contentResult.error) throw contentResult.error;
+        
+        // 清除localStorage中的数据
+        const user = getCurrentUser();
+        if (user && user.username) {
+          const username = user.username;
+          // 清除标题分类
+          try { localStorage.removeItem(`title_categories_v1_${username}`); } catch (_) {}
+          // 清除文案分类
+          try { localStorage.removeItem(`content_categories_v1_${username}`); } catch (_) {}
+          // 清除显示设置（包括账号分类）
+          try { localStorage.removeItem(`display_settings_v1_${username}`); } catch (_) {}
+        }
+        
+        showToast('已清除所有数据，页面将刷新...');
+        // 3秒后刷新页面
+        setTimeout(() => {
+          window.location.reload();
+        }, 3000);
+      } catch (e) {
+        console.error('[Admin] 清除所有数据失败', e);
+        showToast('清除失败：' + (e.message || ''), 'error');
+      }
+    }, '清空所有数据');
+  });
 }
 
-function openDangerConfirm(text, onOk) {
+function openDangerConfirm(text, onOk, requiredText = '清空') {
   const backdrop = document.getElementById('dangerConfirmBackdrop');
   const modal = document.getElementById('dangerConfirmModal');
   const elText = document.getElementById('dangerConfirmText');
@@ -438,13 +476,17 @@ function openDangerConfirm(text, onOk) {
   if (!backdrop || !modal || !elText || !input || !btnClose || !btnCancel || !btnOk) return;
   elText.textContent = text;
   input.value = '';
+  input.placeholder = `输入：${requiredText}`;
   backdrop.classList.remove('hidden');
   modal.classList.remove('hidden');
   const close = () => { backdrop.classList.add('hidden'); modal.classList.add('hidden'); };
   btnClose.onclick = close;
   btnCancel.onclick = close;
   btnOk.onclick = async () => {
-    if ((input.value || '').trim() !== '清空') return;
+    if ((input.value || '').trim() !== requiredText) {
+      showToast(`请正确输入"${requiredText}"`, 'error');
+      return;
+    }
     close();
     await onOk();
   };
