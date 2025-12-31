@@ -1,4 +1,4 @@
-const CACHE_NAME = 'titlelab-pwa-v5';
+const CACHE_NAME = 'titlelab-pwa-v6-20250101';
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',
@@ -10,6 +10,10 @@ const OFFLINE_ASSETS = [
   '/assets/styles.css',
   '/assets/app-title.js',
   '/assets/app-content.js',
+  '/assets/admin.js',
+  '/assets/settings.js',
+  '/assets/cloudSync.js',
+  '/assets/pwa.js',
   '/assets/supabase.js',
   '/assets/classifier.js',
   '/manifest.webmanifest',
