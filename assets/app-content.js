@@ -115,6 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnLogout) btnLogout.classList.remove('hidden');
   if (btnLoginHeader) btnLoginHeader.classList.add('hidden');
   loadContentsFromCloud();
+  initAutoSync();
 });
 
 let pendingSnapshotKeyContent = null;
@@ -1283,8 +1284,47 @@ function bindCloudButtons() {
   }
   const btnSave = document.getElementById('btnSaveCloud');
   const btnLoad = document.getElementById('btnLoadCloud');
-  if (btnSave) btnSave.addEventListener('click', () => { hideCloudHistoryPanel(); openCloudLabelModal(); });
-  if (btnLoad) btnLoad.addEventListener('click', toggleCloudHistoryPanel);
+  if (btnSave) {
+    btnSave.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      try {
+        setAutoSyncStatus({ status: 'syncing' });
+        const syncKey = window.cloudSync.getUserLiveKey
+          ? window.cloudSync.getUserLiveKey()
+          : window.cloudSync.DEFAULT_SNAPSHOT_KEY;
+        const result = await window.cloudSync.cloudSave(syncKey);
+        if (result && result.saved) {
+          showToast(result.message || '已同步到云端');
+        } else if (result && result.skipped) {
+          showToast(result.message || '云端已是最新', 'info');
+        }
+        setAutoSyncStatus({ status: 'synced' });
+      } catch (err) {
+        console.error('[ContentApp] 立即同步失败', err);
+        setAutoSyncStatus({ status: 'error', message: err.message });
+        showToast('同步失败，请稍后再试', 'error');
+      }
+    });
+  }
+  if (btnLoad) {
+    btnLoad.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      try {
+        setAutoSyncStatus({ status: 'pulling' });
+        const syncKey = window.cloudSync.getUserLiveKey
+          ? window.cloudSync.getUserLiveKey()
+          : window.cloudSync.DEFAULT_SNAPSHOT_KEY;
+        await window.cloudSync.cloudLoadLatest(syncKey);
+        await loadContentsFromCloud();
+        showToast('已从云端刷新');
+        setAutoSyncStatus({ status: 'synced' });
+      } catch (err) {
+        console.error('[ContentApp] 立即拉取失败', err);
+        setAutoSyncStatus({ status: 'error', message: err.message });
+        showToast('拉取失败，请稍后重试', 'error');
+      }
+    });
+  }
 }
 
 function bindGlobalNavButtons() {
@@ -1460,6 +1500,7 @@ async function deleteContent(item) {
   renderContents();
   // 刷新场景下拉列表，更新数据条数
   refreshSceneSelects();
+  dispatchDataChanged('contents');
   if (!supabase || !item.id) return;
   try {
     await supabase.from('contents').delete().eq('id', item.id);

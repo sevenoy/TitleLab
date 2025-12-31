@@ -18,7 +18,7 @@
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.3/dist/umd/supabase.js"></script>
     <script src="assets/supabase.js"></script>
-    <script src="assets/cloudSync.js?v=2"></script>
+    <script src="assets/cloudSync.js?v=3"></script>
     <script src="assets/classifier.js"></script>
     <script src="assets/app-content.js"></script>
     <script src="assets/pwa.js"></script>
@@ -81,8 +81,9 @@
               <button id="btnBatchImport" class="function-btn ghost text-xs">批量导入</button>
               <button id="btnClearAll" class="function-btn ghost text-xs">清空全部</button>
               <button id="btnSettings" class="function-btn ghost text-xs">设置页面</button>
-              <button id="btnSaveCloud" class="function-btn ghost">保存云端</button>
-              <button id="btnLoadCloud" class="function-btn ghost">加载云端</button>
+              <button id="btnSaveCloud" class="function-btn ghost">立即同步</button>
+              <button id="btnLoadCloud" class="function-btn ghost">立即拉取</button>
+              <span id="autoSyncStatus" class="text-xs text-gray-500">自动同步已开启</span>
               <button id="btnManagePage" class="function-btn ghost" onclick="window.location.href='admin-center.html'">管理页面</button>
             </div>
             <div id="autoSyncStatus" class="text-xs text-gray-500 mt-1">自动同步准备中…</div>
