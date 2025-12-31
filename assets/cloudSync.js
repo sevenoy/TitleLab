@@ -2,8 +2,8 @@
 // 云端同步统一协议（对齐 XHSPHONE 白皮书思路）
 // Version: 2.0.0 - Batch delete fix
 
-const CLOUDSYNC_VERSION = '2.5.1';
-console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (修复设置页面Supabase SDK加载)`);
+const CLOUDSYNC_VERSION = '2.5.2';
+console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (添加详细的push追踪日志)`);
 
 const DEFAULT_SNAPSHOT_KEY = 'default';
 const DEVICE_ID_STORAGE_KEY = 'cloudsync_device_id';
@@ -1483,15 +1483,21 @@ async function startAutoSync(options = {}) {
   }
 
   async function push(reason = 'interval') {
+    console.log('[cloudSync] push 被触发，原因:', reason);
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
       notify('offline', { reason });
       return;
     }
-    if (session.running) return;
+    if (session.running) {
+      console.log('[cloudSync] push 跳过：已有同步任务在运行');
+      return;
+    }
     session.running = true;
     notify('syncing', { reason });
     try {
+      console.log('[cloudSync] 开始执行 cloudSave...');
       const result = await cloudSave(key);
+      console.log('[cloudSync] cloudSave 结果:', result);
       if (result && result.saved) {
         notify('synced', { message: result.message });
       } else if (result && result.skipped) {
@@ -1504,6 +1510,7 @@ async function startAutoSync(options = {}) {
       notify('error', { message: err.message || '自动保存失败' });
     } finally {
       session.running = false;
+      console.log('[cloudSync] push 完成');
     }
   }
 
@@ -1523,8 +1530,14 @@ async function startAutoSync(options = {}) {
   }
 
   // 本地变更监听（去抖自动推送）
-  const debouncedPush = debounce(() => push('local_change'), 800);
-  window.addEventListener('dataChanged', debouncedPush);
+  const debouncedPush = debounce(() => {
+    console.log('[cloudSync] dataChanged 去抖完成，准备 push...');
+    push('local_change');
+  }, 800);
+  window.addEventListener('dataChanged', (e) => {
+    console.log('[cloudSync] 监听到 dataChanged 事件:', e.detail);
+    debouncedPush();
+  });
   session.cleanupFns.push(() => window.removeEventListener('dataChanged', debouncedPush));
 
   // 立即拉取一次，确保最新

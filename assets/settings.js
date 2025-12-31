@@ -249,8 +249,20 @@ function bindSceneAdder() {
     settingsState.scenes.push(value);
     input.value = '';
     console.log('[Settings] 保存账号设置前:', settingsState.scenes);
+    
+    // 读取当前 localStorage 中的值
+    const key = getDisplaySettingsLSKey();
+    const currentLS = localStorage.getItem(key);
+    console.log('[Settings] localStorage 保存前:', currentLS);
+    
     saveDisplaySettings({ scenes: [...settingsState.scenes] });
     console.log('[Settings] 保存账号设置后，触发渲染');
+    
+    // 立即读取 localStorage 验证保存成功
+    const afterLS = localStorage.getItem(key);
+    console.log('[Settings] localStorage 保存后:', afterLS);
+    console.log('[Settings] 已触发 dataChanged 事件，等待云同步（约1秒）...');
+    
     renderSceneList();
   });
 }
