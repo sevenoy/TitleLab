@@ -987,6 +987,7 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
   // 触发页面刷新（通过重新加载页面数据）
   try {
     // 触发自定义事件，让页面自己刷新数据
+    console.log('[cloudSync] 触发 cloudSyncLoaded 事件');
     window.dispatchEvent(new CustomEvent('cloudSyncLoaded'));
     
     // 如果在 title 页面，尝试直接调用 loadTitlesFromCloud

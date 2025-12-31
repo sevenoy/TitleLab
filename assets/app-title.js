@@ -261,10 +261,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 云端加载完成时刷新分类与场景
   window.addEventListener('cloudSyncLoaded', () => {
+    console.log('[TitleApp] cloudSyncLoaded 事件触发，开始刷新...');
     loadCategoriesFromLocal();
     renderCategoryList();
     applyDisplaySettings();
     refreshSceneSelects();
+    console.log('[TitleApp] cloudSyncLoaded 刷新完成');
   });
 
   // 初始从云端加载一遍 titles
