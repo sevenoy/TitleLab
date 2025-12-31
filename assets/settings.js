@@ -365,6 +365,14 @@ function initSettingsPage() {
   if (btnLoginHeader) btnLoginHeader.onclick = () => { window.location.href = 'login.html'; };
   if (btnLogout) btnLogout.classList.remove('hidden');
   if (btnLoginHeader) btnLoginHeader.classList.add('hidden');
+  
+  // 初始化云同步，确保设置变更能够保存到云端
+  if (window.cloudSyncModule && window.cloudSyncModule.initAutoSync) {
+    console.log('[Settings] 初始化云同步...');
+    window.cloudSyncModule.initAutoSync();
+  } else {
+    console.warn('[Settings] cloudSyncModule 未加载，无法初始化云同步');
+  }
 }
 
 document.addEventListener('DOMContentLoaded', initSettingsPage);
