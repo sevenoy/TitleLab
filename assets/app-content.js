@@ -61,35 +61,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // #endregion
   applyDisplaySettings();
   
-  // 分类 - 先从云端同步最新快照（包括分类数据），然后再从本地加载
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:62',message:'About to auto-sync categories from cloud',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'FIX',runId:'post-fix'})}).catch(()=>{});
-  // #endregion
-  
-  // 自动从云端加载最新快照（静默加载，确保分类数据同步）
-  (async () => {
-    try {
-      if (window.cloudLoadLatest && typeof window.cloudLoadLatest === 'function') {
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:70',message:'Calling cloudLoadLatest',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'FIX',runId:'post-fix'})}).catch(()=>{});
-        // #endregion
-        await window.cloudLoadLatest();
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:75',message:'cloudLoadLatest completed',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'FIX',runId:'post-fix'})}).catch(()=>{});
-        // #endregion
-        // 云端加载完成后，重新从localStorage读取分类（此时已是最新数据）
-        loadCategoriesFromLocal();
-        renderCategoryList();
-      }
-    } catch (e) {
-      console.warn('[ContentApp] 自动云端同步失败，使用本地数据:', e);
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:84',message:'cloudLoadLatest failed',data:{error:e.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'FIX',runId:'post-fix'})}).catch(()=>{});
-      // #endregion
-    }
-  })();
-  
-  // 先用本地数据初始化（避免页面空白），云端加载完成后会自动更新
+  // 分类 - 从本地加载（暂时禁用自动云端同步以避免外键约束问题）
+  // 用户可以通过手动点击"加载云端"按钮来同步数据
   loadCategoriesFromLocal();
   renderCategoryList();
   bindCategoryButtons();
