@@ -84,13 +84,115 @@ function getUserLiveKey() {
   return `user_${username}_live`;
 }
 
-async function push() {
+function isOffline() {
+  return typeof navigator !== 'undefined' && 'onLine' in navigator && navigator.onLine === false;
+}
+
+function parseTimestampToMs(value) {
+  if (!value) return null;
+  const ms = Date.parse(value);
+  return Number.isNaN(ms) ? null : ms;
+}
+
+function getLastSyncTime(key) {
+  const keySpecific = localStorage.getItem(`last_sync_time_${key}`);
+  if (keySpecific) return keySpecific;
+  const fallback = localStorage.getItem('last_sync_time');
+  return fallback || null;
+}
+
+function buildBackupLabel() {
+  const now = new Date();
+  const datePart = formatYYYYMMDDLocal(now);
+  const timePart = now.toTimeString().split(' ')[0] || now.toLocaleTimeString();
+  return `自动备份 ${datePart} ${timePart}`;
+}
+
+async function createBackupSnapshot(label, key) {
+  const client = window.supabaseApi && window.supabaseApi.getClient
+    ? window.supabaseApi.getClient()
+    : null;
+  if (!client) {
+    throw new Error('Supabase 客户端未初始化');
+  }
+  const user = window.supabaseApi && window.supabaseApi.getAuthedUser
+    ? await window.supabaseApi.getAuthedUser()
+    : null;
+  if (!user) {
+    throw new Error('未登录，无法创建备份');
+  }
+
+  const localData = await aggregateLocalData();
+  const username = user.username || (user.email ? user.email.split('@')[0] : 'default');
+  const snapshotKeyPrefix = username ? `user_${username}_` : '';
+  const backupKey = `${snapshotKeyPrefix}manual_backup_${Date.now()}`;
+  const payload = {
+    ver: 2,
+    snapshot_label: label,
+    updated_at: Date.now(),
+    titles: localData.titles || [],
+    contents: localData.contents || [],
+    categories: localData.cats || { title: [], content: [] },
+    viewSettings: localData.view || {}
+  };
+
+  const { error } = await client
+    .from('snapshots')
+    .upsert([{ key: backupKey, payload, updated_at: new Date().toISOString() }], { onConflict: 'key' });
+  if (error) {
+    throw error;
+  }
+
+  return { key: backupKey, label };
+}
+
+async function backupIfCloudNewer(key, cloudUpdatedAt) {
+  const lastSync = getLastSyncTime(key);
+  const cloudMs = parseTimestampToMs(cloudUpdatedAt);
+  const localMs = parseTimestampToMs(lastSync);
+  if (cloudMs === null || localMs === null || cloudMs <= localMs) {
+    return { created: false, reason: 'not_newer' };
+  }
+
+  const label = buildBackupLabel();
+  try {
+    const result = await createBackupSnapshot(label, key);
+    return { created: true, label: result.label, key: result.key };
+  } catch (error) {
+    console.warn('[cloudSync] 创建备份快照失败', error);
+    return { created: false, error };
+  }
+}
+
+async function push(options = {}) {
+  const { onOffline } = options || {};
+  if (isOffline()) {
+    if (typeof onOffline === 'function') {
+      try { onOffline(); } catch (_) {}
+    }
+    return {
+      skipped: true,
+      reason: 'offline',
+      message: '当前离线，已跳过推送'
+    };
+  }
   const key = getUserLiveKey();
   return cloudSave(key);
 }
 
-async function pull(source = 'manual') {
+async function pull(source = 'manual', options = {}) {
+  const { onOffline } = options || {};
   const key = getUserLiveKey();
+  if (isOffline()) {
+    if (typeof onOffline === 'function') {
+      try { onOffline(); } catch (_) {}
+    }
+    return {
+      skipped: true,
+      reason: 'offline',
+      message: '当前离线，已跳过拉取'
+    };
+  }
   console.log(`[cloudSync] pull triggered by ${source}, key=${key}`);
   return cloudLoadLatest(key);
 }
@@ -626,6 +728,7 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
   }
 
   const client = window.supabaseApi ? window.supabaseApi.getClient() : null;
+  const lastSyncTimeKey = `last_sync_time_${key}`;
   // #region agent log
   fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:502',message:'cloudLoadLatest - got client',data:{hasClient:!!client,hasSupabaseApi:!!window.supabaseApi},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'FIX',runId:'post-fix'})}).catch(()=>{});
   // #endregion
@@ -696,6 +799,7 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
   }
 
   const payload = data.payload;
+  const backupInfo = await backupIfCloudNewer(key, data.updated_at);
 
   // 获取用户标签
   const username = sessionUser ? sessionUser.username : 'default';
@@ -795,9 +899,10 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
   }
 
   // 更新本地同步时间
-  const lastSyncTime = new Date().toISOString();
+  const lastSyncTime = data.updated_at || new Date().toISOString();
   const lastSnapshotName = payload.snapshot_label || key;
   localStorage.setItem('last_sync_time', lastSyncTime);
+  localStorage.setItem(lastSyncTimeKey, lastSyncTime);
   localStorage.setItem('last_snapshot_name', lastSnapshotName);
 
   // 触发页面刷新（通过重新加载页面数据）
@@ -827,10 +932,17 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
     console.warn('[cloudSync] 刷新页面数据时出错:', e);
   }
 
+  const messageParts = [];
+  if (backupInfo && backupInfo.created) {
+    messageParts.push(`检测到云端版本较新，已创建备份快照：${backupInfo.label}`);
+  }
+  messageParts.push(`已加载快照：${lastSnapshotName}`);
+
   return {
     loaded: true,
-    message: `已加载快照：${lastSnapshotName}`,
-    snapshot_label: lastSnapshotName
+    message: messageParts.join('；'),
+    snapshot_label: lastSnapshotName,
+    backup: backupInfo
   };
 }
 
@@ -845,6 +957,11 @@ function startAutoSync(onStatusChange, options = {}) {
   const userTag = username ? `user:${username}` : null;
   const deviceId = getDeviceId();
   const cleanupFns = [];
+  const notifyOffline = (action) => {
+    if (typeof onStatusChange === 'function') {
+      onStatusChange({ status: 'error', error: new Error(`离线，已跳过${action}`), reason: 'offline' });
+    }
+  };
 
   if (!user) {
     if (typeof onStatusChange === 'function') {
@@ -855,11 +972,19 @@ function startAutoSync(onStatusChange, options = {}) {
 
   const debounceMs = options.debounceMs || 1200;
   const handler = debounce(async () => {
+    const offlineHandler = () => notifyOffline('自动同步');
+    if (isOffline()) {
+      offlineHandler();
+      return;
+    }
     if (typeof onStatusChange === 'function') {
       onStatusChange({ status: 'syncing' });
     }
     try {
-      const result = await push();
+      const result = await push({ onOffline: offlineHandler });
+      if (result && result.skipped && result.reason === 'offline') {
+        return;
+      }
       if (typeof onStatusChange === 'function') {
         onStatusChange({ status: 'idle', result });
       }
@@ -890,11 +1015,19 @@ function startAutoSync(onStatusChange, options = {}) {
       return;
     }
 
+    const offlineHandler = () => notifyOffline('实时同步');
+    if (isOffline()) {
+      offlineHandler();
+      return;
+    }
     if (typeof onStatusChange === 'function') {
       onStatusChange({ status: 'syncing' });
     }
     try {
-      await pull('realtime');
+      const result = await pull('realtime', { onOffline: offlineHandler });
+      if (result && result.skipped && result.reason === 'offline') {
+        return;
+      }
       if (typeof onStatusChange === 'function') {
         onStatusChange({ status: 'idle' });
       }
