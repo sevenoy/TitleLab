@@ -518,17 +518,38 @@ function bindDangerOps() {
         if (contentResult.error) throw contentResult.error;
         console.log('[Admin] Contents cleared');
         
-        // 清除localStorage中的数据
+        // 清除localStorage中的数据，但保留"全部"分类
         const user = getCurrentUser();
         if (user && user.username) {
           const username = user.username;
-          // 清除标题分类
-          try { localStorage.removeItem(`title_categories_v1_${username}`); } catch (_) {}
-          // 清除文案分类
-          try { localStorage.removeItem(`content_categories_v1_${username}`); } catch (_) {}
-          // 清除显示设置（包括账号分类）
-          try { localStorage.removeItem(`display_settings_v1_${username}`); } catch (_) {}
-          console.log('[Admin] LocalStorage cleared');
+          
+          // 标题分类：只保留"全部"
+          try {
+            localStorage.setItem(`title_categories_v1_${username}`, JSON.stringify(['全部']));
+          } catch (_) {}
+          
+          // 文案分类：只保留"全部"
+          try {
+            localStorage.setItem(`content_categories_v1_${username}`, JSON.stringify(['全部']));
+          } catch (_) {}
+          
+          // 显示设置：清空账号分类（scenes），保留默认颜色设置
+          try {
+            const defaultSettings = {
+              brandColor: '#1990ff',
+              brandHover: '#1477dd',
+              ghostColor: '#eef2ff',
+              ghostHover: '#e2e8ff',
+              stripeColor: '#E2F0FF',
+              hoverColor: '#eef2ff',
+              scenes: [], // 清空账号分类
+              titleText: '标题与文案管理系统',
+              titleColor: '#1990ff'
+            };
+            localStorage.setItem(`display_settings_v1_${username}`, JSON.stringify(defaultSettings));
+          } catch (_) {}
+          
+          console.log('[Admin] LocalStorage cleared - only "全部" category remains');
         }
         
         showToast('已清除所有数据，页面将刷新...');
