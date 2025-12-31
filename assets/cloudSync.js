@@ -2,8 +2,8 @@
 // 云端同步统一协议（对齐 XHSPHONE 白皮书思路）
 // Version: 2.0.0 - Batch delete fix
 
-const CLOUDSYNC_VERSION = '2.1.1';
-console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (修复ensureDeviceId)`);
+const CLOUDSYNC_VERSION = '2.2.0';
+console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (修复用户外键约束)`);
 
 const DEFAULT_SNAPSHOT_KEY = 'default';
 const DEVICE_ID_STORAGE_KEY = 'cloudsync_device_id';
@@ -676,22 +676,60 @@ async function cloudSave(key = DEFAULT_SNAPSHOT_KEY) {
   // #region agent log
   console.log('[DEBUG] User objects before owner_id generation:', {user, sessionUser});
   // #endregion
+  
+  let generatedUsername = '';
   if (user && user.id) {
     // Supabase Auth用户有真实的UUID
     upsertData.owner_id = user.id;
+    generatedUsername = user.username || user.email || 'unknown';
   } else if (sessionUser && sessionUser.username) {
     // 本地用户：将username转换为稳定的UUID
     upsertData.owner_id = stringToUUID(sessionUser.username);
+    generatedUsername = sessionUser.username;
   } else if (user && user.username) {
     // 使用username生成UUID
     upsertData.owner_id = stringToUUID(user.username);
+    generatedUsername = user.username;
   } else {
     // 最后的fallback：生成默认UUID
     upsertData.owner_id = stringToUUID('default_user');
+    generatedUsername = 'default_user';
   }
   // #region agent log
-  console.log('[DEBUG] Generated owner_id:', upsertData.owner_id, 'for username:', sessionUser?.username || user?.username || 'unknown');
+  console.log('[DEBUG] Generated owner_id:', upsertData.owner_id, 'for username:', generatedUsername);
   // #endregion
+
+  // 【重要】确保用户记录存在于 users 表中（避免外键约束错误）
+  try {
+    const { data: existingUser, error: checkError } = await client
+      .from('users')
+      .select('id')
+      .eq('id', upsertData.owner_id)
+      .maybeSingle();
+    
+    if (!existingUser && !checkError) {
+      // 用户不存在，创建用户记录
+      console.log('[cloudSave] User not found in users table, creating...', upsertData.owner_id);
+      const { error: insertError } = await client
+        .from('users')
+        .insert([{
+          id: upsertData.owner_id,
+          username: generatedUsername,
+          email: user?.email || null,
+          created_at: new Date().toISOString()
+        }]);
+      
+      if (insertError) {
+        console.warn('[cloudSave] Failed to create user record:', insertError);
+        // 如果插入失败（可能是并发创建），继续尝试 upsert snapshot
+      } else {
+        console.log('[cloudSave] User record created successfully');
+      }
+    }
+  } catch (userCheckError) {
+    console.warn('[cloudSave] Error checking/creating user:', userCheckError);
+    // 继续尝试 upsert，让数据库处理错误
+  }
 
   // 执行 upsert
   console.log('[cloudSave] UPSERT executing...');
