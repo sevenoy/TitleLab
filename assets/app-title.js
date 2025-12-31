@@ -52,6 +52,14 @@ const state = {
 
 let toastTimer = null;
 
+function dispatchDataChanged(detail = {}) {
+  try {
+    window.dispatchEvent(new CustomEvent('dataChanged', { detail }));
+  } catch (e) {
+    console.warn('[TitleApp] dispatchDataChanged failed', e);
+  }
+}
+
 function getDisplaySettings() {
   const key = getDisplaySettingsLSKey();
   const raw = localStorage.getItem(key);
@@ -305,6 +313,7 @@ function loadCategoriesFromLocal() {
 function saveCategoriesToLocal() {
   const key = getCategoryLSKey();
   localStorage.setItem(key, JSON.stringify(state.categories));
+  dispatchDataChanged({ scope: 'categories', target: 'title' });
 }
 
 function renderCategoryList() {
@@ -951,6 +960,7 @@ async function copyTitle(item) {
         usage_count: newCount
       };
     }
+    dispatchDataChanged({ scope: 'titles', target: 'title', action: 'usage_increment' });
   } catch (e) {
     console.error('[TitleApp] 更新 usage_count 失败', e);
   }
@@ -971,6 +981,7 @@ async function deleteTitle(item) {
     console.error('[TitleApp] 删除失败', e);
     showToast('删除失败（云端）', 'error');
   }
+  dispatchDataChanged({ scope: 'titles', target: 'title', action: 'delete' });
 }
 
 let pendingDeleteTitle = null;
@@ -1396,6 +1407,7 @@ async function saveTitleFromModal() {
     // 刷新场景下拉列表，更新数据条数
     refreshSceneSelects();
     closeTitleModal();
+    dispatchDataChanged({ scope: 'titles', target: 'title' });
   } catch (e) {
     console.error('[TitleApp] 保存标题失败', e);
     showToast('保存失败：' + (e.message || ''), 'error');
@@ -1502,6 +1514,7 @@ async function runImport() {
     showToast(`批量导入成功，共 ${rows.length} 条`);
     closeImportModal();
     await loadTitlesFromCloud();
+    dispatchDataChanged({ scope: 'titles', target: 'title', action: 'import' });
     // loadTitlesFromCloud 内部已经会调用 refreshSceneSelects，这里不需要重复调用
   } catch (e) {
     console.error('[TitleApp] 批量导入云端失败', e);
@@ -1845,6 +1858,7 @@ function openClearConfirmModal() {
       state.titles = [];
       renderTitles();
       showToast('已清空全部标题');
+      dispatchDataChanged({ scope: 'titles', target: 'title', action: 'clear_all' });
     } catch (e) {
       showToast('清空失败： ' + (e.message || ''), 'error');
     } finally {

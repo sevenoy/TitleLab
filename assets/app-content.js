@@ -40,6 +40,14 @@ const state = {
 
 let toastTimer = null;
 
+function dispatchDataChanged(detail = {}) {
+  try {
+    window.dispatchEvent(new CustomEvent('dataChanged', { detail }));
+  } catch (e) {
+    console.warn('[ContentApp] dispatchDataChanged failed', e);
+  }
+}
+
 // 允许登录的用户列表（与 login.html 保持一致）
 const ALLOWED_USERS = ['sevenoy', 'olina'];
 
@@ -237,6 +245,7 @@ function loadCategoriesFromLocal() {
 function saveCategoriesToLocal() {
   const key = getCategoryLSKey();
   localStorage.setItem(key, JSON.stringify(state.categories));
+  dispatchDataChanged({ scope: 'categories', target: 'content' });
 }
 
 function renderCategoryList() {
@@ -759,6 +768,7 @@ async function copyContent(item) {
     await supabase.from('contents').update({ usage_count: newCount }).eq('id', item.id);
     const idx = state.contents.findIndex((t) => t.id === item.id);
     if (idx !== -1) state.contents[idx] = { ...state.contents[idx], usage_count: newCount };
+    dispatchDataChanged({ scope: 'contents', target: 'content', action: 'usage_increment' });
   } catch (_) {}
 }
 
@@ -1073,6 +1083,7 @@ async function saveContentFromModal() {
     // 刷新场景下拉列表，更新数据条数
     refreshSceneSelects();
     closeContentModal();
+    dispatchDataChanged({ scope: 'contents', target: 'content' });
   } catch (e) {
     showToast('保存失败：' + (e.message || ''), 'error');
   }
@@ -1255,6 +1266,7 @@ async function runImport() {
     showToast(`批量导入成功，共 ${rows.length} 条`);
     closeImportModal();
     await loadContentsFromCloud();
+    dispatchDataChanged({ scope: 'contents', target: 'content', action: 'import' });
   } catch (e) {
     showToast('云端导入失败', 'error');
   }
@@ -1426,6 +1438,7 @@ function openClearConfirmModal() {
       state.contents = [];
       renderContents();
       showToast('已清空全部文案');
+      dispatchDataChanged({ scope: 'contents', target: 'content', action: 'clear_all' });
     } catch (e) {
       showToast('清空失败：' + (e.message || ''), 'error');
     } finally {
@@ -1446,6 +1459,7 @@ async function deleteContent(item) {
   } catch (_) {
     showToast('删除失败（云端）', 'error');
   }
+  dispatchDataChanged({ scope: 'contents', target: 'content', action: 'delete' });
 }
 
 let pendingDeleteContent = null;
