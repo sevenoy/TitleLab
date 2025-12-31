@@ -367,11 +367,12 @@ function initSettingsPage() {
   if (btnLoginHeader) btnLoginHeader.classList.add('hidden');
   
   // 初始化云同步，确保设置变更能够保存到云端
-  if (window.cloudSyncModule && window.cloudSyncModule.initAutoSync) {
+  if (window.cloudSync && window.cloudSync.initAutoSync) {
     console.log('[Settings] 初始化云同步...');
-    window.cloudSyncModule.initAutoSync();
+    window.cloudSync.initAutoSync();
+    console.log('[Settings] 云同步初始化完成');
   } else {
-    console.warn('[Settings] cloudSyncModule 未加载，无法初始化云同步');
+    console.warn('[Settings] window.cloudSync 未加载，无法初始化云同步');
   }
 }
 
