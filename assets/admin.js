@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
   bindSnapshotControls();
   bindDataOps();
   bindCategoryOps();
+  bindSceneManagement(); // 账号管理
   console.log('[Admin] Before bindDangerOps');
   bindDangerOps();
   console.log('[Admin] After bindDangerOps');
@@ -759,4 +760,207 @@ function debounce(fn, delay) {
     clearTimeout(t);
     t = setTimeout(() => fn.apply(this, args), delay);
   };
+}
+
+// ============== 账号管理 ==============
+
+const DEFAULT_DISPLAY_SETTINGS_ADMIN = {
+  brandColor: '#1990ff',
+  brandHover: '#1477dd',
+  ghostColor: '#eef2ff',
+  ghostHover: '#e2e8ff',
+  stripeColor: '#E2F0FF',
+  hoverColor: '#eef2ff',
+  scenes: ['港迪城堡', '烟花', '夜景', '香港街拍'],
+  titleText: '标题与文案管理系统',
+  titleColor: '#1990ff'
+};
+
+let adminSettingsState = { ...DEFAULT_DISPLAY_SETTINGS_ADMIN };
+
+function getDisplaySettingsLSKey() {
+  const user = getCurrentUser();
+  const username = user ? user.username : 'default';
+  return `display_settings_v1_${username}`;
+}
+
+function loadDisplaySettings() {
+  const key = getDisplaySettingsLSKey();
+  const raw = localStorage.getItem(key);
+  
+  const user = getCurrentUser();
+  const defaultScenes = user && user.username === 'olina' 
+    ? ['西瓜', '糖果', '米苏', '开心', '飞船', '女摄', '新号', '抖音']
+    : DEFAULT_DISPLAY_SETTINGS_ADMIN.scenes;
+  
+  if (!raw) {
+    return { 
+      ...DEFAULT_DISPLAY_SETTINGS_ADMIN,
+      scenes: defaultScenes
+    };
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    const scenes = parsed.hasOwnProperty('scenes') && Array.isArray(parsed.scenes) 
+      ? parsed.scenes 
+      : defaultScenes;
+    return {
+      ...DEFAULT_DISPLAY_SETTINGS_ADMIN,
+      ...parsed,
+      scenes
+    };
+  } catch (e) {
+    return { 
+      ...DEFAULT_DISPLAY_SETTINGS_ADMIN,
+      scenes: defaultScenes
+    };
+  }
+}
+
+function saveDisplaySettingsAdmin(nextSettings) {
+  adminSettingsState = { ...adminSettingsState, ...nextSettings };
+  const key = getDisplaySettingsLSKey();
+  localStorage.setItem(key, JSON.stringify(adminSettingsState));
+  
+  // 触发事件通知其他页面
+  window.dispatchEvent(new CustomEvent('settingsUpdated', { 
+    detail: { scope: 'display_settings', scenes: adminSettingsState.scenes } 
+  }));
+  
+  try {
+    window.dispatchEvent(new CustomEvent('dataChanged', { detail: { scope: 'settings', ts: Date.now() } }));
+  } catch (_) {}
+}
+
+function renderSceneListAdmin() {
+  const list = document.getElementById('sceneList');
+  if (!list) return;
+  list.innerHTML = '';
+
+  if (!adminSettingsState.scenes.length) {
+    const empty = document.createElement('div');
+    empty.className = 'text-sm text-gray-500';
+    empty.textContent = '暂无账号，请添加';
+    list.appendChild(empty);
+    return;
+  }
+
+  adminSettingsState.scenes.forEach((scene, index) => {
+    const row = document.createElement('div');
+    row.className = 'panel mb-2';
+
+    const name = document.createElement('div');
+    name.className = 'text-base font-medium';
+    name.style.marginBottom = '8px';
+    name.textContent = scene;
+
+    const actions = document.createElement('div');
+    actions.className = 'flex items-center gap-2';
+
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'function-btn ghost text-xs btn-inline';
+    editBtn.textContent = '修改';
+    editBtn.addEventListener('click', () => {
+      const editor = document.createElement('input');
+      editor.type = 'text';
+      editor.className = 'field-input';
+      editor.value = scene;
+      const saveBtn = document.createElement('button');
+      saveBtn.type = 'button';
+      saveBtn.className = 'function-btn text-xs btn-inline';
+      saveBtn.textContent = '保存';
+      const cancelBtn = document.createElement('button');
+      cancelBtn.type = 'button';
+      cancelBtn.className = 'function-btn ghost text-xs btn-inline';
+      cancelBtn.textContent = '取消';
+      const area = document.createElement('div');
+      area.className = 'flex items-center gap-2';
+      area.appendChild(editor);
+      area.appendChild(saveBtn);
+      area.appendChild(cancelBtn);
+      row.replaceChild(area, name);
+      saveBtn.addEventListener('click', () => {
+        const trimmed = (editor.value || '').trim();
+        if (!trimmed) return;
+        const dup = adminSettingsState.scenes.some((item, idx) => item === trimmed && idx !== index);
+        if (dup) { showToast('已存在同名账号'); return; }
+        adminSettingsState.scenes[index] = trimmed;
+        saveDisplaySettingsAdmin({ scenes: [...adminSettingsState.scenes] });
+        renderSceneListAdmin();
+        showToast('账号已修改');
+      });
+      cancelBtn.addEventListener('click', () => { renderSceneListAdmin(); });
+    });
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'function-btn ghost text-xs btn-inline';
+    delBtn.textContent = '删除';
+    delBtn.addEventListener('click', () => {
+      adminSettingsState.scenes.splice(index, 1);
+      saveDisplaySettingsAdmin({ scenes: [...adminSettingsState.scenes] });
+      renderSceneListAdmin();
+      showToast('账号已删除');
+    });
+
+    const upBtn = document.createElement('button');
+    upBtn.type = 'button';
+    upBtn.className = 'function-btn ghost text-xs btn-inline';
+    upBtn.textContent = '上移';
+    upBtn.addEventListener('click', () => {
+      if (index <= 0) return;
+      const arr = [...adminSettingsState.scenes];
+      [arr[index - 1], arr[index]] = [arr[index], arr[index - 1]];
+      saveDisplaySettingsAdmin({ scenes: arr });
+      renderSceneListAdmin();
+    });
+
+    const downBtn = document.createElement('button');
+    downBtn.type = 'button';
+    downBtn.className = 'function-btn ghost text-xs btn-inline';
+    downBtn.textContent = '下移';
+    downBtn.addEventListener('click', () => {
+      if (index >= adminSettingsState.scenes.length - 1) return;
+      const arr = [...adminSettingsState.scenes];
+      [arr[index + 1], arr[index]] = [arr[index], arr[index + 1]];
+      saveDisplaySettingsAdmin({ scenes: arr });
+      renderSceneListAdmin();
+    });
+
+    actions.appendChild(editBtn);
+    actions.appendChild(delBtn);
+    actions.appendChild(upBtn);
+    actions.appendChild(downBtn);
+    row.appendChild(name);
+    row.appendChild(actions);
+    list.appendChild(row);
+  });
+}
+
+function bindSceneManagement() {
+  // 加载设置
+  adminSettingsState = loadDisplaySettings();
+  
+  // 渲染列表
+  renderSceneListAdmin();
+  
+  // 绑定新增按钮
+  const input = document.getElementById('newSceneInput');
+  const btn = document.getElementById('btnAddScene');
+  if (!input || !btn) return;
+
+  btn.addEventListener('click', () => {
+    const value = input.value.trim();
+    if (!value) return;
+    if (adminSettingsState.scenes.includes(value)) {
+      showToast('账号已存在');
+      return;
+    }
+    adminSettingsState.scenes.push(value);
+    input.value = '';
+    saveDisplaySettingsAdmin({ scenes: [...adminSettingsState.scenes] });
+    renderSceneListAdmin();
+    showToast('账号已添加');
+  });
 }
