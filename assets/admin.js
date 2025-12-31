@@ -524,11 +524,11 @@ function bindDangerOps() {
         // #endregion
         
         // 清除Supabase中的数据 - 只删除当前用户的数据
-        // 使用 contains 筛选包含当前用户标签的记录
+        // 使用 cs (contains) 筛选包含当前用户标签的记录
         const titleResult = await supabase
           .from('titles')
           .delete()
-          .contains('scene_tags', [userTag]);
+          .filter('scene_tags', 'cs', `["${userTag}"]`);
         
         if (titleResult.error) throw titleResult.error;
         console.log('[Admin] Titles cleared for user:', user.username);
@@ -540,7 +540,7 @@ function bindDangerOps() {
         const contentResult = await supabase
           .from('contents')
           .delete()
-          .contains('scene_tags', [userTag]);
+          .filter('scene_tags', 'cs', `["${userTag}"]`);
         
         if (contentResult.error) throw contentResult.error;
         console.log('[Admin] Contents cleared for user:', user.username);
