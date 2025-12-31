@@ -7,6 +7,7 @@ console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (自动同步版)`);
 
 const DEFAULT_SNAPSHOT_KEY = 'default';
 const DEVICE_ID_STORAGE_KEY = 'cloudsync_device_id';
+const DEFAULT_AUTOSYNC_INTERVAL = 30000; // 30秒自动同步一次
 const AUTO_SYNC_STATUS_MAP = {
   initial: { text: '自动同步准备中…', className: 'text-gray-500' },
   syncing: { text: '自动同步中…', className: 'text-blue-500' },
