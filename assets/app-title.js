@@ -222,13 +222,11 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   
   // 也监听同窗口内的设置变化（通过自定义事件）
-  window.addEventListener('settingsUpdated', (detail) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:223',message:'settingsUpdated event received',data:{detail:detail?detail.detail:null},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'SYNC2'})}).catch(()=>{});
-    // #endregion
+  window.addEventListener('settingsUpdated', (event) => {
+    console.log('[TitleApp] settingsUpdated event received:', event.detail);
     refreshSceneSelects();
     // 如果是分类更新，也刷新分类列表
-    if (detail && detail.detail && detail.detail.scope === 'categories') {
+    if (event && event.detail && event.detail.scope === 'categories') {
       loadCategoriesFromLocal();
       renderCategoryList();
     }
@@ -1208,14 +1206,13 @@ function refreshModalCategoryOptions(selectEl) {
 
 // 刷新场景下拉菜单（从场景管理设置获取）
 function refreshSceneSelects() {
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:1173',message:'refreshSceneSelects ENTRY',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'SYNC3'})}).catch(()=>{});
-  // #endregion
+  console.log('[TitleApp] refreshSceneSelects 开始刷新账号下拉框');
   const settings = getDisplaySettings();
   const scenes = settings.scenes || [];
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:1179',message:'refreshSceneSelects scenes loaded',data:{scenes:scenes,scenesCount:scenes.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'SYNC3'})}).catch(()=>{});
-  // #endregion
+  console.log('[TitleApp] refreshSceneSelects 账号列表:', {
+    scenes,
+    scenesCount: scenes.length
+  });
   
   // 更新 filterScene（场景筛选）
   const filterScene = document.getElementById('filterScene');

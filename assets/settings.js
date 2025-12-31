@@ -65,11 +65,20 @@ function saveDisplaySettings(nextSettings) {
   settingsState = { ...settingsState, ...nextSettings };
   const key = getDisplaySettingsLSKey();
   localStorage.setItem(key, JSON.stringify(settingsState));
+  console.log('[Settings] saveDisplaySettings:', {
+    key,
+    scenes: settingsState.scenes,
+    scenesCount: settingsState.scenes?.length
+  });
   applyDisplayPreview();
   showSettingsToast('已保存并应用');
   // 触发自定义事件，通知其他页面更新场景下拉菜单
-  window.dispatchEvent(new CustomEvent('settingsUpdated'));
+  window.dispatchEvent(new CustomEvent('settingsUpdated', { 
+    detail: { scope: 'display_settings', scenes: settingsState.scenes } 
+  }));
+  console.log('[Settings] Dispatched settingsUpdated event');
   dispatchDataChanged('settings');
+  console.log('[Settings] Dispatched dataChanged event for cloud sync');
 }
 
 function applyDisplayPreview() {
@@ -233,12 +242,15 @@ function bindSceneAdder() {
     const value = input.value.trim();
     if (!value) return;
     if (settingsState.scenes.includes(value)) {
-      showSettingsToast('场景已存在');
+      showSettingsToast('账号已存在');
       return;
     }
+    console.log('[Settings] 添加账号:', value);
     settingsState.scenes.push(value);
     input.value = '';
+    console.log('[Settings] 保存账号设置前:', settingsState.scenes);
     saveDisplaySettings({ scenes: [...settingsState.scenes] });
+    console.log('[Settings] 保存账号设置后，触发渲染');
     renderSceneList();
   });
 }
