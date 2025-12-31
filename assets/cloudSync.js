@@ -7,6 +7,27 @@ console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (批量删除修复�
 
 const DEFAULT_SNAPSHOT_KEY = 'default';
 
+function debounce(fn, wait = 1000) {
+  let timer = null;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), wait);
+  };
+}
+
+function getUserLiveKey() {
+  const sessionUser = window.supabaseApi && window.supabaseApi.getSessionUser
+    ? window.supabaseApi.getSessionUser()
+    : null;
+  const username = sessionUser && sessionUser.username ? sessionUser.username : 'default';
+  return `user_${username}_live`;
+}
+
+async function push() {
+  const key = getUserLiveKey();
+  return cloudSave(key);
+}
+
 /**
  * 将字符串转换为稳定的UUID（基于简单哈希）
  * 用于为本地用户名生成一个稳定的UUID作为owner_id
@@ -744,6 +765,48 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
   };
 }
 
+function startAutoSync(onStatusChange, options = {}) {
+  const user = window.supabaseApi && window.supabaseApi.getSessionUser
+    ? window.supabaseApi.getSessionUser()
+    : null;
+  if (!user) {
+    if (typeof onStatusChange === 'function') {
+      onStatusChange({ status: 'inactive', reason: 'not_logged_in' });
+    }
+    return;
+  }
+
+  const debounceMs = options.debounceMs || 1200;
+  const handler = debounce(async () => {
+    if (typeof onStatusChange === 'function') {
+      onStatusChange({ status: 'syncing' });
+    }
+    try {
+      const result = await push();
+      if (typeof onStatusChange === 'function') {
+        onStatusChange({ status: 'idle', result });
+      }
+    } catch (error) {
+      console.error('[cloudSync] push failed', error);
+      if (typeof onStatusChange === 'function') {
+        onStatusChange({ status: 'error', error });
+      }
+    }
+  }, debounceMs);
+
+  window.addEventListener('dataChanged', handler);
+  if (typeof onStatusChange === 'function') {
+    onStatusChange({ status: 'listening' });
+  }
+
+  return () => {
+    window.removeEventListener('dataChanged', handler);
+    if (typeof onStatusChange === 'function') {
+      onStatusChange({ status: 'stopped' });
+    }
+  };
+}
+
 // 导出 API
 if (typeof window !== 'undefined') {
   window.cloudSync = {
@@ -758,9 +821,11 @@ if (typeof window !== 'undefined') {
     buildLocalPayload,
     buildSnapshotLabel,
     formatYYYYMMDDLocal,
-    getClientVersion
+    getClientVersion,
+    push,
+    startAutoSync,
+    getUserLiveKey
   };
   // 同时将 cloudLoadLatest 导出到全局，方便页面直接调用
   window.cloudLoadLatest = cloudLoadLatest;
 }
-
