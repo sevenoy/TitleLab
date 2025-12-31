@@ -211,13 +211,24 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('storage', (e) => {
     const settingsKey = getDisplaySettingsLSKey();
     if (e.key === settingsKey) {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:215',message:'storage event - settings changed',data:{key:e.key},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'SYNC2'})}).catch(()=>{});
+      // #endregion
       refreshSceneSelects();
     }
   });
   
   // 也监听同窗口内的设置变化（通过自定义事件）
-  window.addEventListener('settingsUpdated', () => {
+  window.addEventListener('settingsUpdated', (detail) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:223',message:'settingsUpdated event received',data:{detail:detail?detail.detail:null},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'SYNC2'})}).catch(()=>{});
+    // #endregion
     refreshSceneSelects();
+    // 如果是分类更新，也刷新分类列表
+    if (detail && detail.detail && detail.detail.scope === 'categories') {
+      loadCategoriesFromLocal();
+      renderCategoryList();
+    }
   });
 
   // 加载数据
@@ -307,7 +318,12 @@ function loadCategoriesFromLocal() {
 function saveCategoriesToLocal() {
   const key = getCategoryLSKey();
   localStorage.setItem(key, JSON.stringify(state.categories));
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:324',message:'saveCategoriesToLocal',data:{categories:state.categories,categoriesCount:state.categories.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'SYNC1'})}).catch(()=>{});
+  // #endregion
   dispatchDataChanged({ scope: 'categories', target: 'title' });
+  // 触发settingsUpdated事件，让同页面内的其他组件知道分类已更新
+  window.dispatchEvent(new CustomEvent('settingsUpdated', { detail: { scope: 'categories' } }));
 }
 
 function renderCategoryList() {
@@ -1156,8 +1172,14 @@ function refreshModalCategoryOptions(selectEl) {
 
 // 刷新场景下拉菜单（从场景管理设置获取）
 function refreshSceneSelects() {
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:1173',message:'refreshSceneSelects ENTRY',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'SYNC3'})}).catch(()=>{});
+  // #endregion
   const settings = getDisplaySettings();
   const scenes = settings.scenes || [];
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:1179',message:'refreshSceneSelects scenes loaded',data:{scenes:scenes,scenesCount:scenes.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'SYNC3'})}).catch(()=>{});
+  // #endregion
   
   // 更新 filterScene（场景筛选）
   const filterScene = document.getElementById('filterScene');
@@ -1751,6 +1773,9 @@ function openAddCategoryModal() {
     state.categories.push(trimmed);
     saveCategoriesToLocal();
     renderCategoryList();
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:1751',message:'Category added',data:{newCategory:trimmed,allCategories:state.categories},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'SYNC1'})}).catch(()=>{});
+    // #endregion
     showToast('分类已新增');
     close();
   };
