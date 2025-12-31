@@ -509,19 +509,48 @@ function bindDangerOps() {
       try {
         console.log('[Admin] Starting to clear all data...');
         
-        // 清除Supabase中的数据
-        const titleResult = await supabase.from('titles').delete().not('id', 'is', null);
-        if (titleResult.error) throw titleResult.error;
-        console.log('[Admin] Titles cleared');
+        // 获取当前用户信息
+        const user = getCurrentUser();
+        if (!user || !user.username) {
+          showToast('无法获取当前用户信息', 'error');
+          return;
+        }
         
-        const contentResult = await supabase.from('contents').delete().not('id', 'is', null);
+        const userTag = `user:${user.username}`;
+        console.log('[Admin] Clearing data for user:', user.username, 'tag:', userTag);
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:clearAllData',message:'Start clearing user data',data:{username:user.username,userTag},timestamp:Date.now(),sessionId:'debug-session',runId:'user-isolation',hypothesisId:'ISOLATION'})}).catch(()=>{});
+        // #endregion
+        
+        // 清除Supabase中的数据 - 只删除当前用户的数据
+        // 使用 contains 筛选包含当前用户标签的记录
+        const titleResult = await supabase
+          .from('titles')
+          .delete()
+          .contains('scene_tags', [userTag]);
+        
+        if (titleResult.error) throw titleResult.error;
+        console.log('[Admin] Titles cleared for user:', user.username);
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:afterTitleDelete',message:'Titles deleted',data:{username:user.username,deletedCount:titleResult.data?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'user-isolation',hypothesisId:'ISOLATION'})}).catch(()=>{});
+        // #endregion
+        
+        const contentResult = await supabase
+          .from('contents')
+          .delete()
+          .contains('scene_tags', [userTag]);
+        
         if (contentResult.error) throw contentResult.error;
-        console.log('[Admin] Contents cleared');
+        console.log('[Admin] Contents cleared for user:', user.username);
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:afterContentDelete',message:'Contents deleted',data:{username:user.username,deletedCount:contentResult.data?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'user-isolation',hypothesisId:'ISOLATION'})}).catch(()=>{});
+        // #endregion
         
         // 清除localStorage中的数据，但保留"全部"分类
-        const user = getCurrentUser();
-        if (user && user.username) {
-          const username = user.username;
+        const username = user.username;
           
           // 标题分类：只保留"全部"
           try {
@@ -549,10 +578,9 @@ function bindDangerOps() {
             localStorage.setItem(`display_settings_v1_${username}`, JSON.stringify(defaultSettings));
           } catch (_) {}
           
-          console.log('[Admin] LocalStorage cleared - only "全部" category remains');
-        }
+        console.log('[Admin] LocalStorage cleared - only "全部" category remains');
         
-        showToast('已清除所有数据，页面将刷新...');
+        showToast(`已清除用户 ${username} 的所有数据，页面将刷新...`);
         console.log('[Admin] All data cleared, reloading in 3 seconds...');
         
         // 3秒后刷新页面
