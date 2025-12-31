@@ -646,6 +646,64 @@ function bindDangerOps() {
     fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:elementNotFound',message:'btnClearAll not found',data:{allButtons:Array.from(document.querySelectorAll('button')).map(b=>b.id).filter(Boolean)},timestamp:Date.now(),sessionId:'debug-session',runId:'remote-debug',hypothesisId:'TIMING'})}).catch(()=>{});
     // #endregion
   }
+  
+  // 清除 PWA 缓存按钮
+  const btnClearCache = document.getElementById('btnClearCache');
+  if (btnClearCache) {
+    btnClearCache.addEventListener('click', async () => {
+      const confirmed = confirm(
+        '确定要清除所有缓存吗？\n\n' +
+        '此操作将：\n' +
+        '• 注销 Service Worker\n' +
+        '• 清除所有 PWA 缓存\n' +
+        '• 刷新页面到最新版本\n\n' +
+        '不会删除用户数据（标题、文案等）。\n\n' +
+        '建议在代码更新后使用。'
+      );
+      
+      if (!confirmed) return;
+      
+      try {
+        console.log('[Admin] 开始清除缓存...');
+        
+        // 1. 注销所有 Service Worker
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          console.log(`[Admin] 找到 ${registrations.length} 个 Service Worker`);
+          
+          for (const registration of registrations) {
+            await registration.unregister();
+            console.log('[Admin] Service Worker 已注销');
+          }
+        }
+        
+        // 2. 清除所有 Cache Storage
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          console.log(`[Admin] 找到 ${cacheNames.length} 个缓存`);
+          
+          for (const cacheName of cacheNames) {
+            await caches.delete(cacheName);
+            console.log(`[Admin] 已删除缓存: ${cacheName}`);
+          }
+        }
+        
+        showToast('缓存已清除，页面将刷新...');
+        console.log('[Admin] 缓存清除完成，2秒后刷新页面');
+        
+        // 2秒后强制刷新（跳过缓存）
+        setTimeout(() => {
+          window.location.reload(true);
+        }, 2000);
+        
+      } catch (err) {
+        console.error('[Admin] 清除缓存失败:', err);
+        showToast('清除缓存失败：' + err.message, 'error');
+      }
+    });
+    
+    console.log('[Admin] btnClearCache event listener bound');
+  }
 }
 
 function openDangerConfirm(text, onOk, requiredText = '清空') {
