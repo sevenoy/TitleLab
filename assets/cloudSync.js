@@ -575,6 +575,9 @@ async function cloudSave(key = DEFAULT_SNAPSHOT_KEY) {
   if (window.supabaseApi && window.supabaseApi.getAuthedUser) {
     user = await window.supabaseApi.getAuthedUser();
   }
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:577',message:'[HYP-B,E] User from getAuthedUser',data:{user:user,hasUser:!!user,userKeys:user?Object.keys(user):[]},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B,E'})}).catch(()=>{});
+  // #endregion
   if (!user) {
     const msg = '请先登录';
     console.log('[cloudSave] SKIP (not logged in)');
@@ -676,6 +679,9 @@ async function cloudSave(key = DEFAULT_SNAPSHOT_KEY) {
 
   // 设置 owner_id：必须是UUID格式
   // 优先使用真实的user.id，否则基于username生成稳定的UUID
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:677',message:'[HYP-A,B] User objects before owner_id generation',data:{user:user,sessionUser:sessionUser},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,B'})}).catch(()=>{});
+  // #endregion
   if (user && user.id) {
     // Supabase Auth用户有真实的UUID
     upsertData.owner_id = user.id;
@@ -689,9 +695,15 @@ async function cloudSave(key = DEFAULT_SNAPSHOT_KEY) {
     // 最后的fallback：生成默认UUID
     upsertData.owner_id = stringToUUID('default_user');
   }
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:692',message:'[HYP-A,D] Generated owner_id',data:{owner_id:upsertData.owner_id,username:(sessionUser?.username || user?.username || 'unknown')},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,D'})}).catch(()=>{});
+  // #endregion
 
   // 执行 upsert
   console.log('[cloudSave] UPSERT executing...');
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:694',message:'[HYP-A] Full upsertData before UPSERT',data:{upsertData:upsertData,key:key},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
   const { data: upsertResult, error: upsertError } = await client
     .from('titlelab_snapshot')
     .upsert(upsertData, {
@@ -700,7 +712,14 @@ async function cloudSave(key = DEFAULT_SNAPSHOT_KEY) {
     .select('updated_at')
     .maybeSingle();
 
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:710',message:'[HYP-A,C] UPSERT result',data:{hasError:!!upsertError,error:upsertError,result:upsertResult},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,C'})}).catch(()=>{});
+  // #endregion
+
   if (upsertError) {
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:716',message:'[HYP-A,C] UPSERT ERROR DETAILS',data:{code:upsertError.code,message:upsertError.message,details:upsertError.details,hint:upsertError.hint},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,C'})}).catch(()=>{});
+    // #endregion
     throw upsertError;
   }
 
