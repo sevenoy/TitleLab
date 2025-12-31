@@ -1,4 +1,4 @@
-const CACHE_NAME = 'titlelab-pwa-v29-20250101-fix-topbar-height';
+const CACHE_NAME = 'titlelab-pwa-v31-20250101-force-refresh';
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',
