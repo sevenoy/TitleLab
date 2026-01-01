@@ -171,10 +171,17 @@ async function migrateAccountCategories(username, userTag) {
  * 执行完整的数据迁移
  */
 async function runMigration() {
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'migration.js:runMigration',message:'Migration check START',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1',runId:'diagnose-shared'})}).catch(()=>{});
+  // #endregion
+  
   console.log('[Migration] 🚀 开始数据迁移检查...');
 
   // 检查是否已完成迁移
   if (isMigrationCompleted()) {
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'migration.js:runMigration',message:'Migration already completed',data:{flagKey:MIGRATION_FLAG_KEY},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1',runId:'diagnose-shared'})}).catch(()=>{});
+    // #endregion
     console.log('[Migration] ℹ️ 迁移已完成，跳过');
     return { alreadyCompleted: true };
   }
@@ -182,6 +189,9 @@ async function runMigration() {
   // 获取当前用户
   const user = window.getCurrentUser ? window.getCurrentUser() : null;
   if (!user || !user.username) {
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'migration.js:runMigration',message:'No user found, migration postponed',data:{hasUser:!!user},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1',runId:'diagnose-shared'})}).catch(()=>{});
+    // #endregion
     console.warn('[Migration] ⚠️ 未找到当前用户，推迟迁移');
     return { success: false, reason: 'no_user' };
   }

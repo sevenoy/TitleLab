@@ -311,8 +311,15 @@ function stripLeadingIndex(s) {
  * 如果数据库读取失败，则降级到 localStorage
  */
 async function loadCategoriesFromDatabase() {
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:loadCategoriesFromDatabase',message:'START loading categories',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1',runId:'diagnose-shared'})}).catch(()=>{});
+  // #endregion
+  
   const user = getCurrentUser();
   if (!user || !supabase) {
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:loadCategoriesFromDatabase',message:'No user or supabase, fallback to localStorage',data:{hasUser:!!user,hasSupabase:!!supabase},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1',runId:'diagnose-shared'})}).catch(()=>{});
+    // #endregion
     console.warn('[TitleApp] 无法从数据库读取分类，降级到 localStorage');
     loadCategoriesFromLocal();
     return;
@@ -321,6 +328,10 @@ async function loadCategoriesFromDatabase() {
   const userTag = `user:${user.username}`;
   
   try {
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:loadCategoriesFromDatabase',message:'Before supabase query shared categories',data:{userTag},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2',runId:'diagnose-shared'})}).catch(()=>{});
+    // #endregion
+    
     const { data, error } = await supabase
       .from('user_categories')
       .select('*')
@@ -328,15 +339,26 @@ async function loadCategoriesFromDatabase() {
       .eq('category_type', 'shared')
       .order('display_order', { ascending: true });
     
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:loadCategoriesFromDatabase',message:'After supabase query',data:{hasData:!!data,dataLength:data?.length,hasError:!!error,errorMsg:error?.message,rawData:data},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2',runId:'diagnose-shared'})}).catch(()=>{});
+    // #endregion
+    
     if (error) throw error;
     
     // 转换为数组格式，始终包含"全部"
     const categories = ['全部', ...(data || []).map(c => c.category_name)];
     state.categories = categories;
     
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:loadCategoriesFromDatabase',message:'Categories loaded successfully',data:{categories,categoriesCount:categories.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2',runId:'diagnose-shared'})}).catch(()=>{});
+    // #endregion
+    
     console.log('[TitleApp] ✅ 从数据库加载标题分类:', categories);
     renderCategoryList();
   } catch (e) {
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:loadCategoriesFromDatabase',message:'Database query FAILED, fallback to localStorage',data:{errorMsg:e?.message,errorCode:e?.code},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3',runId:'diagnose-shared'})}).catch(()=>{});
+    // #endregion
     console.error('[TitleApp] ❌ 从数据库加载分类失败，降级到 localStorage:', e);
     loadCategoriesFromLocal();
   }
