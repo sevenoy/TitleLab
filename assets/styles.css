@@ -443,6 +443,16 @@ body, input, button, select, textarea {
   color: #ffffff !important;
   font-size: 12px;
 }
+
+/* 移动端星标徽章优化 */
+@media (max-width: 768px) {
+  .pill-muted {
+    padding: 2px 6px;
+    font-size: 11px;
+    line-height: 1.2;
+  }
+}
+
 .pill-muted.alt {
   background: #ffffff !important;
   color: var(--text-main) !important;
@@ -1147,6 +1157,14 @@ textarea.field-input {
 
 .mobile-card {
   border-radius: 18px;
+}
+
+/* 移动端卡片标题文字优化 */
+@media (max-width: 768px) {
+  .mobile-card .text-sm.font-medium {
+    font-size: 12px;
+    line-height: 1.4;
+  }
 }
 
 /* 移动端卡片隔行背景 */
