@@ -1,4 +1,4 @@
-const CACHE_NAME = 'titlelab-pwa-v41-20250101-fix-categories-override';
+const CACHE_NAME = 'titlelab-pwa-v42-20250101-conflict-detection';
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',

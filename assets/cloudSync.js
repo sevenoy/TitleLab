@@ -2,8 +2,8 @@
 // 云端同步统一协议（对齐 XHSPHONE 白皮书思路）
 // Version: 2.0.0 - Batch delete fix
 
-const CLOUDSYNC_VERSION = '3.1.3';
-console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (修复：不再用 localStorage 覆盖数据库分类)`);
+const CLOUDSYNC_VERSION = '3.2.0';
+console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (新增：基于时间戳的冲突检测)`);
 
 const DEFAULT_SNAPSHOT_KEY = 'default';
 const DEVICE_ID_STORAGE_KEY = 'cloudsync_device_id';
@@ -647,7 +647,66 @@ async function cloudSave(key = DEFAULT_SNAPSHOT_KEY) {
   }
 
   // 【A2-4】本地有改动（dirty=true），继续判断云端
-  // 查询云端现有快照
+  
+  // ⭐ 新增：冲突检测 - 检查云端是否有其他设备的更新
+  const lastPullTimeKey = `last_pull_time_${key}`;
+  const lastPullTime = localStorage.getItem(lastPullTimeKey);
+  
+  if (lastPullTime) {
+    // 查询云端当前的时间戳（只查询时间戳，节省带宽）
+    const { data: cloudMeta, error: metaError } = await client
+      .from('titlelab_snapshot')
+      .select('updated_at, updated_by_name')
+      .eq('key', key)
+      .maybeSingle();
+    
+    if (!metaError && cloudMeta) {
+      const cloudTime = new Date(cloudMeta.updated_at);
+      const localTime = new Date(lastPullTime);
+      const timeDiffSeconds = (cloudTime - localTime) / 1000;
+      
+      console.log('[cloudSave] 冲突检测:', {
+        云端更新时间: cloudMeta.updated_at,
+        本地拉取时间: lastPullTime,
+        时间差: `${timeDiffSeconds}秒`,
+        更新者: cloudMeta.updated_by_name
+      });
+      
+      // 如果云端数据比本地记录的拉取时间新（超过1秒，避免时钟误差）
+      if (timeDiffSeconds > 1) {
+        console.warn('[cloudSave] ⚠️ 检测到数据冲突！');
+        console.warn(`云端有更新（更新者: ${cloudMeta.updated_by_name}），为防止覆盖新数据，先拉取最新数据`);
+        
+        // 静默拉取最新数据
+        try {
+          await cloudLoadLatest(key);
+          
+          // 显示提示（不阻塞用户）
+          if (window.showToast) {
+            window.showToast('⚠️ 其他设备有更新，已自动同步最新数据', 'warning');
+          } else {
+            console.info('[cloudSave] 💡 提示：检测到其他设备有更新，已自动同步最新数据。本地修改未保存。');
+          }
+          
+          return {
+            skipped: true,
+            reason: 'conflict_detected',
+            message: '检测到云端有更新，已自动拉取最新数据，本地修改未保存',
+            conflictInfo: {
+              cloudTime: cloudMeta.updated_at,
+              localTime: lastPullTime,
+              updatedBy: cloudMeta.updated_by_name
+            }
+          };
+        } catch (pullError) {
+          console.error('[cloudSave] 拉取最新数据失败:', pullError);
+          // 如果拉取失败，继续保存流程（避免阻塞）
+        }
+      }
+    }
+  }
+  
+  // 查询云端现有快照（用于判断是首次保存还是更新）
   const { data: existingData, error: queryError } = await client
     .from('titlelab_snapshot')
     .select('payload, updated_at')
@@ -792,6 +851,11 @@ async function cloudSave(key = DEFAULT_SNAPSHOT_KEY) {
   localStorage.setItem('last_snapshot_name', snapshotLabel);
 
   console.log('[cloudSave] UPSERT success, saved hash:', localHash);
+
+  // ⭐ 保存成功后，更新本地记录的拉取时间（使用保存时的时间）
+  const saveTime = new Date().toISOString();
+  localStorage.setItem(`last_pull_time_${key}`, saveTime);
+  console.log('[cloudSave] 更新 last_pull_time:', saveTime);
 
   return {
     saved: true,
@@ -1027,6 +1091,10 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
   localStorage.setItem('last_sync_time', lastSyncTime);
   localStorage.setItem(lastSyncTimeKey, lastSyncTime);
   localStorage.setItem('last_snapshot_name', lastSnapshotName);
+  
+  // ⭐ 记录拉取时间（用于冲突检测）
+  localStorage.setItem(`last_pull_time_${key}`, lastSyncTime);
+  console.log('[cloudLoadLatest] 记录拉取时间:', lastSyncTime);
 
   // 触发页面刷新（通过重新加载页面数据）
   try {
