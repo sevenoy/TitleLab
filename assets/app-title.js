@@ -196,9 +196,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   applyDisplaySettings();
 
-  // 分类 - 从本地加载（暂时禁用自动云端同步以避免外键约束问题）
-  // 用户可以通过手动点击"加载云端"按钮来同步数据
-  loadCategoriesFromLocal();
+  // 分类 - 优先从数据库加载，失败则从本地加载
+  loadCategoriesFromDatabase();
   renderCategoryList();
   bindCategoryButtons();
   setupMobileCategoryDropdown();
@@ -238,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
     refreshSceneSelects();
     // 如果是分类更新，也刷新分类列表
     if (event && event.detail && event.detail.scope === 'categories') {
-      loadCategoriesFromLocal();
+      loadCategoriesFromDatabase();
       renderCategoryList();
     }
   });
@@ -273,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 云端加载完成时刷新分类与场景
   window.addEventListener('cloudSyncLoaded', () => {
     console.log('[TitleApp] cloudSyncLoaded 事件触发，开始刷新...');
-    loadCategoriesFromLocal();
+    loadCategoriesFromDatabase();
     renderCategoryList();
     applyDisplaySettings();
     refreshSceneSelects();
@@ -307,6 +306,42 @@ function stripLeadingIndex(s) {
 
 // =============== 2. 分类逻辑 ===============
 
+/**
+ * 从数据库读取标题分类（优先）
+ * 如果数据库读取失败，则降级到 localStorage
+ */
+async function loadCategoriesFromDatabase() {
+  const user = getCurrentUser();
+  if (!user || !supabase) {
+    console.warn('[TitleApp] 无法从数据库读取分类，降级到 localStorage');
+    loadCategoriesFromLocal();
+    return;
+  }
+  
+  const userTag = `user:${user.username}`;
+  
+  try {
+    const { data, error } = await supabase
+      .from('user_categories')
+      .select('*')
+      .eq('user_tag', userTag)
+      .eq('category_type', 'title')
+      .order('display_order', { ascending: true });
+    
+    if (error) throw error;
+    
+    // 转换为数组格式，始终包含"全部"
+    const categories = ['全部', ...(data || []).map(c => c.category_name)];
+    state.categories = categories;
+    
+    console.log('[TitleApp] ✅ 从数据库加载标题分类:', categories);
+    renderCategoryList();
+  } catch (e) {
+    console.error('[TitleApp] ❌ 从数据库加载分类失败，降级到 localStorage:', e);
+    loadCategoriesFromLocal();
+  }
+}
+
 function loadCategoriesFromLocal() {
   const key = getCategoryLSKey();
   const raw = localStorage.getItem(key);
@@ -326,6 +361,62 @@ function loadCategoriesFromLocal() {
   } catch (e) {
     console.error('[TitleApp] loadCategoriesFromLocal error', e);
     state.categories = [...DEFAULT_CATEGORIES];
+  }
+}
+
+/**
+ * 保存标题分类到数据库（优先）
+ * 同时也保存到 localStorage 作为备份
+ */
+async function saveCategoriesToDatabase() {
+  const user = getCurrentUser();
+  if (!user || !supabase) {
+    console.warn('[TitleApp] 无法保存到数据库，仅保存到 localStorage');
+    saveCategoriesToLocal();
+    return;
+  }
+  
+  const userTag = `user:${user.username}`;
+  const categoriesToSave = state.categories.filter(c => c !== '全部');
+  
+  try {
+    // 先删除该用户的所有标题分类
+    const { error: deleteError } = await supabase
+      .from('user_categories')
+      .delete()
+      .eq('user_tag', userTag)
+      .eq('category_type', 'title');
+    
+    if (deleteError) throw deleteError;
+    
+    // 批量插入新分类
+    if (categoriesToSave.length > 0) {
+      const rows = categoriesToSave.map((name, index) => ({
+        user_tag: userTag,
+        category_type: 'title',
+        category_name: name,
+        display_order: index
+      }));
+      
+      const { error: insertError } = await supabase
+        .from('user_categories')
+        .insert(rows);
+      
+      if (insertError) throw insertError;
+    }
+    
+    console.log('[TitleApp] ✅ 标题分类已保存到数据库:', categoriesToSave);
+    
+    // 同时保存到 localStorage 作为备份
+    saveCategoriesToLocal();
+    
+    // 触发数据变更事件
+    dispatchDataChanged({ scope: 'categories', target: 'title' });
+    window.dispatchEvent(new CustomEvent('settingsUpdated', { detail: { scope: 'categories' } }));
+    
+  } catch (e) {
+    console.error('[TitleApp] ❌ 保存分类到数据库失败，降级到 localStorage:', e);
+    saveCategoriesToLocal();
   }
 }
 
@@ -485,7 +576,7 @@ function reorderCategory(index, delta) {
   arr.splice(newIndex, 0, item);
   state.categories = arr;
 
-  saveCategoriesToLocal();
+  await saveCategoriesToDatabase();
   renderCategoryList();
 }
 
@@ -557,7 +648,7 @@ async function renameCategory() {
   state.categories[catIndex] = newName;
   
   // 更新 localStorage
-  saveCategoriesToLocal();
+  await saveCategoriesToDatabase();
   
   // 如果当前分类是被修改的分类，也要更新
   if (state.currentCategory === oldName) {
@@ -587,7 +678,7 @@ async function renameCategory() {
       showToast('更新分类名称失败：' + (e.message || ''), 'error');
       // 回滚
       state.categories[catIndex] = oldName;
-      saveCategoriesToLocal();
+      await saveCategoriesToDatabase();
       if (state.currentCategory === newName) {
         state.currentCategory = oldName;
       }
@@ -1082,8 +1173,8 @@ function openCloudLoadConfirmTitle(key) {
     if (pendingSnapshotKeyTitle) {
       try {
         const info = await window.snapshotService.loadUnifiedSnapshot(pendingSnapshotKeyTitle, 'both');
-        // 重新加载分类（从 localStorage 恢复）
-        loadCategoriesFromLocal();
+        // 重新加载分类（优先从数据库恢复）
+        await loadCategoriesFromDatabase();
         renderCategoryList();
         // 重新应用显示设置（包括场景设置/账号分类）
         applyDisplaySettings();
@@ -1635,8 +1726,8 @@ async function loadCloudSnapshot(key, options = {}) {
   }
   try {
     const info = await window.snapshotService.loadUnifiedSnapshot(key, 'both');
-    // 重新加载分类（从 localStorage 恢复）
-    loadCategoriesFromLocal();
+    // 重新加载分类（优先从数据库恢复）
+    await loadCategoriesFromDatabase();
     renderCategoryList();
     // 重新应用显示设置（包括场景设置/账号分类）
     applyDisplaySettings();
@@ -1837,7 +1928,7 @@ function openAddCategoryModal() {
     if (!trimmed) { showToast('分类名不能为空', 'error'); return; }
     if (state.categories.includes(trimmed)) { showToast('已存在同名分类', 'error'); return; }
     state.categories.push(trimmed);
-    saveCategoriesToLocal();
+    await saveCategoriesToDatabase();
     renderCategoryList();
     // #region agent log
     fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:1751',message:'Category added',data:{newCategory:trimmed,allCategories:state.categories},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'SYNC1'})}).catch(()=>{});
@@ -1872,7 +1963,7 @@ function openDeleteCategoryModal() {
     state.categories = state.categories.filter((c) => c !== target);
     // 保留各条目的 main_category，不清空标签，方便后续重新新增分类时正确统计
     state.currentCategory = '全部';
-    saveCategoriesToLocal();
+    await saveCategoriesToDatabase();
     renderCategoryList();
     renderTitles();
     showToast('分类已删除');
@@ -2070,3 +2161,6 @@ function showToast(msg, type = 'info') {
 
 window.openTitleModal = openTitleModal;
 window.openImportModal = openImportModal;
+// 暴露给 Realtime 回调使用
+window.loadCategoriesFromDatabase = loadCategoriesFromDatabase;
+window.refreshSceneSelects = refreshSceneSelects;

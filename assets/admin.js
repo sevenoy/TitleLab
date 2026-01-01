@@ -792,6 +792,89 @@ function getDisplaySettingsLSKey() {
   return `display_settings_v1_${username}`;
 }
 
+/**
+ * 从数据库读取账号分类（优先）
+ * 如果数据库读取失败，则降级到 localStorage
+ */
+async function loadAccountCategoriesFromDatabase() {
+  const user = getCurrentUser();
+  const supabase = window.supabaseClient;
+  
+  if (!user || !supabase) {
+    console.warn('[Admin] 无法从数据库读取账号分类，降级到 localStorage');
+    return null; // 返回 null 表示需要使用 localStorage
+  }
+  
+  const userTag = `user:${user.username}`;
+  
+  try {
+    const { data, error } = await supabase
+      .from('user_account_categories')
+      .select('*')
+      .eq('user_tag', userTag)
+      .order('display_order', { ascending: true });
+    
+    if (error) throw error;
+    
+    // 转换为数组格式
+    const scenes = (data || []).map(c => c.account_category_name);
+    
+    console.log('[Admin] ✅ 从数据库加载账号分类:', scenes);
+    return scenes;
+  } catch (e) {
+    console.error('[Admin] ❌ 从数据库加载账号分类失败，降级到 localStorage:', e);
+    return null; // 返回 null 表示需要使用 localStorage
+  }
+}
+
+/**
+ * 保存账号分类到数据库（优先）
+ * 同时也保存到 localStorage 作为备份
+ */
+async function saveAccountCategoriesToDatabase(scenes) {
+  const user = getCurrentUser();
+  const supabase = window.supabaseClient;
+  
+  if (!user || !supabase) {
+    console.warn('[Admin] 无法保存到数据库，仅保存到 localStorage');
+    return false;
+  }
+  
+  const userTag = `user:${user.username}`;
+  
+  try {
+    // 先删除该用户的所有账号分类
+    const { error: deleteError } = await supabase
+      .from('user_account_categories')
+      .delete()
+      .eq('user_tag', userTag);
+    
+    if (deleteError) throw deleteError;
+    
+    // 批量插入新账号分类
+    if (scenes.length > 0) {
+      const rows = scenes.map((name, index) => ({
+        user_tag: userTag,
+        account_category_name: name,
+        display_order: index
+      }));
+      
+      const { error: insertError } = await supabase
+        .from('user_account_categories')
+        .insert(rows);
+      
+      if (insertError) throw insertError;
+    }
+    
+    console.log('[Admin] ✅ 账号分类已保存到数据库:', scenes);
+    return true;
+    
+  } catch (e) {
+    console.error('[Admin] ❌ 保存账号分类到数据库失败:', e);
+    return false;
+  }
+}
+
 function loadDisplaySettings() {
   const key = getDisplaySettingsLSKey();
   const raw = localStorage.getItem(key);
@@ -825,10 +908,15 @@ function loadDisplaySettings() {
   }
 }
 
-function saveDisplaySettingsAdmin(nextSettings) {
+async function saveDisplaySettingsAdmin(nextSettings) {
   adminSettingsState = { ...adminSettingsState, ...nextSettings };
   const key = getDisplaySettingsLSKey();
   localStorage.setItem(key, JSON.stringify(adminSettingsState));
+  
+  // 如果有 scenes，保存到数据库
+  if (nextSettings.scenes) {
+    await saveAccountCategoriesToDatabase(adminSettingsState.scenes);
+  }
   
   // 触发事件通知其他页面
   window.dispatchEvent(new CustomEvent('settingsUpdated', { 
@@ -891,13 +979,13 @@ function renderSceneListAdmin() {
       area.appendChild(saveBtn);
       area.appendChild(cancelBtn);
       row.replaceChild(area, name);
-      saveBtn.addEventListener('click', () => {
+      saveBtn.addEventListener('click', async () => {
         const trimmed = (editor.value || '').trim();
         if (!trimmed) return;
         const dup = adminSettingsState.scenes.some((item, idx) => item === trimmed && idx !== index);
         if (dup) { showToast('已存在同名账号'); return; }
         adminSettingsState.scenes[index] = trimmed;
-        saveDisplaySettingsAdmin({ scenes: [...adminSettingsState.scenes] });
+        await saveDisplaySettingsAdmin({ scenes: [...adminSettingsState.scenes] });
         renderSceneListAdmin();
         showToast('账号已修改');
       });
@@ -908,9 +996,9 @@ function renderSceneListAdmin() {
     delBtn.type = 'button';
     delBtn.className = 'function-btn ghost text-xs btn-inline';
     delBtn.textContent = '删除';
-    delBtn.addEventListener('click', () => {
+    delBtn.addEventListener('click', async () => {
       adminSettingsState.scenes.splice(index, 1);
-      saveDisplaySettingsAdmin({ scenes: [...adminSettingsState.scenes] });
+      await saveDisplaySettingsAdmin({ scenes: [...adminSettingsState.scenes] });
       renderSceneListAdmin();
       showToast('账号已删除');
     });
@@ -919,11 +1007,11 @@ function renderSceneListAdmin() {
     upBtn.type = 'button';
     upBtn.className = 'function-btn ghost text-xs btn-inline';
     upBtn.textContent = '上移';
-    upBtn.addEventListener('click', () => {
+    upBtn.addEventListener('click', async () => {
       if (index <= 0) return;
       const arr = [...adminSettingsState.scenes];
       [arr[index - 1], arr[index]] = [arr[index], arr[index - 1]];
-      saveDisplaySettingsAdmin({ scenes: arr });
+      await saveDisplaySettingsAdmin({ scenes: arr });
       renderSceneListAdmin();
     });
 
@@ -931,11 +1019,11 @@ function renderSceneListAdmin() {
     downBtn.type = 'button';
     downBtn.className = 'function-btn ghost text-xs btn-inline';
     downBtn.textContent = '下移';
-    downBtn.addEventListener('click', () => {
+    downBtn.addEventListener('click', async () => {
       if (index >= adminSettingsState.scenes.length - 1) return;
       const arr = [...adminSettingsState.scenes];
       [arr[index + 1], arr[index]] = [arr[index], arr[index + 1]];
-      saveDisplaySettingsAdmin({ scenes: arr });
+      await saveDisplaySettingsAdmin({ scenes: arr });
       renderSceneListAdmin();
     });
 
@@ -949,9 +1037,17 @@ function renderSceneListAdmin() {
   });
 }
 
-function bindSceneManagement() {
+async function bindSceneManagement() {
+  // 优先从数据库加载账号分类
+  const scenesFromDB = await loadAccountCategoriesFromDatabase();
+  
   // 加载设置
   adminSettingsState = loadDisplaySettings();
+  
+  // 如果数据库有数据，使用数据库的数据
+  if (scenesFromDB !== null) {
+    adminSettingsState.scenes = scenesFromDB;
+  }
   
   // 渲染列表
   renderSceneListAdmin();
@@ -965,7 +1061,7 @@ function bindSceneManagement() {
     return;
   }
 
-  btn.addEventListener('click', () => {
+  btn.addEventListener('click', async () => {
     const value = input.value.trim();
     if (!value) return;
     
@@ -976,8 +1072,12 @@ function bindSceneManagement() {
     
     adminSettingsState.scenes.push(value);
     input.value = '';
-    saveDisplaySettingsAdmin({ scenes: [...adminSettingsState.scenes] });
+    await saveDisplaySettingsAdmin({ scenes: [...adminSettingsState.scenes] });
     renderSceneListAdmin();
     showToast('账号已添加');
   });
 }
+
+// =============== 暴露给 Realtime 回调使用 ===============
+window.loadAccountCategoriesFromDatabase = loadAccountCategoriesFromDatabase;
+window.renderSceneListAdmin = renderSceneListAdmin;

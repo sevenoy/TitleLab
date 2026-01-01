@@ -1,4 +1,4 @@
-const CACHE_NAME = 'titlelab-pwa-v32-20250101-star-sync-debug';
+const CACHE_NAME = 'titlelab-pwa-v33-20250101-realtime-categories';
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',
@@ -13,6 +13,7 @@ const OFFLINE_ASSETS = [
   '/assets/admin.js',
   '/assets/settings.js',
   '/assets/cloudSync.js',
+  '/assets/migration.js',
   '/assets/pwa.js',
   '/assets/supabase.js',
   '/assets/classifier.js',

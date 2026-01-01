@@ -2,8 +2,8 @@
 // 云端同步统一协议（对齐 XHSPHONE 白皮书思路）
 // Version: 2.0.0 - Batch delete fix
 
-const CLOUDSYNC_VERSION = '2.5.2';
-console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (添加详细的push追踪日志)`);
+const CLOUDSYNC_VERSION = '3.0.0';
+console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (实现分类和账号分类的即时同步)`);
 
 const DEFAULT_SNAPSHOT_KEY = 'default';
 const DEVICE_ID_STORAGE_KEY = 'cloudsync_device_id';
@@ -1633,6 +1633,58 @@ async function startAutoSync(options = {}) {
       const tags = payload?.new?.scene_tags || payload?.old?.scene_tags;
       if (userTag && (!Array.isArray(tags) || !tags.includes(userTag))) return;
       pull('realtime_contents');
+    })
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'user_categories',
+      filter: userTag ? `user_tag=eq.${userTag}` : undefined
+    }, (payload) => {
+      console.log('[cloudSync] Realtime: 检测到分类变化', payload);
+      // 触发分类刷新
+      if (window.loadCategoriesFromDatabase) {
+        window.loadCategoriesFromDatabase();
+      }
+    })
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'user_account_categories',
+      filter: userTag ? `user_tag=eq.${userTag}` : undefined
+    }, (payload) => {
+      console.log('[cloudSync] Realtime: 检测到账号分类变化', payload);
+      // 触发账号分类刷新
+      if (window.loadAccountCategoriesFromDatabase) {
+        window.loadAccountCategoriesFromDatabase().then(scenes => {
+          if (scenes !== null) {
+            // 更新 localStorage 中的 display_settings
+            const user = window.getCurrentUser ? window.getCurrentUser() : null;
+            if (user) {
+              const key = `display_settings_v1_${user.username}`;
+              const raw = localStorage.getItem(key);
+              try {
+                const settings = raw ? JSON.parse(raw) : {};
+                settings.scenes = scenes;
+                localStorage.setItem(key, JSON.stringify(settings));
+                // 触发事件通知页面刷新
+                window.dispatchEvent(new CustomEvent('settingsUpdated', { 
+                  detail: { scope: 'account_categories', scenes } 
+                }));
+                // 刷新 scene select
+                if (window.refreshSceneSelects) {
+                  window.refreshSceneSelects();
+                }
+                // 如果在管理页面，刷新账号列表
+                if (window.renderSceneListAdmin) {
+                  window.renderSceneListAdmin();
+                }
+              } catch (e) {
+                console.error('[cloudSync] Realtime: 更新账号分类失败', e);
+              }
+            }
+          }
+        });
+      }
     })
     .subscribe((status) => {
       if (status === 'SUBSCRIBED') {
