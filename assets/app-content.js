@@ -941,7 +941,7 @@ function openAddCategoryModalContent() {
   const close = () => { modal.classList.add('hidden'); };
   btnClose.onclick = close;
   btnCancel.onclick = close;
-  btnConfirm.onclick = () => {
+  btnConfirm.onclick = async () => {
     const trimmed = input.value.trim();
     if (!trimmed) { showToast('分类名不能为空', 'error'); return; }
     if (state.categories.includes(trimmed)) { showToast('已存在同名分类', 'error'); return; }
@@ -967,7 +967,7 @@ function openDeleteCategoryModalContent() {
   const close = () => { modal.classList.add('hidden'); };
   btnClose.onclick = close;
   btnCancel.onclick = close;
-  btnConfirm.onclick = () => {
+  btnConfirm.onclick = async () => {
     const target = state.currentCategory;
     state.categories = state.categories.filter((c) => c !== target);
     // 不清空条目的 main_category 标签，便于后续重新新增分类时正确统计

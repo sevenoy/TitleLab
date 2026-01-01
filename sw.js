@@ -1,4 +1,4 @@
-const CACHE_NAME = 'titlelab-pwa-v34-20250101-fix-async-await';
+const CACHE_NAME = 'titlelab-pwa-v35-20250101-fix-all-async';
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',
