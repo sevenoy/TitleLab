@@ -2,8 +2,8 @@
 // 云端同步统一协议（对齐 XHSPHONE 白皮书思路）
 // Version: 2.0.0 - Batch delete fix
 
-const CLOUDSYNC_VERSION = '3.1.2';
-console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (增强 Realtime 分类同步调试)`);
+const CLOUDSYNC_VERSION = '3.1.3';
+console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (修复：不再用 localStorage 覆盖数据库分类)`);
 
 const DEFAULT_SNAPSHOT_KEY = 'default';
 const DEVICE_ID_STORAGE_KEY = 'cloudsync_device_id';
@@ -980,24 +980,12 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
     if (insError) throw insError;
   }
 
-  // 恢复分类和视图设置到 localStorage
-  const titleCatsKey = `title_categories_v1_${username}`;
-  const contentCatsKey = `content_categories_v1_${username}`;
+  // 恢复视图设置到 localStorage（分类不再通过 localStorage，而是存储在数据库中）
   const viewSettingsKey = `display_settings_v1_${username}`;
-
-  let categoriesUpdated = false;
   let settingsUpdated = false;
 
-  if (payload.cats && payload.cats.title) {
-    localStorage.setItem(titleCatsKey, JSON.stringify(payload.cats.title));
-    categoriesUpdated = true;
-    console.log('[cloudSync] 恢复标题分类:', payload.cats.title);
-  }
-  if (payload.cats && payload.cats.content) {
-    localStorage.setItem(contentCatsKey, JSON.stringify(payload.cats.content));
-    categoriesUpdated = true;
-    console.log('[cloudSync] 恢复文案分类:', payload.cats.content);
-  }
+  // 注意：分类数据现在存储在数据库（user_categories 表）中，不再通过 localStorage 恢复
+  // 只恢复视图设置（账号分类等）
   if (payload.view) {
     console.log('[cloudSync] 恢复场景设置:', {
       key: viewSettingsKey,
@@ -1008,38 +996,29 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
     settingsUpdated = true;
   }
 
-  // 通知页面更新本地分类与显示设置
-  if (categoriesUpdated || settingsUpdated) {
-    try {
-      // 触发 settingsUpdated 事件（app-title.js 会监听）
-      if (categoriesUpdated) {
-        window.dispatchEvent(new CustomEvent('settingsUpdated', { 
-          detail: { scope: 'categories' } 
-        }));
-      }
-      if (settingsUpdated) {
-        window.dispatchEvent(new CustomEvent('settingsUpdated', { 
-          detail: { scope: 'display_settings' } 
-        }));
-      }
-      
-      // 兼容旧的调用方式
-      if (typeof window.loadCategoriesFromLocal === 'function') {
-        window.loadCategoriesFromLocal();
-      } else if (typeof window.loadCategoriesFromLocalContent === 'function') {
-        window.loadCategoriesFromLocalContent();
-      }
-      if (typeof window.renderCategoryList === 'function') {
-        window.renderCategoryList();
-      }
-      if (typeof window.applyDisplaySettings === 'function') {
-        window.applyDisplaySettings();
-      }
-      
-      console.log('[cloudSync] 分类和场景数据已恢复并触发刷新');
-    } catch (e) {
-      console.warn('[cloudSync] 刷新分类失败:', e);
+  // 通知页面从数据库重新加载分类
+  try {
+    console.log('[cloudSync] 触发分类重新加载（从数据库）');
+    
+    // 触发分类刷新事件
+    window.dispatchEvent(new CustomEvent('settingsUpdated', { 
+      detail: { scope: 'categories' } 
+    }));
+    
+    // 直接调用数据库加载函数
+    if (typeof window.loadCategoriesFromDatabase === 'function') {
+      await window.loadCategoriesFromDatabase();
     }
+    
+    if (settingsUpdated) {
+      window.dispatchEvent(new CustomEvent('settingsUpdated', { 
+        detail: { scope: 'display_settings' } 
+      }));
+    }
+    
+    console.log('[cloudSync] 分类和场景数据已恢复并触发刷新');
+  } catch (e) {
+    console.warn('[cloudSync] 刷新分类失败:', e);
   }
 
   // 更新本地同步时间
