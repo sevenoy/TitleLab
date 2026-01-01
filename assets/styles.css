@@ -210,9 +210,12 @@
   cursor: pointer;
   transition: all 0.2s ease;
   /* 移动端触摸优化 */
-  -webkit-tap-highlight-color: transparent;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
   user-select: none;
-  touch-action: manipulation;
+  -webkit-user-select: none;
+  position: relative;
+  /* 确保可以接收点击 */
+  pointer-events: auto;
 }
 
 .theme-card:hover {
@@ -221,9 +224,12 @@
   transform: translateY(-2px);
 }
 
-/* 移动端点击态 */
-.theme-card:active {
-  transform: scale(0.98);
+/* 移动端点击反馈 */
+@media (max-width: 768px) {
+  .theme-card:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+  }
 }
 
 .theme-card.active {
@@ -237,6 +243,12 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 12px;
+  /* 防止子元素阻止点击 */
+  pointer-events: none;
+}
+
+.theme-card-header h3 {
+  pointer-events: none;
 }
 
 .theme-check-icon {
@@ -251,6 +263,7 @@
   color: transparent;
   transition: all 0.2s ease;
   flex-shrink: 0;
+  pointer-events: none;
 }
 
 .theme-card.active .theme-check-icon {
@@ -261,12 +274,14 @@
 
 .theme-preview {
   margin-top: 12px;
+  pointer-events: none;
 }
 
 .theme-preview-colors {
   display: flex;
   gap: 8px;
   margin-bottom: 8px;
+  pointer-events: none;
 }
 
 .theme-color-dot {
@@ -275,26 +290,45 @@
   border-radius: 8px;
   border: 1px solid #e5e7eb;
   flex-shrink: 0;
+  pointer-events: none;
 }
 
 /* 移动端主题卡片布局优化 */
 @media (max-width: 768px) {
+  /* 移动端单列显示，更清晰 */
   .theme-card {
-    padding: 14px;
-    min-height: 120px;
+    padding: 18px;
+    margin-bottom: 12px;
+  }
+  
+  .theme-card-header {
+    margin-bottom: 14px;
   }
   
   .theme-card-header h3 {
-    font-size: 14px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  
+  .theme-check-icon {
+    width: 26px;
+    height: 26px;
+    font-size: 15px;
   }
   
   .theme-preview-colors {
-    gap: 6px;
+    gap: 10px;
   }
   
   .theme-color-dot {
-    width: 28px;
-    height: 28px;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+  
+  .theme-preview .text-xs {
+    font-size: 13px;
+    line-height: 1.5;
   }
 }
 
@@ -1006,6 +1040,13 @@ textarea.field-input {
 .hidden { display: none !important; }
 .flex { display: flex; }
 .grid { display: grid; }
+
+/* grid 布局 - 移动端单列，桌面端双列 */
+@media (min-width: 768px) {
+  .md\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 .items-center { align-items: center; }
 .items-start { align-items: flex-start; }
 .justify-between { justify-content: space-between; }

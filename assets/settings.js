@@ -308,24 +308,28 @@ function bindThemeSwitcher() {
   const defaultCard = document.getElementById('themeDefault');
   const minimalistCard = document.getElementById('themeMinimalist');
   
+  // 主题切换处理函数
+  const handleThemeSwitch = (themeName) => {
+    console.log('[Settings] 主题切换被触发:', themeName);
+    applyTheme(themeName);
+  };
+  
   if (defaultCard) {
     // 桌面端点击事件
-    defaultCard.addEventListener('click', () => applyTheme('default'));
-    // 移动端触摸事件
-    defaultCard.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      applyTheme('default');
-    });
+    defaultCard.addEventListener('click', () => handleThemeSwitch('default'));
+    // 移动端触摸事件（不阻止默认行为，避免影响点击）
+    defaultCard.addEventListener('touchstart', (e) => {
+      e.stopPropagation();
+    }, { passive: true });
   }
   
   if (minimalistCard) {
     // 桌面端点击事件
-    minimalistCard.addEventListener('click', () => applyTheme('minimalist'));
-    // 移动端触摸事件
-    minimalistCard.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      applyTheme('minimalist');
-    });
+    minimalistCard.addEventListener('click', () => handleThemeSwitch('minimalist'));
+    // 移动端触摸事件（不阻止默认行为，避免影响点击）
+    minimalistCard.addEventListener('touchstart', (e) => {
+      e.stopPropagation();
+    }, { passive: true });
   }
   
   // 初始化时应用当前主题
@@ -334,6 +338,8 @@ function bindThemeSwitcher() {
     document.documentElement.setAttribute('data-theme', 'minimalist');
   }
   updateThemeCardActiveState(currentTheme);
+  
+  console.log('[Settings] 主题切换器已绑定, 当前主题:', currentTheme);
 }
 
 function bindResetButton() {
