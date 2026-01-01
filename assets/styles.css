@@ -13,20 +13,192 @@
   --topbar-title-color: #1990ff;
 }
 
-/* 简约现代主题 */
+/* Tech主题 - Minimalist Modern */
 [data-theme="minimalist"] {
-  --brand-blue: #111827;
-  --brand-blue-hover: #000000;
-  --ghost-bg: #f9fafb;
-  --ghost-hover: #f3f4f6;
-  --page-bg: #ffffff;
-  --panel-bg: #ffffff;
-  --panel-border: #e5e7eb;
-  --text-main: #111827;
-  --text-muted: #6b7280;
-  --table-stripe: #f9fafb;
-  --list-hover: #f3f4f6;
-  --topbar-title-color: #111827;
+  /* 颜色系统 */
+  --brand-blue: #0052FF;
+  --brand-blue-hover: #4D7CFF;
+  --ghost-bg: #FAFAFA;
+  --ghost-hover: #F1F5F9;
+  --page-bg: #FAFAFA;
+  --panel-bg: #FFFFFF;
+  --panel-border: #E2E8F0;
+  --text-main: #0F172A;
+  --text-muted: #64748B;
+  --table-stripe: #F8FAFC;
+  --list-hover: #F1F5F9;
+  --topbar-title-color: #0F172A;
+  
+  /* 间距系统 - 更大的呼吸感 */
+  --spacing-section: 32px;
+  --spacing-card: 24px;
+  --spacing-item: 16px;
+  
+  /* 圆角统一 */
+  --radius-card: 16px;
+  --radius-button: 12px;
+  --radius-input: 12px;
+  
+  /* 阴影层级 */
+  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.08);
+  --shadow-card-hover: 0 8px 24px rgba(0, 82, 255, 0.12);
+  --shadow-button: 0 4px 12px rgba(0, 82, 255, 0.24);
+}
+
+/* Tech主题样式覆盖 */
+[data-theme="minimalist"] .panel {
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--panel-border);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+[data-theme="minimalist"] .panel:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+/* Tech主题 - 主按钮渐变 */
+[data-theme="minimalist"] .function-btn:not(.ghost) {
+  background: linear-gradient(135deg, #0052FF 0%, #4D7CFF 100%);
+  border-radius: var(--radius-button);
+  box-shadow: var(--shadow-button);
+  border: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+[data-theme="minimalist"] .function-btn:not(.ghost):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 82, 255, 0.32);
+}
+
+[data-theme="minimalist"] .function-btn:not(.ghost):active {
+  transform: translateY(0);
+}
+
+/* Tech主题 - 幽灵按钮 */
+[data-theme="minimalist"] .function-btn.ghost {
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  color: var(--text-main);
+  border-radius: var(--radius-button);
+  transition: all 0.2s ease;
+}
+
+[data-theme="minimalist"] .function-btn.ghost:hover {
+  background: var(--ghost-hover);
+  border-color: var(--brand-blue);
+  color: var(--brand-blue);
+  box-shadow: none;
+  transform: none;
+}
+
+/* Tech主题 - 输入框 */
+[data-theme="minimalist"] .field-input {
+  border-radius: var(--radius-input);
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+[data-theme="minimalist"] .field-input:focus {
+  border-color: var(--brand-blue);
+  box-shadow: 0 0 0 3px rgba(0, 82, 255, 0.1);
+}
+
+/* Tech主题 - 顶部栏 */
+[data-theme="minimalist"] .topbar {
+  background: var(--panel-bg);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--panel-border);
+}
+
+/* Tech主题 - Logo */
+[data-theme="minimalist"] .logo-dot::before {
+  background: linear-gradient(135deg, #0052FF 0%, #4D7CFF 100%);
+  border-radius: 8px;
+}
+
+/* Tech主题 - 用户徽章 */
+[data-theme="minimalist"] .user-badge {
+  background: linear-gradient(135deg, #0052FF 0%, #4D7CFF 100%);
+  border-radius: 10px;
+}
+
+/* Tech主题 - 导航标签 */
+[data-theme="minimalist"] .nav-tab-active {
+  background: linear-gradient(135deg, #0052FF 0%, #4D7CFF 100%);
+  box-shadow: var(--shadow-button);
+}
+
+/* Tech主题 - 布局间距增大 */
+[data-theme="minimalist"] .layout {
+  gap: var(--spacing-section);
+}
+
+[data-theme="minimalist"] .wrap {
+  padding-bottom: 160px;
+}
+
+/* Tech主题 - 卡片内间距 */
+[data-theme="minimalist"] .panel {
+  padding: var(--spacing-card);
+}
+
+/* Tech主题 - 标题样式 */
+[data-theme="minimalist"] .text-base {
+  font-weight: 600;
+  color: var(--text-main);
+  letter-spacing: -0.01em;
+}
+
+/* Tech主题 - 文字层级 */
+[data-theme="minimalist"] body {
+  line-height: 1.7;
+}
+
+/* Tech主题 - 分类列表项 */
+[data-theme="minimalist"] .category-item {
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+[data-theme="minimalist"] .category-item:hover {
+  background: var(--list-hover);
+  transform: translateX(4px);
+}
+
+[data-theme="minimalist"] .category-item.active {
+  background: linear-gradient(135deg, rgba(0, 82, 255, 0.1) 0%, rgba(77, 124, 255, 0.1) 100%);
+  border-left: 3px solid var(--brand-blue);
+}
+
+/* Tech主题 - 标题卡片项 */
+[data-theme="minimalist"] .title-row {
+  border-radius: 12px;
+  border: 1px solid var(--panel-border);
+  transition: all 0.2s ease;
+}
+
+[data-theme="minimalist"] .title-row:hover {
+  border-color: var(--brand-blue);
+  box-shadow: 0 4px 12px rgba(0, 82, 255, 0.08);
+  transform: translateY(-1px);
+}
+
+/* Tech主题 - 星标按钮 */
+[data-theme="minimalist"] .star-btn.active {
+  background: linear-gradient(135deg, rgba(0, 82, 255, 0.1) 0%, rgba(77, 124, 255, 0.1) 100%);
+  border-color: var(--brand-blue);
+  color: var(--brand-blue);
+}
+
+/* Tech主题 - 主题卡片特殊样式 */
+[data-theme="minimalist"] .theme-card.active {
+  border-color: var(--brand-blue);
+  background: linear-gradient(135deg, rgba(0, 82, 255, 0.02) 0%, rgba(77, 124, 255, 0.02) 100%);
+  box-shadow: 0 8px 24px rgba(0, 82, 255, 0.12);
 }
 
 /* 主题卡片样式 */

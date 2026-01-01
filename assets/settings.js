@@ -284,7 +284,7 @@ function applyTheme(themeName) {
   updateThemeCardActiveState(themeName);
   
   console.log('[Settings] 主题已切换:', themeName);
-  showSettingsToast(`已切换到 ${themeName === 'minimalist' ? '简约现代' : '默认样式'} 主题`);
+  showSettingsToast(`已切换到 ${themeName === 'minimalist' ? 'Tech Style' : '默认样式'} 主题`);
 }
 
 // 更新主题卡片的激活状态

@@ -42,7 +42,7 @@
     // 应用主题到 documentElement
     if (theme === 'minimalist') {
       document.documentElement.setAttribute('data-theme', 'minimalist');
-      console.log('[Theme] 已应用简约现代主题');
+      console.log('[Theme] 已应用 Tech Style 主题');
     } else {
       document.documentElement.removeAttribute('data-theme');
       console.log('[Theme] 已应用默认主题');
