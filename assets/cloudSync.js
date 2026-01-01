@@ -1056,7 +1056,25 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
       scenes: payload.view.scenes,
       scenesCount: payload.view.scenes?.length
     });
-    localStorage.setItem(viewSettingsKey, JSON.stringify(payload.view));
+    
+    // 读取现有设置，保留 theme 字段
+    let existingSettings = {};
+    try {
+      const raw = localStorage.getItem(viewSettingsKey);
+      if (raw) {
+        existingSettings = JSON.parse(raw);
+      }
+    } catch (e) {
+      console.warn('[cloudSync] 读取现有设置失败:', e);
+    }
+    
+    // 合并设置：云端数据优先，但保留本地的 theme 字段
+    const mergedSettings = {
+      ...payload.view,
+      theme: existingSettings.theme || payload.view.theme || 'default'
+    };
+    
+    localStorage.setItem(viewSettingsKey, JSON.stringify(mergedSettings));
     settingsUpdated = true;
   }
 
