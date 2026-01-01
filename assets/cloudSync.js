@@ -2,8 +2,8 @@
 // 云端同步统一协议（对齐 XHSPHONE 白皮书思路）
 // Version: 2.0.0 - Batch delete fix
 
-const CLOUDSYNC_VERSION = '3.1.1';
-console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (添加共享分类调试日志)`);
+const CLOUDSYNC_VERSION = '3.1.2';
+console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (增强 Realtime 分类同步调试)`);
 
 const DEFAULT_SNAPSHOT_KEY = 'default';
 const DEVICE_ID_STORAGE_KEY = 'cloudsync_device_id';
@@ -1630,12 +1630,27 @@ async function startAutoSync(options = {}) {
       table: 'user_categories',
       filter: userTag ? `user_tag=eq.${userTag}` : undefined
     }, (payload) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:Realtime',message:'Shared categories change detected',data:{eventType:payload.eventType,table:payload.table,hasCallback:!!window.loadCategoriesFromDatabase},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'REALTIME',runId:'diagnose-realtime'})}).catch(()=>{});
+      // #endregion
+      
       console.log('[cloudSync] Realtime: 检测到共享分类变化', payload);
       // 触发分类刷新（标题和文案页面共用同一个分类列表）
       if (window.loadCategoriesFromDatabase) {
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:Realtime',message:'Calling loadCategoriesFromDatabase',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'REALTIME',runId:'diagnose-realtime'})}).catch(()=>{});
+        // #endregion
+        
         window.loadCategoriesFromDatabase().then(() => {
+          // #region agent log
+          fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:Realtime',message:'Categories reloaded successfully',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'REALTIME',runId:'diagnose-realtime'})}).catch(()=>{});
+          // #endregion
           console.log('[cloudSync] Realtime: 分类已刷新');
         });
+      } else {
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:Realtime',message:'WARNING: loadCategoriesFromDatabase not found',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'REALTIME',runId:'diagnose-realtime'})}).catch(()=>{});
+        // #endregion
       }
     })
     .on('postgres_changes', {

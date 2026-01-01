@@ -1,4 +1,4 @@
-const CACHE_NAME = 'titlelab-pwa-v39-20250101-debug-shared';
+const CACHE_NAME = 'titlelab-pwa-v40-20250101-realtime-debug';
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',
