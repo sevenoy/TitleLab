@@ -7,7 +7,8 @@ const DEFAULT_DISPLAY_SETTINGS = {
   hoverColor: '#eef2ff',
   scenes: ['港迪城堡', '烟花', '夜景', '香港街拍'],
   titleText: '标题与文案管理系统',
-  titleColor: '#1990ff'
+  titleColor: '#1990ff',
+  theme: 'default' // 默认主题
 };
 
 // 获取带用户名的 localStorage key（每个账号单独存储）
@@ -267,6 +268,62 @@ function bindSceneAdder() {
   });
 }
 
+// 主题切换函数
+function applyTheme(themeName) {
+  // 保存主题到状态和 localStorage
+  saveDisplaySettings({ theme: themeName });
+  
+  // 应用主题到 documentElement
+  if (themeName === 'minimalist') {
+    document.documentElement.setAttribute('data-theme', 'minimalist');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+  
+  // 更新主题卡片的激活状态
+  updateThemeCardActiveState(themeName);
+  
+  console.log('[Settings] 主题已切换:', themeName);
+  showSettingsToast(`已切换到 ${themeName === 'minimalist' ? '简约现代' : '默认样式'} 主题`);
+}
+
+// 更新主题卡片的激活状态
+function updateThemeCardActiveState(themeName) {
+  const defaultCard = document.getElementById('themeDefault');
+  const minimalistCard = document.getElementById('themeMinimalist');
+  
+  if (defaultCard && minimalistCard) {
+    if (themeName === 'minimalist') {
+      defaultCard.classList.remove('active');
+      minimalistCard.classList.add('active');
+    } else {
+      defaultCard.classList.add('active');
+      minimalistCard.classList.remove('active');
+    }
+  }
+}
+
+// 绑定主题切换事件
+function bindThemeSwitcher() {
+  const defaultCard = document.getElementById('themeDefault');
+  const minimalistCard = document.getElementById('themeMinimalist');
+  
+  if (defaultCard) {
+    defaultCard.addEventListener('click', () => applyTheme('default'));
+  }
+  
+  if (minimalistCard) {
+    minimalistCard.addEventListener('click', () => applyTheme('minimalist'));
+  }
+  
+  // 初始化时应用当前主题
+  const currentTheme = settingsState.theme || 'default';
+  if (currentTheme === 'minimalist') {
+    document.documentElement.setAttribute('data-theme', 'minimalist');
+  }
+  updateThemeCardActiveState(currentTheme);
+}
+
 function bindResetButton() {
   const btn = document.getElementById('btnResetSettings');
   if (!btn) return;
@@ -362,6 +419,7 @@ function initSettingsPage() {
   settingsState = loadDisplaySettings();
   hydrateFormValues();
   applyDisplayPreview();
+  bindThemeSwitcher(); // 绑定主题切换
   bindSceneAdder();
   bindResetButton();
   bindImportExport();

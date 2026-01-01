@@ -11,6 +11,10 @@
     <meta name="theme-color" content="#ffffff" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="stylesheet" href="assets/styles.css" />
+    
+    <!-- 主题管理（必须在 styles.css 之后，其他脚本之前加载） -->
+    <script src="assets/theme.js"></script>
+    
     <link rel="icon" type="image/png" sizes="192x192" href="icon/icon-192.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="icon/icon-512.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="icon/icon-192.png" />
@@ -54,9 +58,58 @@
       </div>
 
       <main class="layout flex-col gap-3">
+        <!-- 主题选择 -->
         <section class="panel">
           <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
-            <h2 class="text-base font-semibold">主题与显示</h2>
+            <h2 class="text-base font-semibold">主题风格</h2>
+            <div>
+              <div class="text-xs text-gray-500">切换后即时生效</div>
+            </div>
+          </div>
+
+          <div class="grid gap-3 md:grid-cols-2">
+            <!-- 默认样式 -->
+            <div id="themeDefault" class="theme-card active" data-theme="default">
+              <div class="theme-card-header">
+                <h3 class="text-base font-semibold">默认样式</h3>
+                <div class="theme-check-icon">✓</div>
+              </div>
+              <div class="theme-preview">
+                <div class="theme-preview-colors">
+                  <div class="theme-color-dot" style="background: #1990ff;"></div>
+                  <div class="theme-color-dot" style="background: #eef2ff;"></div>
+                  <div class="theme-color-dot" style="background: #f5f7fb;"></div>
+                </div>
+                <div class="text-xs text-gray-500 mt-2">
+                  科技蓝 · 圆润设计 · 适合现代应用
+                </div>
+              </div>
+            </div>
+
+            <!-- 简约现代 -->
+            <div id="themeMinimalist" class="theme-card" data-theme="minimalist">
+              <div class="theme-card-header">
+                <h3 class="text-base font-semibold">简约现代</h3>
+                <div class="theme-check-icon">✓</div>
+              </div>
+              <div class="theme-preview">
+                <div class="theme-preview-colors">
+                  <div class="theme-color-dot" style="background: #111827;"></div>
+                  <div class="theme-color-dot" style="background: #f9fafb;"></div>
+                  <div class="theme-color-dot" style="background: #ffffff;"></div>
+                </div>
+                <div class="text-xs text-gray-500 mt-2">
+                  黑白灰 · 极简设计 · 专注内容
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 主题与显示配置 -->
+        <section class="panel">
+          <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <h2 class="text-base font-semibold">自定义颜色</h2>
             <div>
               <div class="text-xs text-gray-500">即时保存 · 本地生效</div>
             </div>

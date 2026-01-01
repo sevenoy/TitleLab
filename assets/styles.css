@@ -13,6 +13,88 @@
   --topbar-title-color: #1990ff;
 }
 
+/* 简约现代主题 */
+[data-theme="minimalist"] {
+  --brand-blue: #111827;
+  --brand-blue-hover: #000000;
+  --ghost-bg: #f9fafb;
+  --ghost-hover: #f3f4f6;
+  --page-bg: #ffffff;
+  --panel-bg: #ffffff;
+  --panel-border: #e5e7eb;
+  --text-main: #111827;
+  --text-muted: #6b7280;
+  --table-stripe: #f9fafb;
+  --list-hover: #f3f4f6;
+  --topbar-title-color: #111827;
+}
+
+/* 主题卡片样式 */
+.theme-card {
+  padding: 16px;
+  border-radius: 16px;
+  border: 2px solid #e5e7eb;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.theme-card:hover {
+  border-color: var(--brand-blue);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  transform: translateY(-2px);
+}
+
+.theme-card.active {
+  border-color: var(--brand-blue);
+  background: #f9fafb;
+  box-shadow: 0 4px 12px rgba(25, 144, 255, 0.15);
+}
+
+.theme-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.theme-check-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #d1d5db;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: transparent;
+  transition: all 0.2s ease;
+}
+
+.theme-card.active .theme-check-icon {
+  background: var(--brand-blue);
+  border-color: var(--brand-blue);
+  color: #ffffff;
+}
+
+.theme-preview {
+  margin-top: 12px;
+}
+
+.theme-preview-colors {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.theme-color-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
