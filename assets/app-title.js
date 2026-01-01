@@ -420,6 +420,61 @@ async function saveCategoriesToDatabase() {
   }
 }
 
+/**
+ * 从数据库读取账号分类（优先）
+ * 如果数据库读取失败，则降级到 localStorage
+ */
+async function loadAccountCategoriesFromDatabase() {
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:loadAccountCategoriesFromDatabase',message:'START loading account categories',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1',runId:'diagnose'})}).catch(()=>{});
+  // #endregion
+  
+  const user = getCurrentUser();
+  if (!user || !supabase) {
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:loadAccountCategoriesFromDatabase',message:'No user or supabase, fallback to getDisplaySettings',data:{hasUser:!!user,hasSupabase:!!supabase},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1',runId:'diagnose'})}).catch(()=>{});
+    // #endregion
+    console.warn('[TitleApp] 无法从数据库读取账号分类，降级到 localStorage');
+    return getDisplaySettings().scenes || [];
+  }
+  
+  const userTag = `user:${user.username}`;
+  
+  try {
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:loadAccountCategoriesFromDatabase',message:'Before supabase query',data:{userTag},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1',runId:'diagnose'})}).catch(()=>{});
+    // #endregion
+    
+    const { data, error } = await supabase
+      .from('user_account_categories')
+      .select('*')
+      .eq('user_tag', userTag)
+      .order('display_order', { ascending: true });
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:loadAccountCategoriesFromDatabase',message:'After supabase query',data:{hasData:!!data,dataLength:data?.length,hasError:!!error,errorMsg:error?.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1',runId:'diagnose'})}).catch(()=>{});
+    // #endregion
+    
+    if (error) throw error;
+    
+    // 转换为数组格式
+    const scenes = (data || []).map(c => c.account_category_name);
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:loadAccountCategoriesFromDatabase',message:'SUCCESS loaded account categories',data:{scenes,scenesCount:scenes.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1',runId:'diagnose'})}).catch(()=>{});
+    // #endregion
+    
+    console.log('[TitleApp] ✅ 从数据库加载账号分类:', scenes);
+    return scenes;
+  } catch (e) {
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:loadAccountCategoriesFromDatabase',message:'Database query FAILED, fallback to getDisplaySettings',data:{errorMsg:e?.message,errorCode:e?.code},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1',runId:'diagnose'})}).catch(()=>{});
+    // #endregion
+    console.error('[TitleApp] ❌ 从数据库加载账号分类失败，降级到 localStorage:', e);
+    return getDisplaySettings().scenes || [];
+  }
+}
+
 function saveCategoriesToLocal() {
   const key = getCategoryLSKey();
   localStorage.setItem(key, JSON.stringify(state.categories));
@@ -1308,11 +1363,21 @@ function refreshModalCategoryOptions(selectEl) {
   });
 }
 
-// 刷新场景下拉菜单（从场景管理设置获取）
-function refreshSceneSelects() {
+// 刷新场景下拉菜单（从数据库获取最新账号分类）
+async function refreshSceneSelects() {
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:refreshSceneSelects',message:'START refreshSceneSelects',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3',runId:'diagnose'})}).catch(()=>{});
+  // #endregion
+  
   console.log('[TitleApp] refreshSceneSelects 开始刷新账号下拉框');
-  const settings = getDisplaySettings();
-  const scenes = settings.scenes || [];
+  
+  // 从数据库加载最新账号分类
+  const scenes = await loadAccountCategoriesFromDatabase();
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-title.js:refreshSceneSelects',message:'Loaded scenes from database',data:{scenes,scenesCount:scenes.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3',runId:'diagnose'})}).catch(()=>{});
+  // #endregion
+  
   console.log('[TitleApp] refreshSceneSelects 账号列表:', {
     scenes,
     scenesCount: scenes.length
@@ -2163,4 +2228,5 @@ window.openTitleModal = openTitleModal;
 window.openImportModal = openImportModal;
 // 暴露给 Realtime 回调使用
 window.loadCategoriesFromDatabase = loadCategoriesFromDatabase;
+window.loadAccountCategoriesFromDatabase = loadAccountCategoriesFromDatabase;
 window.refreshSceneSelects = refreshSceneSelects;

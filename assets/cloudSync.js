@@ -2,8 +2,8 @@
 // 云端同步统一协议（对齐 XHSPHONE 白皮书思路）
 // Version: 2.0.0 - Batch delete fix
 
-const CLOUDSYNC_VERSION = '3.0.3';
-console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (修复 cloudLoadLatest 中的 ReferenceError)`);
+const CLOUDSYNC_VERSION = '3.0.4';
+console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (修复账号分类即时同步)`);
 
 const DEFAULT_SNAPSHOT_KEY = 'default';
 const DEVICE_ID_STORAGE_KEY = 'cloudsync_device_id';
@@ -1642,10 +1642,22 @@ async function startAutoSync(options = {}) {
       table: 'user_account_categories',
       filter: userTag ? `user_tag=eq.${userTag}` : undefined
     }, (payload) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:Realtime',message:'Account categories change detected',data:{eventType:payload.eventType,hasCallback:!!window.loadAccountCategoriesFromDatabase},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2',runId:'diagnose'})}).catch(()=>{});
+      // #endregion
+      
       console.log('[cloudSync] Realtime: 检测到账号分类变化', payload);
       // 触发账号分类刷新
       if (window.loadAccountCategoriesFromDatabase) {
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:Realtime',message:'Calling loadAccountCategoriesFromDatabase',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2',runId:'diagnose'})}).catch(()=>{});
+        // #endregion
+        
         window.loadAccountCategoriesFromDatabase().then(scenes => {
+          // #region agent log
+          fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:Realtime',message:'loadAccountCategoriesFromDatabase resolved',data:{scenes,scenesCount:scenes?.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2',runId:'diagnose'})}).catch(()=>{});
+          // #endregion
+          
           if (scenes !== null) {
             // 更新 localStorage 中的 display_settings
             const user = window.getCurrentUser ? window.getCurrentUser() : null;
@@ -1662,6 +1674,9 @@ async function startAutoSync(options = {}) {
                 }));
                 // 刷新 scene select
                 if (window.refreshSceneSelects) {
+                  // #region agent log
+                  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cloudSync.js:Realtime',message:'Calling refreshSceneSelects',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2',runId:'diagnose'})}).catch(()=>{});
+                  // #endregion
                   window.refreshSceneSelects();
                 }
                 // 如果在管理页面，刷新账号列表

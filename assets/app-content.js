@@ -303,6 +303,39 @@ async function loadCategoriesFromDatabase() {
   }
 }
 
+/**
+ * 从数据库读取账号分类（优先）
+ * 如果数据库读取失败，则降级到 localStorage
+ */
+async function loadAccountCategoriesFromDatabase() {
+  const user = getCurrentUser();
+  if (!user || !supabase) {
+    console.warn('[ContentApp] 无法从数据库读取账号分类，降级到 localStorage');
+    return getDisplaySettings().scenes || [];
+  }
+  
+  const userTag = `user:${user.username}`;
+  
+  try {
+    const { data, error } = await supabase
+      .from('user_account_categories')
+      .select('*')
+      .eq('user_tag', userTag)
+      .order('display_order', { ascending: true });
+    
+    if (error) throw error;
+    
+    // 转换为数组格式
+    const scenes = (data || []).map(c => c.account_category_name);
+    
+    console.log('[ContentApp] ✅ 从数据库加载账号分类:', scenes);
+    return scenes;
+  } catch (e) {
+    console.error('[ContentApp] ❌ 从数据库加载账号分类失败，降级到 localStorage:', e);
+    return getDisplaySettings().scenes || [];
+  }
+}
+
 function loadCategoriesFromLocal() {
   // #region agent log
   fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:200',message:'loadCategoriesFromLocal ENTRY (content)',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
@@ -1272,10 +1305,10 @@ function renderSceneFilterOptions(settings) {
   state.filters.scene = filterScene.value || '';
 }
 
-// 刷新场景下拉菜单（从场景管理设置获取）
-function refreshSceneSelects() {
-  const settings = getDisplaySettings();
-  const scenes = settings.scenes || [];
+// 刷新场景下拉菜单（从数据库获取最新账号分类）
+async function refreshSceneSelects() {
+  // 从数据库加载最新账号分类
+  const scenes = await loadAccountCategoriesFromDatabase();
   
   // 更新 filterScene（场景筛选）
   const filterScene = document.getElementById('filterScene');
@@ -1699,3 +1732,5 @@ function showToast(msg, type = 'info') {
 
 // =============== 暴露给 Realtime 回调使用 ===============
 window.loadCategoriesFromDatabase = loadCategoriesFromDatabase;
+window.loadAccountCategoriesFromDatabase = loadAccountCategoriesFromDatabase;
+window.refreshSceneSelects = refreshSceneSelects;

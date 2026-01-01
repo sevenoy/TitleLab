@@ -1,4 +1,4 @@
-const CACHE_NAME = 'titlelab-pwa-v36-20250101-fix-cloudsync-error';
+const CACHE_NAME = 'titlelab-pwa-v37-20250101-fix-account-categories';
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',
