@@ -56,8 +56,16 @@ function validateUser(user) {
   return ALLOWED_USERS.includes(user.username);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:59',message:'DOMContentLoaded START',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A',runId:'diagnose'})}).catch(()=>{});
+  // #endregion
+  
   const user = getCurrentUser();
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:61',message:'getCurrentUser result',data:{hasUser:!!user,username:user?.username},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A',runId:'diagnose'})}).catch(()=>{});
+  // #endregion
+  
   if (!user || !validateUser(user)) { 
     // 清除无效的用户信息
     try { localStorage.removeItem('current_user_v1'); } catch (_) {}
@@ -69,8 +77,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // #endregion
   applyDisplaySettings();
   
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:70',message:'Before loadCategoriesFromDatabase',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A',runId:'diagnose'})}).catch(()=>{});
+  // #endregion
+  
   // 分类 - 优先从数据库加载，失败则从本地加载
-  loadCategoriesFromDatabase();
+  await loadCategoriesFromDatabase();
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:73',message:'After loadCategoriesFromDatabase',data:{categoriesCount:state.categories?.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A',runId:'diagnose'})}).catch(()=>{});
+  // #endregion
+  
   renderCategoryList();
   bindCategoryButtons();
   setupMobileCategoryDropdown();
@@ -113,8 +130,22 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnLoginHeader) btnLoginHeader.onclick = () => { window.location.href = 'login.html'; };
   if (btnLogout) btnLogout.classList.remove('hidden');
   if (btnLoginHeader) btnLoginHeader.classList.add('hidden');
-  loadContentsFromCloud();
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:133',message:'Before loadContentsFromCloud',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A',runId:'diagnose'})}).catch(()=>{});
+  // #endregion
+  
+  await loadContentsFromCloud();
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:134',message:'After loadContentsFromCloud',data:{contentsCount:state.contents?.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A',runId:'diagnose'})}).catch(()=>{});
+  // #endregion
+  
   initAutoSync();
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:135',message:'DOMContentLoaded COMPLETE',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A',runId:'diagnose'})}).catch(()=>{});
+  // #endregion
 });
 
 let pendingSnapshotKeyContent = null;
@@ -223,8 +254,15 @@ function applyDisplaySettings() {
  * 如果数据库读取失败，则降级到 localStorage
  */
 async function loadCategoriesFromDatabase() {
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:223',message:'loadCategoriesFromDatabase START',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B',runId:'diagnose'})}).catch(()=>{});
+  // #endregion
+  
   const user = getCurrentUser();
   if (!user || !supabase) {
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:229',message:'No user or supabase, fallback to localStorage',data:{hasUser:!!user,hasSupabase:!!supabase},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B',runId:'diagnose'})}).catch(()=>{});
+    // #endregion
     console.warn('[ContentApp] 无法从数据库读取分类，降级到 localStorage');
     loadCategoriesFromLocal();
     return;
@@ -233,12 +271,20 @@ async function loadCategoriesFromDatabase() {
   const userTag = `user:${user.username}`;
   
   try {
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:240',message:'Before supabase query',data:{userTag},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B',runId:'diagnose'})}).catch(()=>{});
+    // #endregion
+    
     const { data, error } = await supabase
       .from('user_categories')
       .select('*')
       .eq('user_tag', userTag)
       .eq('category_type', 'content')
       .order('display_order', { ascending: true });
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:252',message:'After supabase query',data:{hasData:!!data,dataLength:data?.length,hasError:!!error,errorMsg:error?.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B',runId:'diagnose'})}).catch(()=>{});
+    // #endregion
     
     if (error) throw error;
     
@@ -249,6 +295,9 @@ async function loadCategoriesFromDatabase() {
     console.log('[ContentApp] ✅ 从数据库加载文案分类:', categories);
     renderCategoryList();
   } catch (e) {
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:267',message:'Database query FAILED, fallback to localStorage',data:{errorMsg:e?.message,errorCode:e?.code},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B',runId:'diagnose'})}).catch(()=>{});
+    // #endregion
     console.error('[ContentApp] ❌ 从数据库加载分类失败，降级到 localStorage:', e);
     loadCategoriesFromLocal();
   }
@@ -656,13 +705,26 @@ function bindToolbar() {
 }
 
 async function loadContentsFromCloud() {
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:707',message:'loadContentsFromCloud START',data:{hasSupabase:!!supabase},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C',runId:'diagnose'})}).catch(()=>{});
+  // #endregion
+  
   if (!supabase) return;
   try {
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:710',message:'Before supabase query contents',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C',runId:'diagnose'})}).catch(()=>{});
+    // #endregion
+    
     const { data, error } = await supabase
       .from('contents')
       .select('*')
       // 按 created_at 升序：最早创建的在前，新添加的在后
       .order('created_at', { ascending: true });
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:715',message:'After supabase query contents',data:{hasData:!!data,dataLength:data?.length,hasError:!!error,errorMsg:error?.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C',runId:'diagnose'})}).catch(()=>{});
+    // #endregion
+    
     if (error) throw error;
     const user = getCurrentUser();
     const tag = user ? userTag(user.username) : null;
