@@ -209,12 +209,21 @@
   background: #ffffff;
   cursor: pointer;
   transition: all 0.2s ease;
+  /* 移动端触摸优化 */
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  touch-action: manipulation;
 }
 
 .theme-card:hover {
   border-color: var(--brand-blue);
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
   transform: translateY(-2px);
+}
+
+/* 移动端点击态 */
+.theme-card:active {
+  transform: scale(0.98);
 }
 
 .theme-card.active {
@@ -241,6 +250,7 @@
   font-size: 14px;
   color: transparent;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .theme-card.active .theme-check-icon {
@@ -264,6 +274,28 @@
   height: 32px;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+/* 移动端主题卡片布局优化 */
+@media (max-width: 768px) {
+  .theme-card {
+    padding: 14px;
+    min-height: 120px;
+  }
+  
+  .theme-card-header h3 {
+    font-size: 14px;
+  }
+  
+  .theme-preview-colors {
+    gap: 6px;
+  }
+  
+  .theme-color-dot {
+    width: 28px;
+    height: 28px;
+  }
 }
 
 

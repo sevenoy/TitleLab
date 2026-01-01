@@ -309,11 +309,23 @@ function bindThemeSwitcher() {
   const minimalistCard = document.getElementById('themeMinimalist');
   
   if (defaultCard) {
+    // 桌面端点击事件
     defaultCard.addEventListener('click', () => applyTheme('default'));
+    // 移动端触摸事件
+    defaultCard.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      applyTheme('default');
+    });
   }
   
   if (minimalistCard) {
+    // 桌面端点击事件
     minimalistCard.addEventListener('click', () => applyTheme('minimalist'));
+    // 移动端触摸事件
+    minimalistCard.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      applyTheme('minimalist');
+    });
   }
   
   // 初始化时应用当前主题
