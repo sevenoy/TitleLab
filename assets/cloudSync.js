@@ -2,8 +2,8 @@
 // 云端同步统一协议（对齐 XHSPHONE 白皮书思路）
 // Version: 2.0.0 - Batch delete fix
 
-const CLOUDSYNC_VERSION = '3.0.2';
-console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (修复所有事件处理器中的 async/await)`);
+const CLOUDSYNC_VERSION = '3.0.3';
+console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (修复 cloudLoadLatest 中的 ReferenceError)`);
 
 const DEFAULT_SNAPSHOT_KEY = 'default';
 const DEVICE_ID_STORAGE_KEY = 'cloudsync_device_id';
@@ -836,6 +836,26 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
     keyParam: key,
     actualKey: key
   });
+
+  const sessionUser = window.supabaseApi ? window.supabaseApi.getSessionUser() : null;
+
+  // 查询云端快照
+  const { data, error } = await client
+    .from('titlelab_snapshot')
+    .select('payload, updated_at')
+    .eq('key', key)
+    .maybeSingle();
+  
+  if (error && error.code !== 'PGRST116') {
+    throw error;
+  }
+  
+  if (!data || !data.payload) {
+    console.log('[cloudSync] cloudLoadLatest: 云端快照不存在');
+    return { titleCount: 0, contentCount: 0, updatedText: '暂无' };
+  }
+
+  const payload = data.payload;
   
   // 调试：检查从云端读取的 payload 中的星标数据
   console.log('[cloudSync DEBUG] cloudLoadLatest - 从云端读取的 payload:', {
@@ -851,36 +871,6 @@ async function cloudLoadLatest(key = DEFAULT_SNAPSHOT_KEY) {
     }))
   });
 
-  const sessionUser = window.supabaseApi ? window.supabaseApi.getSessionUser() : null;
-
-  // 查询云端快照
-  const { data, error } = await client
-    .from('titlelab_snapshot')
-    .select('payload, updated_at')
-    .eq('key', key)
-    .maybeSingle();
-  
-  if (error && error.code !== 'PGRST116') {
-    throw error;
-  }
-
-  // 如果查询不到记录，自动保存创建（不弹确认框）
-  if (!data || !data.payload) {
-    // 自动保存，然后自动再加载一次
-    try {
-      const saveResult = await cloudSave(key);
-      if (saveResult.saved) {
-        // 保存成功后，递归调用自身加载
-        return await cloudLoadLatest(key);
-      } else {
-        throw new Error('保存失败：' + (saveResult.message || '未知错误'));
-      }
-    } catch (saveError) {
-      throw saveError;
-    }
-  }
-
-  const payload = data.payload;
   const backupInfo = await backupIfCloudNewer(key, data.updated_at);
 
   // 获取用户标签
