@@ -2,8 +2,8 @@
 // 云端同步统一协议（对齐 XHSPHONE 白皮书思路）
 // Version: 2.0.0 - Batch delete fix
 
-const CLOUDSYNC_VERSION = '3.0.4';
-console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (修复账号分类即时同步)`);
+const CLOUDSYNC_VERSION = '3.1.0';
+console.log(`[cloudSync] 加载版本: ${CLOUDSYNC_VERSION} (统一标题和文案分类为共享分类)`);
 
 const DEFAULT_SNAPSHOT_KEY = 'default';
 const DEVICE_ID_STORAGE_KEY = 'cloudsync_device_id';
@@ -1630,10 +1630,12 @@ async function startAutoSync(options = {}) {
       table: 'user_categories',
       filter: userTag ? `user_tag=eq.${userTag}` : undefined
     }, (payload) => {
-      console.log('[cloudSync] Realtime: 检测到分类变化', payload);
-      // 触发分类刷新
+      console.log('[cloudSync] Realtime: 检测到共享分类变化', payload);
+      // 触发分类刷新（标题和文案页面共用同一个分类列表）
       if (window.loadCategoriesFromDatabase) {
-        window.loadCategoriesFromDatabase();
+        window.loadCategoriesFromDatabase().then(() => {
+          console.log('[cloudSync] Realtime: 分类已刷新');
+        });
       }
     })
     .on('postgres_changes', {

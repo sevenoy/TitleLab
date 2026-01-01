@@ -279,7 +279,7 @@ async function loadCategoriesFromDatabase() {
       .from('user_categories')
       .select('*')
       .eq('user_tag', userTag)
-      .eq('category_type', 'content')
+      .eq('category_type', 'shared')
       .order('display_order', { ascending: true });
     
     // #region agent log
@@ -379,12 +379,12 @@ async function saveCategoriesToDatabase() {
   const categoriesToSave = state.categories.filter(c => c !== '全部');
   
   try {
-    // 先删除该用户的所有文案分类
+    // 先删除该用户的所有共享分类
     const { error: deleteError } = await supabase
       .from('user_categories')
       .delete()
       .eq('user_tag', userTag)
-      .eq('category_type', 'content');
+      .eq('category_type', 'shared');
     
     if (deleteError) throw deleteError;
     
@@ -392,7 +392,7 @@ async function saveCategoriesToDatabase() {
     if (categoriesToSave.length > 0) {
       const rows = categoriesToSave.map((name, index) => ({
         user_tag: userTag,
-        category_type: 'content',
+        category_type: 'shared',
         category_name: name,
         display_order: index
       }));

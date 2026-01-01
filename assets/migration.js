@@ -6,8 +6,8 @@
 
 console.log('[Migration] 数据迁移模块已加载');
 
-// 迁移状态标记
-const MIGRATION_FLAG_KEY = 'categories_migration_completed_v1';
+// 迁移状态标记（v2：合并 title 和 content 为 shared）
+const MIGRATION_FLAG_KEY = 'categories_migration_completed_v2';
 
 /**
  * 检查是否已完成迁移
@@ -25,120 +25,67 @@ function markMigrationCompleted() {
 }
 
 /**
- * 迁移标题分类到数据库
+ * 迁移分类到数据库（合并标题和文案分类为共享分类）
  */
-async function migrateTitleCategories(username, userTag) {
+async function migrateSharedCategories(username, userTag) {
   const supabase = window.supabaseClient;
   if (!supabase) {
-    console.warn('[Migration] Supabase 客户端未初始化，跳过标题分类迁移');
+    console.warn('[Migration] Supabase 客户端未初始化，跳过分类迁移');
     return { success: false, count: 0 };
   }
 
   const titleCatsKey = `title_categories_v1_${username}`;
-  const titleCatsStr = localStorage.getItem(titleCatsKey);
-  
-  if (!titleCatsStr) {
-    console.log('[Migration] 未找到标题分类数据，跳过迁移');
-    return { success: true, count: 0 };
-  }
-
-  try {
-    const titleCats = JSON.parse(titleCatsStr);
-    const categoriesToSave = titleCats.filter(c => c !== '全部');
-    
-    if (categoriesToSave.length === 0) {
-      console.log('[Migration] 标题分类为空，跳过迁移');
-      return { success: true, count: 0 };
-    }
-
-    // 构建要插入的数据
-    const rows = categoriesToSave.map((name, index) => ({
-      user_tag: userTag,
-      category_type: 'title',
-      category_name: name,
-      display_order: index
-    }));
-
-    console.log(`[Migration] 准备迁移 ${rows.length} 个标题分类:`, rows);
-
-    // 先删除该用户的旧分类（如果有）
-    const { error: deleteError } = await supabase
-      .from('user_categories')
-      .delete()
-      .eq('user_tag', userTag)
-      .eq('category_type', 'title');
-
-    if (deleteError) {
-      console.warn('[Migration] 删除旧标题分类时出错（可能是首次迁移）:', deleteError);
-    }
-
-    // 插入新分类
-    const { error: insertError } = await supabase
-      .from('user_categories')
-      .insert(rows);
-
-    if (insertError) {
-      throw insertError;
-    }
-
-    console.log(`[Migration] ✅ 标题分类迁移成功: ${rows.length} 条`);
-    return { success: true, count: rows.length };
-
-  } catch (error) {
-    console.error('[Migration] ❌ 标题分类迁移失败:', error);
-    return { success: false, count: 0, error };
-  }
-}
-
-/**
- * 迁移文案分类到数据库
- */
-async function migrateContentCategories(username, userTag) {
-  const supabase = window.supabaseClient;
-  if (!supabase) {
-    console.warn('[Migration] Supabase 客户端未初始化，跳过文案分类迁移');
-    return { success: false, count: 0 };
-  }
-
   const contentCatsKey = `content_categories_v1_${username}`;
+  const titleCatsStr = localStorage.getItem(titleCatsKey);
   const contentCatsStr = localStorage.getItem(contentCatsKey);
   
-  if (!contentCatsStr) {
-    console.log('[Migration] 未找到文案分类数据，跳过迁移');
+  // 合并标题和文案分类
+  const allCategories = new Set();
+  
+  if (titleCatsStr) {
+    try {
+      const titleCats = JSON.parse(titleCatsStr);
+      titleCats.filter(c => c !== '全部').forEach(c => allCategories.add(c));
+    } catch (e) {
+      console.warn('[Migration] 解析标题分类失败:', e);
+    }
+  }
+  
+  if (contentCatsStr) {
+    try {
+      const contentCats = JSON.parse(contentCatsStr);
+      contentCats.filter(c => c !== '全部').forEach(c => allCategories.add(c));
+    } catch (e) {
+      console.warn('[Migration] 解析文案分类失败:', e);
+    }
+  }
+  
+  const categoriesToSave = Array.from(allCategories);
+  
+  if (categoriesToSave.length === 0) {
+    console.log('[Migration] 未找到需要迁移的分类数据');
     return { success: true, count: 0 };
   }
 
   try {
-    const contentCats = JSON.parse(contentCatsStr);
-    const categoriesToSave = contentCats.filter(c => c !== '全部');
-    
-    if (categoriesToSave.length === 0) {
-      console.log('[Migration] 文案分类为空，跳过迁移');
-      return { success: true, count: 0 };
-    }
-
-    // 构建要插入的数据
+    // 构建要插入的数据（使用 shared 类型）
     const rows = categoriesToSave.map((name, index) => ({
       user_tag: userTag,
-      category_type: 'content',
+      category_type: 'shared',
       category_name: name,
       display_order: index
     }));
 
-    console.log(`[Migration] 准备迁移 ${rows.length} 个文案分类:`, rows);
+    console.log(`[Migration] 准备迁移 ${rows.length} 个共享分类:`, rows);
 
-    // 先删除该用户的旧分类（如果有）
-    const { error: deleteError } = await supabase
+    // 先删除该用户的旧分类（title 和 content 类型）
+    await supabase
       .from('user_categories')
       .delete()
       .eq('user_tag', userTag)
-      .eq('category_type', 'content');
+      .in('category_type', ['title', 'content', 'shared']);
 
-    if (deleteError) {
-      console.warn('[Migration] 删除旧文案分类时出错（可能是首次迁移）:', deleteError);
-    }
-
-    // 插入新分类
+    // 插入新的共享分类
     const { error: insertError } = await supabase
       .from('user_categories')
       .insert(rows);
@@ -147,11 +94,11 @@ async function migrateContentCategories(username, userTag) {
       throw insertError;
     }
 
-    console.log(`[Migration] ✅ 文案分类迁移成功: ${rows.length} 条`);
+    console.log(`[Migration] ✅ 共享分类迁移成功: ${rows.length} 条`);
     return { success: true, count: rows.length };
 
   } catch (error) {
-    console.error('[Migration] ❌ 文案分类迁移失败:', error);
+    console.error('[Migration] ❌ 共享分类迁移失败:', error);
     return { success: false, count: 0, error };
   }
 }
@@ -258,14 +205,13 @@ async function runMigration() {
   }
 
   try {
-    // 执行三个迁移任务
-    const titleResult = await migrateTitleCategories(username, userTag);
-    const contentResult = await migrateContentCategories(username, userTag);
+    // 执行迁移任务
+    const sharedCatsResult = await migrateSharedCategories(username, userTag);
     const accountResult = await migrateAccountCategories(username, userTag);
 
     // 汇总结果
-    const totalCount = titleResult.count + contentResult.count + accountResult.count;
-    const allSuccess = titleResult.success && contentResult.success && accountResult.success;
+    const totalCount = sharedCatsResult.count + accountResult.count;
+    const allSuccess = sharedCatsResult.success && accountResult.success;
 
     if (allSuccess) {
       console.log(`[Migration] ✅ 所有数据迁移完成，共 ${totalCount} 条记录`);
@@ -274,8 +220,7 @@ async function runMigration() {
         success: true,
         totalCount,
         details: {
-          title: titleResult.count,
-          content: contentResult.count,
+          sharedCategories: sharedCatsResult.count,
           account: accountResult.count
         }
       };
@@ -284,8 +229,7 @@ async function runMigration() {
       return {
         success: false,
         details: {
-          title: titleResult,
-          content: contentResult,
+          sharedCategories: sharedCatsResult,
           account: accountResult
         }
       };

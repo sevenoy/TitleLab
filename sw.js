@@ -1,4 +1,4 @@
-const CACHE_NAME = 'titlelab-pwa-v37-20250101-fix-account-categories';
+const CACHE_NAME = 'titlelab-pwa-v38-20250101-shared-categories';
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',
