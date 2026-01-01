@@ -216,6 +216,8 @@
   position: relative;
   /* 确保可以接收点击 */
   pointer-events: auto;
+  /* iOS Safari 特殊处理 */
+  -webkit-touch-callout: none;
 }
 
 .theme-card:hover {
@@ -243,12 +245,12 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 12px;
-  /* 防止子元素阻止点击 */
-  pointer-events: none;
+  /* 允许子元素接收事件（iOS 需要） */
+  pointer-events: auto;
 }
 
 .theme-card-header h3 {
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .theme-check-icon {
@@ -263,7 +265,7 @@
   color: transparent;
   transition: all 0.2s ease;
   flex-shrink: 0;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .theme-card.active .theme-check-icon {
@@ -274,14 +276,14 @@
 
 .theme-preview {
   margin-top: 12px;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .theme-preview-colors {
   display: flex;
   gap: 8px;
   margin-bottom: 8px;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .theme-color-dot {
@@ -290,7 +292,7 @@
   border-radius: 8px;
   border: 1px solid #e5e7eb;
   flex-shrink: 0;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 /* 移动端主题卡片布局优化 */
@@ -444,12 +446,23 @@ body, input, button, select, textarea {
   font-size: 12px;
 }
 
-/* 移动端星标徽章优化 */
+/* 移动端星标徽章优化 - 仅 Android */
 @media (max-width: 768px) {
-  .pill-muted {
-    padding: 2px 6px;
-    font-size: 11px;
-    line-height: 1.2;
+  /* Android 特定优化 */
+  @supports (-webkit-appearance: none) {
+    .pill-muted {
+      padding: 2px 6px;
+      font-size: 11px;
+      line-height: 1.2;
+    }
+  }
+  
+  /* iOS 保持原样 */
+  @supports (-webkit-touch-callout: none) {
+    .pill-muted {
+      padding: 4px 10px;
+      font-size: 12px;
+    }
   }
 }
 
@@ -1159,11 +1172,22 @@ textarea.field-input {
   border-radius: 18px;
 }
 
-/* 移动端卡片标题文字优化 */
+/* 移动端卡片标题文字优化 - 仅 Android */
 @media (max-width: 768px) {
-  .mobile-card .text-sm.font-medium {
-    font-size: 12px;
-    line-height: 1.4;
+  /* Android 特定优化 */
+  @supports (-webkit-appearance: none) {
+    .mobile-card .text-sm.font-medium {
+      font-size: 12px;
+      line-height: 1.4;
+    }
+  }
+  
+  /* iOS 保持原样 13px */
+  @supports (-webkit-touch-callout: none) {
+    .mobile-card .text-sm.font-medium {
+      font-size: 13px;
+      line-height: 1.5;
+    }
   }
 }
 

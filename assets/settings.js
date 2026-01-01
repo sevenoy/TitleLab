@@ -309,26 +309,58 @@ function bindThemeSwitcher() {
   const minimalistCard = document.getElementById('themeMinimalist');
   
   // 主题切换处理函数
-  const handleThemeSwitch = (themeName) => {
-    console.log('[Settings] 主题切换被触发:', themeName);
+  const handleThemeSwitch = (themeName, source) => {
+    console.log('[Settings] 主题切换被触发:', themeName, '来源:', source);
     applyTheme(themeName);
   };
   
   if (defaultCard) {
     // 桌面端点击事件
-    defaultCard.addEventListener('click', () => handleThemeSwitch('default'));
-    // 移动端触摸事件（不阻止默认行为，避免影响点击）
-    defaultCard.addEventListener('touchstart', (e) => {
+    defaultCard.addEventListener('click', (e) => {
+      e.preventDefault();
       e.stopPropagation();
+      handleThemeSwitch('default', 'click');
+    });
+    
+    // iOS Safari 需要 touchend
+    defaultCard.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      handleThemeSwitch('default', 'touchend');
+    }, { passive: false });
+    
+    // 增加 touchstart 视觉反馈
+    defaultCard.addEventListener('touchstart', () => {
+      defaultCard.style.opacity = '0.7';
+    }, { passive: true });
+    
+    defaultCard.addEventListener('touchcancel', () => {
+      defaultCard.style.opacity = '1';
     }, { passive: true });
   }
   
   if (minimalistCard) {
     // 桌面端点击事件
-    minimalistCard.addEventListener('click', () => handleThemeSwitch('minimalist'));
-    // 移动端触摸事件（不阻止默认行为，避免影响点击）
-    minimalistCard.addEventListener('touchstart', (e) => {
+    minimalistCard.addEventListener('click', (e) => {
+      e.preventDefault();
       e.stopPropagation();
+      handleThemeSwitch('minimalist', 'click');
+    });
+    
+    // iOS Safari 需要 touchend
+    minimalistCard.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      handleThemeSwitch('minimalist', 'touchend');
+    }, { passive: false });
+    
+    // 增加 touchstart 视觉反馈
+    minimalistCard.addEventListener('touchstart', () => {
+      minimalistCard.style.opacity = '0.7';
+    }, { passive: true });
+    
+    minimalistCard.addEventListener('touchcancel', () => {
+      minimalistCard.style.opacity = '1';
     }, { passive: true });
   }
   
