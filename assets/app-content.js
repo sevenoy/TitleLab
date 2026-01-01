@@ -450,7 +450,7 @@ function renderCategoryList() {
   updateMobileCategoryLabel();
 }
 
-function reorderCategory(index, delta) {
+async function reorderCategory(index, delta) {
   const newIndex = index + delta;
   if (index <= 0) return;
   if (newIndex <= 0) return;

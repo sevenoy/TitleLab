@@ -562,10 +562,10 @@ function renderCategoryList() {
 }
 
 // index 当前下标，delta = -1 上移 / +1 下移
-function reorderCategory(index, delta) {
+async function reorderCategory(index, delta) {
   const newIndex = index + delta;
 
-  // 0 是“全部”，不能动；其它从 1 开始
+  // 0 是"全部"，不能动；其它从 1 开始
   if (index <= 0) return;
   if (newIndex <= 0) return;
   if (newIndex >= state.categories.length) return;
