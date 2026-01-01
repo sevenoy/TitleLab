@@ -270,6 +270,8 @@ function bindSceneAdder() {
 
 // 主题切换函数
 function applyTheme(themeName) {
+  console.log('[Settings] applyTheme 被调用, themeName:', themeName);
+  
   // 保存主题到状态和 localStorage
   saveDisplaySettings({ theme: themeName });
   
@@ -286,6 +288,9 @@ function applyTheme(themeName) {
   console.log('[Settings] 主题已切换:', themeName);
   showSettingsToast(`已切换到 ${themeName === 'minimalist' ? 'Tech Style' : '默认样式'} 主题`);
 }
+
+// 暴露到 window 供 HTML onclick 使用
+window.applyTheme = applyTheme;
 
 // 更新主题卡片的激活状态
 function updateThemeCardActiveState(themeName) {
@@ -308,59 +313,76 @@ function bindThemeSwitcher() {
   const defaultCard = document.getElementById('themeDefault');
   const minimalistCard = document.getElementById('themeMinimalist');
   
+  console.log('[Settings] 绑定主题切换器, 卡片元素:', {
+    defaultCard: !!defaultCard,
+    minimalistCard: !!minimalistCard
+  });
+  
   // 主题切换处理函数
   const handleThemeSwitch = (themeName, source) => {
-    console.log('[Settings] 主题切换被触发:', themeName, '来源:', source);
+    console.log('[Settings] ===== 主题切换触发 =====');
+    console.log('[Settings] 主题:', themeName, '| 来源:', source);
+    console.log('[Settings] 时间:', new Date().toISOString());
     applyTheme(themeName);
   };
   
   if (defaultCard) {
-    // 桌面端点击事件
+    console.log('[Settings] 为默认主题卡片绑定事件');
+    
+    // 方案1: click 事件
     defaultCard.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+      console.log('[Settings] click 事件触发');
       handleThemeSwitch('default', 'click');
-    });
+    }, false);
     
-    // iOS Safari 需要 touchend
+    // 方案2: touchend 事件 (iOS 需要)
     defaultCard.addEventListener('touchend', (e) => {
+      console.log('[Settings] touchend 事件触发');
       e.preventDefault();
       e.stopPropagation();
-      handleThemeSwitch('default', 'touchend');
-    }, { passive: false });
+      handleThemeSwitch('default', 'touchend-ios');
+    }, false);
     
-    // 增加 touchstart 视觉反馈
-    defaultCard.addEventListener('touchstart', () => {
-      defaultCard.style.opacity = '0.7';
+    // 方案3: touchstart + touchend 组合
+    let touchStarted = false;
+    defaultCard.addEventListener('touchstart', (e) => {
+      console.log('[Settings] touchstart 事件触发');
+      touchStarted = true;
+      defaultCard.style.transform = 'scale(0.98)';
     }, { passive: true });
     
-    defaultCard.addEventListener('touchcancel', () => {
-      defaultCard.style.opacity = '1';
+    defaultCard.addEventListener('touchmove', () => {
+      touchStarted = false;
     }, { passive: true });
   }
   
   if (minimalistCard) {
-    // 桌面端点击事件
+    console.log('[Settings] 为 Tech 主题卡片绑定事件');
+    
+    // 方案1: click 事件
     minimalistCard.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+      console.log('[Settings] click 事件触发');
       handleThemeSwitch('minimalist', 'click');
-    });
+    }, false);
     
-    // iOS Safari 需要 touchend
+    // 方案2: touchend 事件 (iOS 需要)
     minimalistCard.addEventListener('touchend', (e) => {
+      console.log('[Settings] touchend 事件触发');
       e.preventDefault();
       e.stopPropagation();
-      handleThemeSwitch('minimalist', 'touchend');
-    }, { passive: false });
+      handleThemeSwitch('minimalist', 'touchend-ios');
+    }, false);
     
-    // 增加 touchstart 视觉反馈
-    minimalistCard.addEventListener('touchstart', () => {
-      minimalistCard.style.opacity = '0.7';
+    // 方案3: touchstart + touchend 组合
+    let touchStarted = false;
+    minimalistCard.addEventListener('touchstart', (e) => {
+      console.log('[Settings] touchstart 事件触发');
+      touchStarted = true;
+      minimalistCard.style.transform = 'scale(0.98)';
     }, { passive: true });
     
-    minimalistCard.addEventListener('touchcancel', () => {
-      minimalistCard.style.opacity = '1';
+    minimalistCard.addEventListener('touchmove', () => {
+      touchStarted = false;
     }, { passive: true });
   }
   
@@ -371,7 +393,8 @@ function bindThemeSwitcher() {
   }
   updateThemeCardActiveState(currentTheme);
   
-  console.log('[Settings] 主题切换器已绑定, 当前主题:', currentTheme);
+  console.log('[Settings] ===== 主题切换器绑定完成 =====');
+  console.log('[Settings] 当前主题:', currentTheme);
 }
 
 function bindResetButton() {

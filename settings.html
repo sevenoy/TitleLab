@@ -69,7 +69,9 @@
 
           <div class="grid gap-3 md:grid-cols-2">
             <!-- 默认样式 -->
-            <div id="themeDefault" class="theme-card active" data-theme="default">
+            <div id="themeDefault" class="theme-card active" data-theme="default" 
+                 onclick="console.log('HTML onclick: default'); if(window.applyTheme) window.applyTheme('default');"
+                 ontouchend="console.log('HTML ontouchend: default'); if(window.applyTheme) window.applyTheme('default');">
               <div class="theme-card-header">
                 <h3 class="text-base font-semibold">默认样式</h3>
                 <div class="theme-check-icon">✓</div>
@@ -87,7 +89,9 @@
             </div>
 
             <!-- Tech主题 -->
-            <div id="themeMinimalist" class="theme-card" data-theme="minimalist">
+            <div id="themeMinimalist" class="theme-card" data-theme="minimalist"
+                 onclick="console.log('HTML onclick: minimalist'); if(window.applyTheme) window.applyTheme('minimalist');"
+                 ontouchend="console.log('HTML ontouchend: minimalist'); if(window.applyTheme) window.applyTheme('minimalist');">
               <div class="theme-card-header">
                 <h3 class="text-base font-semibold">Tech Style</h3>
                 <div class="theme-check-icon">✓</div>
