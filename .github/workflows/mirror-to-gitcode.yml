@@ -1,0 +1,23 @@
+name: Mirror to GitCode
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to GitCode
+        env:
+          U: ${{ secrets.GITCODE_USERNAME }}
+          T: ${{ secrets.GITCODE_TOKEN }}
+        run: |
+          git remote add gitcode https://${U}:${T}@gitcode.com/sevenoy82/title.git
+          git push gitcode main --force
+          git push gitcode --tags --force
