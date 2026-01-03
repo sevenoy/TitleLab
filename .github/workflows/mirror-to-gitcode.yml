@@ -13,11 +13,26 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Push to GitCode
+      - name: Sanity check secrets (no leak)
         env:
           U: ${{ secrets.GITCODE_USERNAME }}
           T: ${{ secrets.GITCODE_TOKEN }}
         run: |
-          git remote add gitcode https://${U}:${T}@gitcode.com/sevenoy82/title.git
-          git push gitcode main --force
-          git push gitcode --tags --force
+          if [ -z "$U" ]; then echo "Missing secret: GITCODE_USERNAME"; exit 1; fi
+          if [ -z "$T" ]; then echo "Missing secret: GITCODE_TOKEN"; exit 1; fi
+          echo "Secrets are present."
+
+      - name: Push to GitCode (safe auth)
+        env:
+          U: ${{ secrets.GITCODE_USERNAME }}
+          T: ${{ secrets.GITCODE_TOKEN }}
+        run: |
+          git remote remove gitcode 2>/dev/null || true
+          git remote add gitcode https://gitcode.com/sevenoy82/title.git
+
+          # 用 header 方式认证，避免 token 里特殊字符把 URL 搞炸
+          git -c http.extraHeader="Authorization: Basic $(printf "%s:%s" "$U" "$T" | base64 -w 0)" \
+            push gitcode HEAD:main --force
+
+          git -c http.extraHeader="Authorization: Basic $(printf "%s:%s" "$U" "$T" | base64 -w 0)" \
+            push gitcode --tags --force
