@@ -2346,6 +2346,11 @@ window.openAiTitleModal = function(item) {
   } catch(e) {}
   
   modal.classList.remove('hidden');
+  modal.style.display = '';
+  modal.style.visibility = '';
+  modal.style.opacity = '';
+  modal.style.pointerEvents = '';
+  modal.style.zIndex = '';
 };
 
 function closeAiTitleModal() {
