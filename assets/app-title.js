@@ -167,6 +167,33 @@ function validateUser(user) {
   return ALLOWED_USERS.includes(user.username);
 }
 
+function getLocalDefaults() {
+  const user = getCurrentUser();
+  if (!user) return {};
+  const key = `local_device_default_v1_${user.username}`;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : {};
+  } catch(e) { return {}; }
+}
+
+window.saveLocalDefaults = function() {
+  const user = getCurrentUser();
+  if (!user) return;
+  const key = `local_device_default_v1_${user.username}`;
+  const filterSceneEl = document.getElementById('filterScene');
+  const data = {
+    defaultCategory: state.currentCategory,
+    defaultScene: state.filters.scene || (filterSceneEl ? filterSceneEl.value : '')
+  };
+  localStorage.setItem(key, JSON.stringify(data));
+  if (typeof showToast !== 'undefined') {
+    showToast('已保存当前筛选为本机默认配置');
+  } else {
+    alert('已保存当前筛选为本机默认配置');
+  }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
   // 确保所有模态框和覆盖层在初始化时都是隐藏的
   const allModals = document.querySelectorAll('.modal-backdrop');
@@ -195,6 +222,17 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('[TitleApp] DOMContentLoaded: init');
 
   applyDisplaySettings();
+
+  // 读取并应用本机默认预设（账号与分类）
+  const localDefs = getLocalDefaults();
+  if (localDefs.defaultCategory) {
+    state.currentCategory = localDefs.defaultCategory;
+  }
+  if (localDefs.defaultScene) {
+    state.filters.scene = localDefs.defaultScene;
+    const filterScene = document.getElementById('filterScene');
+    if (filterScene) filterScene.value = localDefs.defaultScene;
+  }
 
   // 分类 - 优先从数据库加载，失败则从本地加载
   loadCategoriesFromDatabase();
@@ -1053,6 +1091,14 @@ function renderTitles() {
     btnCopy.textContent = '复制';
     btnCopy.addEventListener('click', () => copyTitle(item));
 
+    const btnAi = document.createElement('button');
+    btnAi.className = 'function-btn ghost text-xs btn-inline btn-rect';
+    btnAi.textContent = '✨ AI仿写';
+    btnAi.title = 'AI智能扩写标题';
+    btnAi.addEventListener('click', () => {
+      if (typeof openAiTitleModal === 'function') openAiTitleModal(item);
+    });
+
     const btnEdit = document.createElement('button');
     btnEdit.className = 'function-btn ghost text-xs btn-inline btn-rect';
     btnEdit.textContent = '修改';
@@ -1063,7 +1109,7 @@ function renderTitles() {
     btnDel.textContent = '删除';
     btnDel.addEventListener('click', () => openDeleteTitleModal(item));
 
-    group.append(btnCopy, btnEdit, btnDel);
+    group.append(btnCopy, btnAi, btnEdit, btnDel);
     tdActions.appendChild(group);
     tr.appendChild(tdActions);
 
@@ -1118,6 +1164,13 @@ function renderTitles() {
     mCopy.textContent = '复制';
     mCopy.addEventListener('click', () => copyTitle(item));
 
+    const mAi = document.createElement('button');
+    mAi.className = 'function-btn ghost text-xs btn-inline';
+    mAi.textContent = '✨ AI';
+    mAi.addEventListener('click', () => {
+      if (typeof openAiTitleModal === 'function') openAiTitleModal(item);
+    });
+
     const mEdit = document.createElement('button');
     mEdit.className = 'function-btn ghost text-xs btn-inline';
     mEdit.textContent = '修改';
@@ -1128,7 +1181,7 @@ function renderTitles() {
     mDel.textContent = '删除';
     mDel.addEventListener('click', () => openDeleteTitleModal(item));
 
-    actions.append(mCopy, mEdit, mDel);
+    actions.append(mCopy, mAi, mEdit, mDel);
     headerRow.append(leftWrap, actions);
 
     card.append(headerRow);
@@ -1324,9 +1377,17 @@ function openTitleModal(item) {
     state.editingId = null;
     if (titleEl) titleEl.textContent = '新增标题';
     if (textEl) textEl.value = '';
-    if (mainCatEl)
-      mainCatEl.value = state.currentCategory === '全部' ? '' : state.currentCategory;
-    if (typeEl) typeEl.value = '';
+    const localDefs = getLocalDefaults();
+    if (mainCatEl) {
+      if (state.currentCategory !== '全部') {
+        mainCatEl.value = state.currentCategory;
+      } else if (localDefs.defaultCategory && localDefs.defaultCategory !== '全部') {
+        mainCatEl.value = localDefs.defaultCategory;
+      } else {
+        mainCatEl.value = '';
+      }
+    }
+    if (typeEl) typeEl.value = state.filters.scene || localDefs.defaultScene || '';
     if (sceneEl) sceneEl.value = '';
     
     // 新增时星标按钮默认不激活
@@ -2252,3 +2313,209 @@ window.openImportModal = openImportModal;
 window.loadCategoriesFromDatabase = loadCategoriesFromDatabase;
 window.loadAccountCategoriesFromDatabase = loadAccountCategoriesFromDatabase;
 window.refreshSceneSelects = refreshSceneSelects;
+
+// =============== 12. AI 仿写 ===============
+let currentAiTargetItem = null;
+window.openAiTitleModal = function(item) {
+  currentAiTargetItem = item;
+  const modal = document.getElementById('aiTitleModal');
+  const refTitle = document.getElementById('aiReferenceTitle');
+  const apiKeyInput = document.getElementById('aiApiKeyInput');
+  const apiUrlInput = document.getElementById('aiApiUrlInput');
+  const apiModelInput = document.getElementById('aiApiModelInput');
+  const resultBox = document.getElementById('aiResultBox');
+  if (!modal) return;
+  
+  if (refTitle) refTitle.textContent = item.text || '';
+  if (resultBox) {
+    resultBox.innerHTML = '<div class="text-gray-400 text-center py-6">填入配置后点击上方“立即生成”开始...</div>';
+  }
+  
+  try {
+    const savedConfigRaw = localStorage.getItem('ai_api_config_v1');
+    if (savedConfigRaw) {
+      const savedConfig = JSON.parse(savedConfigRaw);
+      if (apiKeyInput && savedConfig.key) apiKeyInput.value = savedConfig.key;
+      if (apiUrlInput && savedConfig.url) apiUrlInput.value = savedConfig.url;
+      if (apiModelInput && savedConfig.model) apiModelInput.value = savedConfig.model;
+    } else {
+      // 兼容旧版的 api key 存储
+      const oldKey = localStorage.getItem('deepseek_api_key_v1');
+      if (oldKey && apiKeyInput) apiKeyInput.value = oldKey;
+    }
+  } catch(e) {}
+  
+  modal.classList.remove('hidden');
+};
+
+function closeAiTitleModal() {
+  const modal = document.getElementById('aiTitleModal');
+  if (modal) modal.classList.add('hidden');
+  currentAiTargetItem = null;
+}
+
+async function runAiGenerate() {
+  const apiKeyInput = document.getElementById('aiApiKeyInput');
+  const apiUrlInput = document.getElementById('aiApiUrlInput');
+  const apiModelInput = document.getElementById('aiApiModelInput');
+  const resultBox = document.getElementById('aiResultBox');
+  if (!apiKeyInput || !resultBox) return;
+  
+  const apiKey = apiKeyInput.value.trim();
+  const apiUrl = (apiUrlInput && apiUrlInput.value.trim()) ? apiUrlInput.value.trim() : 'https://api.deepseek.com/chat/completions';
+  const apiModel = (apiModelInput && apiModelInput.value.trim()) ? apiModelInput.value.trim() : 'deepseek-chat';
+  
+  if (!apiKey) {
+    if (typeof showToast !== 'undefined') showToast('请输入 API Key', 'error');
+    else alert('请输入 API Key');
+    return;
+  }
+  
+  localStorage.setItem('ai_api_config_v1', JSON.stringify({
+    key: apiKey,
+    url: apiUrl,
+    model: apiModel
+  }));
+  
+  const text = currentAiTargetItem ? currentAiTargetItem.text : '';
+  if (!text) return;
+  
+  resultBox.innerHTML = '<div class="text-gray-500 text-center py-6">🧠 AI 思考中，请稍候...</div>';
+  
+  const btnRunAi = document.getElementById('btnRunAiGenerate');
+  if (btnRunAi) {
+    btnRunAi.disabled = true;
+    btnRunAi.textContent = '生成中...';
+    btnRunAi.classList.add('opacity-50', 'cursor-not-allowed');
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 20000); // 20秒强制超时限制
+  
+  try {
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: apiModel,
+        messages: [
+          { role: 'system', content: '你现在的角色是一名精通爆款流量逻辑的「香港迪士尼资深跟拍摄影师」。\n任务：请根据用户提供的一句参考标题，提取核心意思和受众痛点，然后发散思维，生成 10 条风格多样、角度不同的小红书爆款文案标题。\n要求：\n1. 保持香港迪士尼摄影师的人设，但不要机械照抄原标题结构。尝试不同的文案套路（如：闺蜜喊话型、攻略反差型、客片惊艳型、情绪共鸣型等）。\n2. 紧紧围绕“香港迪士尼拍照”等核心元素展开。\n3. 每个标题巧妙搭配不同类型的 Emoji 表情符号，绝对不要照搬原标题的表情。\n4. 不要任何解释说明或开头寒暄，直接输出10条结果，一行一标题，绝对不要带任何数字标号（如 1. 2. ），只输出纯标点和文本。' },
+          { role: 'user', content: `请帮我发散生成10个不同角度的小红书爆款标题，原参考标题是：${text}` }
+        ],
+        temperature: 0.85
+      })
+    });
+    
+    if (!res.ok) {
+      const err = await res.text();
+      if (res.status === 429) {
+        throw new Error('请求太快啦！触发了平台的调用频率限制，请稍等十几秒后再试。');
+      }
+      throw new Error(err || res.status);
+    }
+    
+    const data = await res.json();
+    resultBox.innerHTML = '';
+    const content = data.choices && data.choices[0] && data.choices[0].message.content || '';
+    
+    // 解析并严格清洗 AI 返回的格式（防乱码与杂音）
+    const lines = content.split('\n')
+      .map(l => {
+        let cln = l.trim();
+        cln = cln.replace(/^[-—\d\.\s\*]+/, ''); // 暴力清除前缀序列号
+        cln = cln.replace(/[\]\}\|\*=_~\s]+$/, ''); // 清除由于模型幻觉引发的尾部垃圾符号如 ]={ |m| 等
+        return cln.trim();
+      })
+      // 过滤结果：必须包含至少一个中文字符，且长度大于3，剔除纯标点空行乱码
+      .filter(cln => cln.length >= 3 && /[\u4e00-\u9fa5]/.test(cln));
+    
+    if (lines.length === 0) {
+      resultBox.innerHTML = '<div class="text-yellow-500 text-center py-6">AI 未返回有效内容，请重试</div>';
+      return;
+    }
+    
+    lines.forEach(cln => {
+      
+      const div = document.createElement('div');
+      div.className = 'flex justify-between items-center bg-white border border-gray-100 p-3 mb-2 rounded shadow-sm hover:border-blue-400 transition-colors';
+      const p = document.createElement('div');
+      p.className = 'flex-1 mr-3 text-sm text-gray-800 break-words';
+      p.textContent = cln;
+      
+      const addBtn = document.createElement('button');
+      addBtn.className = 'function-btn text-xs btn-compact shrink-0';
+      addBtn.textContent = '采用 / 编辑';
+      addBtn.onclick = () => {
+        // 核心修改：不自动关闭 AI 面板，以此支持多项采用！
+        addBtn.textContent = '已打开 ✏️';
+        addBtn.classList.add('ghost'); // 给个视觉反馈说明点过了
+        
+        if (typeof openTitleModal === 'function') openTitleModal();
+        setTimeout(() => {
+          const fieldText = document.getElementById('fieldText');
+          if (fieldText) fieldText.value = p.textContent;
+          // 复用原标题的设置
+          if (currentAiTargetItem) {
+             const mCat = document.getElementById('fieldMainCategory');
+             if (mCat && currentAiTargetItem.main_category) mCat.value = currentAiTargetItem.main_category;
+             
+             const settings = getDisplaySettings();
+             const scenes = settings.scenes || [];
+             const sceneTags = Array.isArray(currentAiTargetItem.scene_tags) ? currentAiTargetItem.scene_tags : [];
+             const accountCategory = sceneTags.find(tag => scenes.includes(tag));
+             
+             const typeEl = document.getElementById('fieldContentType');
+             if (typeEl && accountCategory) {
+               typeEl.value = accountCategory;
+             }
+             
+             const sceneEl = document.getElementById('fieldSceneTags');
+             if (sceneEl) {
+               const userTagValue = userTag(getCurrentUser().username);
+               const sceneTagsOnly = sceneTags.filter(tag => typeof tag === 'string' && !scenes.includes(tag) && tag !== userTagValue);
+               sceneEl.value = sceneTagsOnly.join(', ');
+             }
+             
+             if (currentAiTargetItem.is_starred) {
+               const btnStar = document.getElementById('btnStarTitle');
+               if (btnStar && !btnStar.classList.contains('active')) {
+                 btnStar.classList.add('active'); // 模拟星标高亮
+               }
+             }
+          }
+        }, 80);
+      };
+      
+      div.appendChild(p);
+      div.appendChild(addBtn);
+      resultBox.appendChild(div);
+    });
+    
+  } catch (e) {
+    let msg = e.message || String(e);
+    if (e.name === 'AbortError') {
+      msg = '请求超时了 (超出20秒未响应)。这段时间免费接口可能有些拥堵，请稍后重试一遍。';
+    }
+    resultBox.innerHTML = `<div class="text-red-500 py-4 text-center text-xs">调用出错: <br>${msg.substring(0,80)}</div>`;
+  } finally {
+    clearTimeout(timeoutId);
+    if (btnRunAi) {
+      btnRunAi.disabled = false;
+      btnRunAi.textContent = '✨ 立即生成';
+      btnRunAi.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const btnCloseAi = document.getElementById('btnCloseAiModal');
+  const btnCancelAi = document.getElementById('btnCancelAiModal');
+  const btnRunAi = document.getElementById('btnRunAiGenerate');
+  if (btnCloseAi) btnCloseAi.addEventListener('click', closeAiTitleModal);
+  if (btnCancelAi) btnCancelAi.addEventListener('click', closeAiTitleModal);
+  if (btnRunAi) btnRunAi.addEventListener('click', runAiGenerate);
+});

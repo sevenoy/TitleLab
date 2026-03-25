@@ -56,6 +56,33 @@ function validateUser(user) {
   return ALLOWED_USERS.includes(user.username);
 }
 
+function getLocalDefaults() {
+  const user = getCurrentUser();
+  if (!user) return {};
+  const key = `local_device_default_v1_${user.username}`;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : {};
+  } catch(e) { return {}; }
+}
+
+window.saveLocalDefaults = function() {
+  const user = getCurrentUser();
+  if (!user) return;
+  const key = `local_device_default_v1_${user.username}`;
+  const filterSceneEl = document.getElementById('filterScene');
+  const data = {
+    defaultCategory: state.currentCategory,
+    defaultScene: state.filters.scene || (filterSceneEl ? filterSceneEl.value : '')
+  };
+  localStorage.setItem(key, JSON.stringify(data));
+  if (typeof showToast !== 'undefined') {
+    showToast('已保存当前筛选为本机默认配置');
+  } else {
+    alert('已保存当前筛选为本机默认配置');
+  }
+};
+
 document.addEventListener('DOMContentLoaded', async () => {
   // #region agent log
   fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:59',message:'DOMContentLoaded START',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A',runId:'diagnose'})}).catch(()=>{});
@@ -77,6 +104,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   // #endregion
   applyDisplaySettings();
   
+  // 读取并应用本机默认预设（账号与分类）
+  const localDefs = getLocalDefaults();
+  if (localDefs.defaultCategory) {
+    state.currentCategory = localDefs.defaultCategory;
+  }
+  if (localDefs.defaultScene) {
+    state.filters.scene = localDefs.defaultScene;
+    const filterScene = document.getElementById('filterScene');
+    if (filterScene) filterScene.value = localDefs.defaultScene;
+  }
+
   // #region agent log
   fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:70',message:'Before loadCategoriesFromDatabase',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A',runId:'diagnose'})}).catch(()=>{});
   // #endregion
@@ -1127,8 +1165,17 @@ function openContentModal(item) {
     state.editingId = null;
     if (titleEl) titleEl.textContent = '新增文案';
     if (textEl) textEl.value = '';
-    if (mainCatEl) mainCatEl.value = state.currentCategory === '全部' ? '' : state.currentCategory;
-    if (typeEl) typeEl.value = '';
+    const localDefs = getLocalDefaults();
+    if (mainCatEl) {
+      if (state.currentCategory !== '全部') {
+        mainCatEl.value = state.currentCategory;
+      } else if (localDefs.defaultCategory && localDefs.defaultCategory !== '全部') {
+        mainCatEl.value = localDefs.defaultCategory;
+      } else {
+        mainCatEl.value = '';
+      }
+    }
+    if (typeEl) typeEl.value = state.filters.scene || localDefs.defaultScene || '';
     if (sceneEl) sceneEl.value = '';
     
     // 新增时星标按钮默认不激活
