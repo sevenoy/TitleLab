@@ -76,6 +76,12 @@ Phase 1 已在独立 worktree `phase1-backend-foundation` 中开始，范围限�
 
 本阶段仍禁止连接任何数据库、执行 `alembic upgrade`、部署、push、merge、上传体验版或进入 Phase 2/3 功能开发。
 
+## 8. Phase 1B 本地 migration dry-run 验证
+
+Phase 1B 已使用本机临时 SQLite 空库 `titlelab_phase1b_migration_test.db` 完成 Alembic `upgrade head -> downgrade base -> upgrade head` 验证。验证后已删除临时数据库文件，未连接生产、远程或测试共享数据库。
+
+已确认 Phase 1 核心表可创建，`workspace_members`、`content_items`、`categories`、`account_categories`、`tags`、`content_tags`、`favorites`、`usage_events`、`ai_generation_records`、`snapshots`、`audit_logs` 均包含 `workspace_id` 边界字段。
+
 ## 6. 风险与注意
 
 - 现有登录形态是静态网页时代的实现，重建时必须迁移到服务端认证。
