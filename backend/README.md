@@ -1,0 +1,81 @@
+# TitleLab Backend
+
+Current phase: Phase 1 backend foundation.
+
+This backend is intentionally minimal. It provides a FastAPI service skeleton,
+public health/meta endpoints, SQLAlchemy model definitions, and an Alembic
+schema migration file. It does not connect to production databases, run
+migrations automatically, deploy, or implement business CRUD.
+
+## Phase 1 Scope
+
+- `GET /healthz`
+- `GET /api/meta`
+- SQLAlchemy model skeleton
+- Alembic initial schema migration file
+- Placeholder-only `.env.example`
+- Minimal endpoint tests
+
+Out of scope for Phase 1:
+
+- Content CRUD
+- WeChat login
+- Mini program pages
+- Admin UI
+- Import, snapshot restore, or AI generation logic
+- Server, Nginx, DNS, deploy, or production database operations
+
+## Local Setup
+
+Use a local virtual environment or a temporary runner. Do not put real secrets
+in `.env`, `.env.example`, docs, tests, or git history.
+
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[dev]"
+```
+
+## Run Locally
+
+```bash
+cd backend
+uvicorn app.main:app --reload
+```
+
+Then check:
+
+```bash
+curl http://127.0.0.1:8000/healthz
+curl http://127.0.0.1:8000/api/meta
+```
+
+## Tests
+
+```bash
+python -m pytest
+```
+
+If dependencies are not installed locally, use a temporary `uv` run:
+
+```bash
+uv run --with fastapi --with uvicorn --with sqlalchemy --with alembic --with pydantic-settings --with pytest --with httpx python -m pytest
+```
+
+## Migration
+
+The Phase 1 migration lives at:
+
+```text
+backend/alembic/versions/0001_phase1_core_schema.py
+```
+
+It defines the initial workspace-first schema only. Do not run `alembic upgrade`
+against production. This phase does not apply migrations to any database.
+
+## Release Gate
+
+`release_ready` is hard-coded to `false` for Phase 1. Upload, review submission,
+deployment, server configuration, and production database migration remain
+blocked until an explicitly authorized release gate.

@@ -70,6 +70,12 @@ Phase 0.6 完成并经用户审核后，下一步才允许进入 Phase 1：
 
 Phase 1 不应实现完整业务 CRUD，不应创建小程序页面，不应部署生产。
 
+## 7. Phase 1 当前进度
+
+Phase 1 已在独立 worktree `phase1-backend-foundation` 中开始，范围限定为后端骨架、基础 schema migration、`GET /healthz`、`GET /api/meta` 和最小测试。
+
+本阶段仍禁止连接任何数据库、执行 `alembic upgrade`、部署、push、merge、上传体验版或进入 Phase 2/3 功能开发。
+
 ## 6. 风险与注意
 
 - 现有登录形态是静态网页时代的实现，重建时必须迁移到服务端认证。
