@@ -16,6 +16,19 @@ migrations automatically, deploy, or implement business CRUD.
 - Placeholder-only `.env.example`
 - Minimal endpoint tests
 
+## Phase 2A Scope
+
+The first Phase 2 slice adds read-only content library APIs:
+
+- `GET /api/v1/workspaces/{workspace_id}/contents`
+- `GET /api/v1/workspaces/{workspace_id}/contents/{content_id}`
+- `GET /api/v1/workspaces/{workspace_id}/categories`
+- `GET /api/v1/workspaces/{workspace_id}/tags`
+
+The contents list supports `content_type`, `category_id`, `tag_id`, `q`, `limit`,
+and `offset`. These APIs are read-only and must keep every query scoped to the
+requested `workspace_id`.
+
 Out of scope for Phase 1:
 
 - Content CRUD

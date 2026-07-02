@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 
 from app.api.health import router as health_router
 from app.api.meta import router as meta_router
+from app.api.readonly import router as readonly_router
 from app.config import PHASE, PROJECT_NAME, SERVICE_NAME
 
 app = FastAPI(
@@ -13,6 +14,7 @@ app = FastAPI(
 
 app.include_router(health_router)
 app.include_router(meta_router)
+app.include_router(readonly_router)
 
 
 @app.exception_handler(HTTPException)
