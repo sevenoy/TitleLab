@@ -1,0 +1,79 @@
+# TitleLab Phase 0 Handoff
+
+当前阶段：TITLELAB-MINIPROGRAM-PHASE-0-PRD-AND-DATABASE-DESIGN
+
+## 1. 本轮完成内容
+
+本轮为 TitleLab 小程序化重建建立 Phase 0 前期需求和技术规划文档。只做文档，不做业务代码。
+
+新增文档：
+
+- `docs/00_PROJECT_BRIEF.md`
+- `docs/01_PRD_V0_2.md`
+- `docs/02_DATABASE_DESIGN_V0_2.md`
+- `docs/03_MINIPROGRAM_ARCHITECTURE.md`
+- `docs/04_BACKEND_ARCHITECTURE.md`
+- `docs/05_DEPLOYMENT_PLAN_TENCENT_LIGHTHOUSE.md`
+- `docs/06_PHASE_ROADMAP.md`
+- `docs/07_ACCEPTANCE_CHECKLIST.md`
+- `docs/08_HANDOFF.md`
+
+## 2. 已读上下文
+
+- `README.md`
+- `CHANGELOG.md`
+- `USER_ISOLATION_CHECK.md`
+- `index.html`
+- `login.html`
+- `title.html`
+- `content.html`
+- `admin-center.html`
+- `settings.html`
+- `manifest.webmanifest`
+- `sw.js`
+
+未读取 `assets` 文件内容，因为根目录页面和现有 Markdown 已足够判断本轮需求规划。
+
+## 3. 当前功能理解
+
+现有 Web 版包含：
+
+- 登录页。
+- 标题管理页。
+- 文案管理页。
+- 分类、账号分类、场景标签。
+- 搜索、批量导入、新增、编辑、删除、清空。
+- 星标/收藏式高亮排序。
+- 云端同步和快照。
+- 管理中心：账号管理、导出、去重、归一化、分类复制、危险操作。
+- 主题设置：主题、颜色、标题显示、设置导入导出。
+- PWA 缓存与更新。
+- AI 标题扩写弹窗。
+
+## 4. 关键规划结论
+
+- 小程序端先做只读 MVP，不急着做完整编辑和管理能力。
+- 后端必须替代前端硬编码登录、localStorage key 隔离和快照式主数据。
+- 数据库核心应围绕 `users`、`workspaces`、`workspace_members`、`content_items`、`categories`、`account_categories`、`tags`、`favorites`、`usage_events`、`ai_generation_records`、`snapshots`、`audit_logs`。
+- AI Key、微信 AppSecret、数据库连接串、腾讯云密钥不得进入小程序或前端代码。
+- 腾讯轻量服务器部署留到后续 Phase；本轮只记录规划。
+
+## 5. 下一步最小建议
+
+必须先执行 Phase 0.5：Phase Plan Lock。
+
+Phase 0.5 只允许生成 `docs/09_PHASE_EXECUTION_PLAN.md` 并锁定后续开发步骤，不得跳过阶段，不得直接进入代码开发。
+
+Phase 0.5 完成并经用户审核后，下一步才允许进入 Phase 1：
+
+后端骨架 + 数据库基础 migration + `/healthz` + `/api/meta`。
+
+Phase 1 不应实现完整业务 CRUD，不应创建小程序页面，不应部署生产。
+
+## 6. 风险与注意
+
+- 现有登录形态是静态网页时代的实现，重建时必须迁移到服务端认证。
+- 现有用户隔离依赖本地 key 和快照命名规则，重建时必须转为数据库权限模型。
+- 快照恢复、清空和导出属于高风险后台能力，必须有权限控制、二次确认和审计日志。
+- AI 生成能力必须通过后端代理并记录生成历史，避免前端暴露密钥。
+- 小程序上线前必须完成 HTTPS、合法域名、备案、隐私政策和内容安全检查。
