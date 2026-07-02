@@ -20,6 +20,14 @@ TitleLab 将从现有 GitHub 静态网页/PWA 项目，逐步重建为“微信�
 - 默认禁止打印 secret、token、cookie、password、AppSecret、API key、DB 密码。
 - 默认禁止 reset、checkout、clean、rebase、stash，除非用户单独授权。
 - Ponytail 原则：每个 Phase 只做达成验收所需的最小实现。
+- 后续所有 Phase 开始前必须先读取 `docs/09_PHASE_EXECUTION_PLAN.md`、`docs/10_NUMHUB_LESSONS_FOR_TITLELAB.md`、`docs/11_DOMAIN_AND_COMPLIANCE_LOCK.md`。
+- TitleLab API 只能使用 `api.title.mirroroo.top`，Admin 只能使用 `admin.title.mirroroo.top`，Web 只能使用 `title.mirroroo.top`。
+- 禁止使用 `api.mirroroo.top`、NumHub 域名、主站域名或 `title-api.mirroroo.top` 作为 TitleLab 生产域名。
+- 服务器、Nginx、DNS、证书操作只能在 Phase 8 / Phase 9 且经用户明确授权后执行。
+- workspace 是数据库生命线；所有业务表必须有 workspace 边界，所有业务查询必须限定 workspace，禁止后期再补 workspace。
+- 内容统一进入 `content_items`，用 `content_type` 区分 `title`、`copywriting`、`template`、`note`、`prompt_template`，禁止过早拆成多套内容表。
+- 导入必须 `preview -> confirm`；快照恢复默认只预览；小程序端不做危险恢复操作。
+- AI Key 永远不进入前端或小程序端；AI 生成必须走后端代理并保存到 `ai_generation_records`。
 
 ## 3. Phase 0：需求与规划，已完成
 
@@ -93,7 +101,43 @@ API 范围：无实现，只锁定后续 Phase API 边界。
 
 禁止连接生产数据库：是。
 
-## 5. Phase 1：后端骨架 + 基础数据库 migration + health/meta
+## 5. Phase 0.6：Domain & Compliance Lock
+
+目标：在 Phase 1 后端开发前锁定 NumHub 经验基线、TitleLab 域名隔离、微信合法域名、HTTPS、备案、隐私、API_BASE、release gate、server gate 和 worktree 策略。
+
+允许范围：读取 Phase 0 / 0.5 docs；新增 `docs/10_NUMHUB_LESSONS_FOR_TITLELAB.md`、`docs/11_DOMAIN_AND_COMPLIANCE_LOCK.md`；小幅修正 `docs/00_PROJECT_BRIEF.md`、`docs/02_DATABASE_DESIGN_V0_2.md`、`docs/05_DEPLOYMENT_PLAN_TENCENT_LIGHTHOUSE.md`、`docs/07_ACCEPTANCE_CHECKLIST.md`、`docs/08_HANDOFF.md`、`docs/09_PHASE_EXECUTION_PLAN.md`。
+
+禁止范围：业务代码、后端代码、小程序代码、数据库 migration、依赖、服务器、DNS、Nginx、证书、部署、体验版、提审、发布、push。
+
+可读文件范围：`docs/00_PROJECT_BRIEF.md` 到 `docs/11_DOMAIN_AND_COMPLIANCE_LOCK.md`，以及用户本轮提供的 NumHub 经验文档。
+
+可改文件范围：`docs/00_PROJECT_BRIEF.md`、`docs/02_DATABASE_DESIGN_V0_2.md`、`docs/05_DEPLOYMENT_PLAN_TENCENT_LIGHTHOUSE.md`、`docs/07_ACCEPTANCE_CHECKLIST.md`、`docs/08_HANDOFF.md`、`docs/09_PHASE_EXECUTION_PLAN.md`、`docs/10_NUMHUB_LESSONS_FOR_TITLELAB.md`、`docs/11_DOMAIN_AND_COMPLIANCE_LOCK.md`。
+
+数据库变更范围：无；只锁定 workspace、content_items、导入、快照、AI 记录规则。
+
+API 范围：无实现；只锁定 `api.title.mirroroo.top`、`PROD_API_BASE`、`/healthz`、`/api/meta`、AI 后端代理和 release gate 检查方向。
+
+小程序范围：无实现；只锁定合法域名、正式登录、无测试入口、无 secret、Phase 3 只读 MVP 边界。
+
+后台范围：无实现；只锁定后台危险操作、导入、快照、导出、审计边界。
+
+测试命令：`pwd`、`git status --short`、`git remote -v`、`git branch --show-current`、`git log -1 --oneline`、`find docs -maxdepth 1 -type f | sort`、`git diff --check`。
+
+验收标准：NumHub 经验文档落库；Domain & Compliance Lock 落库；正式域名锁定为 `title.mirroroo.top`、`api.title.mirroroo.top`、`admin.title.mirroroo.top`；禁止域名清单明确；Branch & Worktree Strategy 明确；无业务代码修改。
+
+停止条件：Phase 0.6 docs 补丁完成、文档检查通过、本地 checkpoint commit 完成后停止。
+
+交付报告格式：结论、阶段、路径、remote、分支、起始 HEAD、初始状态、文件、域名策略、门禁清单、测试结果、commit hash、风险、下一步。
+
+允许 commit：允许，仅限 docs checkpoint commit。
+
+允许部署：否。
+
+允许连接测试数据库：否。
+
+禁止连接生产数据库：是。
+
+## 6. Phase 1：后端骨架 + 基础数据库 migration + health/meta
 
 目标：建立最小后端项目骨架、基础数据库 migration、健康检查和公开 meta 接口。
 
@@ -129,7 +173,7 @@ API 范围：`GET /healthz`、`GET /api/meta`。
 
 禁止连接生产数据库：是。
 
-## 6. Phase 2：核心数据模型 + 内容只读 API
+## 7. Phase 2：核心数据模型 + 内容只读 API
 
 目标：完成核心数据模型和只读内容 API，为小程序只读 MVP 提供稳定后端。
 
@@ -165,7 +209,7 @@ API 范围：`GET /api/contents`、`GET /api/contents/:id`、`GET /api/categorie
 
 禁止连接生产数据库：是。
 
-## 7. Phase 3：小程序只读 MVP
+## 8. Phase 3：小程序只读 MVP
 
 目标：实现小程序端只读使用闭环。
 
@@ -201,7 +245,7 @@ API 范围：只调用 Phase 2 的只读 API 和 `GET /api/meta`。
 
 禁止连接生产数据库：是。
 
-## 8. Phase 4：用户体系 + 收藏/历史/最近使用
+## 9. Phase 4：用户体系 + 收藏/历史/最近使用
 
 目标：补齐微信登录、RBAC、收藏/星标、复制历史、最近使用。
 
@@ -237,7 +281,7 @@ API 范围：`POST /api/auth/wechat-login`、`GET /api/auth/me`、`POST /api/aut
 
 禁止连接生产数据库：是。
 
-## 9. Phase 5：管理后台最小版
+## 10. Phase 5：管理后台最小版
 
 目标：实现管理员最小后台，用于内容、分类、标签和审核管理。
 
@@ -273,7 +317,7 @@ API 范围：后台内容管理、分类管理、审核状态、审计查询 API
 
 禁止连接生产数据库：是。
 
-## 10. Phase 6：导入/快照/数据迁移工具
+## 11. Phase 6：导入/快照/数据迁移工具
 
 目标：实现批量导入、快照、导出和旧数据迁移工具的测试版。
 
@@ -309,7 +353,7 @@ API 范围：`POST /api/imports/preview`、`POST /api/imports/confirm`、`GET/PO
 
 禁止连接生产数据库：是。
 
-## 11. Phase 7：AI 仿写/生成记录
+## 12. Phase 7：AI 仿写/生成记录
 
 目标：通过后端代理实现 AI 标题/文案仿写，并保存生成记录。
 
@@ -345,7 +389,7 @@ API 范围：`POST /api/ai/generate-title`、`GET /api/ai/generation-records`。
 
 禁止连接生产数据库：是。
 
-## 12. Phase 8：测试、灰度、腾讯轻量服务器部署准备
+## 13. Phase 8：测试、灰度、腾讯轻量服务器部署准备
 
 目标：完成发布前测试、灰度方案、服务器部署准备和合法域名预检查。
 
@@ -381,7 +425,7 @@ API 范围：测试环境 smoke；不得新增业务 API，除非是发布阻塞
 
 禁止连接生产数据库：是。
 
-## 13. Phase 9：微信小程序体验版/提审前 RELEASE_GATE
+## 14. Phase 9：微信小程序体验版/提审前 RELEASE_GATE
 
 目标：在显式授权下完成体验版、提审前检查和生产发布门禁。
 
@@ -417,7 +461,104 @@ API 范围：生产 smoke 计划；执行需单独授权。
 
 禁止连接生产数据库：默认是；只有 RELEASE_GATE 明确授权、备份和回滚方案通过后才可例外。
 
-## 14. 全局失败 2 次 handoff 格式
+## Branch & Worktree Strategy
+
+Phase 0 / Phase 0.5 / Phase 0.6 属于文档规划阶段：
+
+- 可以在 main 上完成。
+- 只允许修改 `docs/`。
+- 审核通过后做一个 docs checkpoint commit。
+- 不允许开发业务代码。
+
+从 Phase 1 开始：
+
+- 禁止直接在 main 上开发。
+- 每个开发 Phase 必须从干净 main 创建独立 branch 和独立 worktree。
+- 每个 Phase 只能在自己的 worktree 中开发。
+- 禁止多个 Phase 共用一个 worktree。
+- 禁止在一个 Phase worktree 中提前做下一个 Phase。
+
+默认 worktree 根目录：
+
+```text
+/Users/lorenmac/Claude/Projects/TitleLab-worktrees
+```
+
+Phase 分支命名规则：
+
+- `phase1-backend-foundation`
+- `phase2-readonly-api`
+- `phase3-miniprogram-readonly-mvp`
+- `phase4-user-favorite-history`
+- `phase5-admin-minimal`
+- `phase6-import-snapshot-migration`
+- `phase7-ai-generation-records`
+- `phase8-release-prep`
+- `phase9-release-gate`
+
+Phase worktree 路径规则：
+
+- `/Users/lorenmac/Claude/Projects/TitleLab-worktrees/phase1-backend-foundation`
+- `/Users/lorenmac/Claude/Projects/TitleLab-worktrees/phase2-readonly-api`
+- `/Users/lorenmac/Claude/Projects/TitleLab-worktrees/phase3-miniprogram-readonly-mvp`
+- `/Users/lorenmac/Claude/Projects/TitleLab-worktrees/phase4-user-favorite-history`
+- `/Users/lorenmac/Claude/Projects/TitleLab-worktrees/phase5-admin-minimal`
+- `/Users/lorenmac/Claude/Projects/TitleLab-worktrees/phase6-import-snapshot-migration`
+- `/Users/lorenmac/Claude/Projects/TitleLab-worktrees/phase7-ai-generation-records`
+- `/Users/lorenmac/Claude/Projects/TitleLab-worktrees/phase8-release-prep`
+- `/Users/lorenmac/Claude/Projects/TitleLab-worktrees/phase9-release-gate`
+
+创建 Phase worktree 前必须确认：
+
+- main 工作区干净。
+- Phase 0 / 0.5 / 0.6 文档已经 checkpoint commit。
+- 当前 Phase 已在本文件中定义。
+- 当前 Phase 没有跨阶段任务。
+- 不存在同名 worktree。
+- 不存在同名 branch。
+- 如果存在同名 branch 或 worktree，必须停止报告，禁止覆盖。
+
+Phase 开发完成后：
+
+- 必须通过当前 Phase 的测试命令。
+- 必须输出验收报告。
+- 必须本地 commit。
+- 默认不允许 merge 回 main。
+- 默认不允许 push。
+- 等用户审核后再决定是否 merge / push。
+
+合并规则：
+
+- Codex 默认不允许 merge 回 main。
+- 只有用户明确授权“合并回 main”时，才允许执行 merge。
+- merge 前必须确认 main 干净。
+- merge 后必须再次跑该 Phase 的验收测试。
+
+Phase 8 / Phase 9 特殊规则：
+
+- Phase 8 只能做 release-prep。
+- Phase 8 禁止上传体验版、提审、部署。
+- Phase 9 才是 RELEASE_GATE。
+- Phase 9 即使在 `phase9-release-gate` worktree，也默认禁止上传体验版、提审、部署，除非用户明确授权。
+
+hotfix 规则：
+
+- 如果中途发现必须修复已完成 Phase 的问题，不能直接混入当前 Phase。
+- 必须停止并报告。
+- 经用户确认后，创建 hotfix branch / worktree。
+- hotfix 命名示例：`hotfix-phase1-healthz-meta`、`hotfix-phase3-login-blocker`。
+
+禁止事项：
+
+- 禁止在 main 上直接开发 Phase 1+ 代码。
+- 禁止多个 Phase 共用一个 worktree。
+- 禁止在一个 Phase worktree 中提前做下一个 Phase。
+- 禁止 reset、checkout、clean、rebase 删除或覆盖 worktree 内容。
+- 禁止删除 worktree，除非用户明确授权。
+- 禁止自动 merge。
+- 禁止 push。
+
+## 15. 全局失败 2 次 handoff 格式
 
 同一问题连续失败 2 次后，必须停止并输出：
 
@@ -432,4 +573,3 @@ API 范围：生产 smoke 计划；执行需单独授权。
 - 建议 Claude 只读分析的问题
 
 要求：Claude 不直接改文件，只做根因分析，除非用户再次明确授权实施修复。
-

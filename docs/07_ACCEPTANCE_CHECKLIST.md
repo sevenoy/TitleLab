@@ -22,6 +22,82 @@
 - [x] 已记录备案、隐私、微信小程序合规注意事项。
 - [x] 已记录 Phase 0 到 Phase 4 路线和验收标准。
 
+## Phase 0.6：Domain & Compliance Lock
+
+- [ ] `docs/10_NUMHUB_LESSONS_FOR_TITLELAB.md` 已纳入强制经验基线。
+- [ ] `docs/11_DOMAIN_AND_COMPLIANCE_LOCK.md` 已锁定域名、合法域名、server gate 和 release gate。
+- [ ] `docs/09_PHASE_EXECUTION_PLAN.md` 已补充 Phase 0.6。
+- [ ] 后续所有 Phase 开始前必须读取 `docs/09_PHASE_EXECUTION_PLAN.md`、`docs/10_NUMHUB_LESSONS_FOR_TITLELAB.md`、`docs/11_DOMAIN_AND_COMPLIANCE_LOCK.md`。
+
+## Domain Isolation Gate
+
+- [ ] `title.mirroroo.top` 已锁定为 TitleLab Web。
+- [ ] `api.title.mirroroo.top` 已锁定为 TitleLab API。
+- [ ] `admin.title.mirroroo.top` 已锁定为 TitleLab Admin。
+- [ ] 禁止使用 `api.mirroroo.top` 作为 TitleLab API。
+- [ ] 禁止复用 NumHub 域名。
+- [ ] `mirroroo.top` / `www.mirroroo.top` 保留给主站。
+
+## WeChat Release Gate
+
+- [ ] 正式 AppID 已配置。
+- [ ] `urlCheck=true`。
+- [ ] request 合法域名为 `https://api.title.mirroroo.top`。
+- [ ] 小程序无测试登录入口。
+- [ ] 小程序无 AppSecret、API Key、DB 密码、token、cookie。
+- [ ] 隐私说明入口已准备。
+- [ ] 备案/合规展示策略已准备。
+- [ ] production smoke 通过。
+- [ ] 用户明确授权上传体验版。
+
+## Server Gate
+
+- [ ] `title.mirroroo.top` HTTPS 正常。
+- [ ] `api.title.mirroroo.top` HTTPS 正常。
+- [ ] `admin.title.mirroroo.top` HTTPS 正常。
+- [ ] `/healthz` 返回正常。
+- [ ] `/api/meta` 不暴露敏感信息。
+- [ ] Nginx server block 不混用。
+- [ ] Certbot SAN 正确。
+
+## API_BASE Gate
+
+- [ ] `PROD_API_BASE` 为 `https://api.title.mirroroo.top/api/v1`。
+- [ ] 不引用 `api.mirroroo.top`。
+- [ ] 不引用 NumHub 域名。
+- [ ] 不引用历史 GitHub Pages 入口作为生产 API。
+- [ ] API_MODE 不停留在 `local-mock`。
+
+## Workspace Isolation Gate
+
+- [ ] workspace 是数据库生命线。
+- [ ] 所有业务表有 workspace 边界。
+- [ ] 所有业务查询限定 workspace。
+- [ ] 后台跨 workspace 查询必须显式授权。
+- [ ] 禁止后期再补 workspace。
+
+## AI Secret Safety Gate
+
+- [ ] AI Key 不进入前端或小程序端。
+- [ ] AI 生成走后端代理。
+- [ ] AI 生成记录保存到 `ai_generation_records`。
+- [ ] production smoke 不打印 token、password、key。
+
+## Import Preview Gate
+
+- [ ] 导入必须 `preview -> confirm`。
+- [ ] 快照恢复默认只预览。
+- [ ] 小程序端不做清空、批量删除、快照恢复、导出全部数据、系统配置修改。
+
+## Branch & Worktree Gate
+
+- [ ] Phase 0 / 0.5 / 0.6 只允许在 main 修改 docs。
+- [ ] Phase 1+ 禁止直接在 main 开发。
+- [ ] Phase 1+ 必须使用独立 branch 和独立 worktree。
+- [ ] 不允许多个 Phase 共用一个 worktree。
+- [ ] 不允许自动 merge。
+- [ ] 不允许自动 push。
+
 ## Phase 1 验收标准
 
 - [ ] 后端骨架可本地启动。
@@ -75,4 +151,3 @@
 - [x] 未部署。
 - [x] 未 push。
 - [x] 未 commit。
-

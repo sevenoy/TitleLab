@@ -60,11 +60,11 @@
 
 ## 5. 下一步最小建议
 
-必须先执行 Phase 0.5：Phase Plan Lock。
+必须先完成 Phase 0.6：Domain & Compliance Lock。
 
-Phase 0.5 只允许生成 `docs/09_PHASE_EXECUTION_PLAN.md` 并锁定后续开发步骤，不得跳过阶段，不得直接进入代码开发。
+Phase 0.6 只允许纳入 NumHub 经验基线、锁定 TitleLab 域名与合规门禁、补充 Branch & Worktree Strategy，不得进入代码开发。
 
-Phase 0.5 完成并经用户审核后，下一步才允许进入 Phase 1：
+Phase 0.6 完成并经用户审核后，下一步才允许进入 Phase 1：
 
 后端骨架 + 数据库基础 migration + `/healthz` + `/api/meta`。
 
@@ -77,3 +77,5 @@ Phase 1 不应实现完整业务 CRUD，不应创建小程序页面，不应部�
 - 快照恢复、清空和导出属于高风险后台能力，必须有权限控制、二次确认和审计日志。
 - AI 生成能力必须通过后端代理并记录生成历史，避免前端暴露密钥。
 - 小程序上线前必须完成 HTTPS、合法域名、备案、隐私政策和内容安全检查。
+- 后续所有 Phase 开始前必须先读取 `docs/09_PHASE_EXECUTION_PLAN.md`、`docs/10_NUMHUB_LESSONS_FOR_TITLELAB.md`、`docs/11_DOMAIN_AND_COMPLIANCE_LOCK.md`。
+- Phase 1+ 禁止直接在 main 开发，必须使用独立 branch 和独立 worktree。

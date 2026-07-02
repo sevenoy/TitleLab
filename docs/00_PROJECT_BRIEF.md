@@ -44,9 +44,29 @@ TitleLab 是面向小红书/内容运营场景的标题、文案、模板与生�
 - 用关系型数据表替代浏览器 localStorage key 与快照 payload 作为主要数据源。
 - 小程序端优先做高频使用闭环：登录、标题/文案浏览、搜索筛选、收藏/星标、复制、历史记录、只读 MVP。
 - 管理后台保留批量导入、审核、配置、导出、去重、危险操作确认和审计。
-- 部署方向保持腾讯轻量服务器，域名规划围绕 `mirroroo.top`、`title.mirroroo.com` 和微信小程序合法域名。
+- 部署方向保持腾讯轻量服务器，域名规划锁定为 `title.mirroroo.top`、`api.title.mirroroo.top`、`admin.title.mirroroo.top` 和微信小程序合法域名。
+- `title.mirroroo.com` 和 GitHub Pages 只作为历史入口 / 迁移参考，不作为新生产主域。
 
-## 6. Phase 0 边界
+## 6. Phase 0.6 经验与合规基线
+
+TitleLab 必须在 Phase 1 后端开发前完成 Phase 0.6：Domain & Compliance Lock。
+
+后续所有 Phase 必须先读取：
+
+- `docs/09_PHASE_EXECUTION_PLAN.md`
+- `docs/10_NUMHUB_LESSONS_FOR_TITLELAB.md`
+- `docs/11_DOMAIN_AND_COMPLIANCE_LOCK.md`
+
+强制规则：
+
+- TitleLab API 只能使用 `api.title.mirroroo.top`。
+- TitleLab Admin 只能使用 `admin.title.mirroroo.top`。
+- TitleLab Web 只能使用 `title.mirroroo.top`。
+- 禁止使用 `api.mirroroo.top`、NumHub 域名、主站域名或 `title-api.mirroroo.top` 作为 TitleLab 生产域名。
+- 不允许把“能访问”当成“能上线”。
+- 不允许在 RELEASE_GATE 前上传体验版、提审或部署。
+
+## 7. Phase 0 边界
 
 本轮只允许完成需求和规划文档：
 
@@ -57,4 +77,3 @@ TitleLab 是面向小红书/内容运营场景的标题、文案、模板与生�
 - 不新增依赖。
 - 不连接服务器、数据库或生产环境。
 - 不 push，不 commit。
-

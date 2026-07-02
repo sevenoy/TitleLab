@@ -8,7 +8,32 @@
 
 建议数据库方向：PostgreSQL 或 MySQL/MariaDB 均可，Phase 1 只需确定一种并创建基础 migration。本文件先描述逻辑模型，不绑定具体 SQL 方言。
 
-## 2. 核心实体
+## 2. 数据库生命线：workspace
+
+workspace 是 TitleLab 数据库生命线，必须从 Phase 1 第一版 migration 开始进入业务模型。
+
+强制规则：
+
+- 所有业务表必须有 workspace 边界。
+- 所有业务查询必须限定 workspace。
+- 后台跨 workspace 查询必须显式授权。
+- 禁止后期再补 workspace。
+
+至少这些表必须具备 workspace 边界或可从强关联实体推导 workspace：
+
+- `content_items`
+- `categories`
+- `account_categories`
+- `tags`
+- `favorites`
+- `usage_events`
+- `import_batches`
+- `snapshots`
+- `app_settings`
+- `audit_logs`
+- `ai_generation_records`
+
+## 3. 核心实体
 
 ### users
 
@@ -66,7 +91,7 @@
 - `admin`
 - `owner`
 
-## 3. 内容模型
+## 4. 内容模型
 
 ### content_items
 
@@ -92,9 +117,10 @@
 
 说明：
 
-- `content_type`：`title`、`copy`、`template`。
+- `content_type`：`title`、`copywriting`、`template`、`note`、`prompt_template`。
 - `status`：`draft`、`pending_review`、`published`、`archived`、`rejected`。
 - 星标不建议放在内容主表，因为星标是用户行为；应放在 `favorites`。
+- 标题、文案、模板、笔记和提示词模板统一进入 `content_items`，禁止过早拆成 `titles`、`copies`、`templates` 多套表。
 
 ### categories
 
@@ -157,7 +183,7 @@
 - `tag_id`
 - `created_at`
 
-## 4. 收藏、历史与生成记录
+## 5. 收藏、历史与生成记录
 
 ### favorites
 
@@ -226,7 +252,7 @@
 - API Key、代理地址等敏感配置不进入小程序端，不进入该表明文字段。
 - `input_payload` 和 `output_text` 应避免保存隐私或密钥。
 
-## 5. 导入、快照与配置
+## 6. 导入、快照与配置
 
 ### import_batches
 
@@ -243,6 +269,12 @@
 - `duplicate_count`
 - `status`
 - `created_at`
+
+导入规则：
+
+- 导入必须 `preview -> confirm` 两步。
+- preview 阶段只做解析、去重提示、差异提示，不写正式业务数据。
+- confirm 阶段必须记录导入批次、操作者、workspace 和审计日志。
 
 ### snapshots
 
@@ -262,6 +294,8 @@
 
 - 大 payload 可存对象存储或服务器文件，数据库只存引用。
 - 恢复快照必须走后台确认与审计，不在小程序端开放。
+- 快照恢复默认只预览，必须经过差异展示、二次确认和审计后才能恢复。
+- 小程序端不做清空、批量删除、快照恢复、导出全部数据或系统配置修改。
 
 ### app_settings
 
@@ -283,7 +317,18 @@
 - AI 模型开关
 - 内容审核开关
 
-## 6. 管理与审计
+## 7. AI 安全
+
+AI Key 永远不进入前端或小程序端。
+
+AI 生成必须：
+
+- 走后端代理。
+- 保存到 `ai_generation_records`。
+- 记录 workspace、用户、模型、provider、输出、耗时、成本、状态和创建时间。
+- 不保存 API Key、完整 secret、cookie、token 或敏感用户数据。
+
+## 8. 管理与审计
 
 ### audit_logs
 
@@ -313,7 +358,7 @@
 - 审核状态变更
 - 系统配置变更
 
-## 7. 迁移基准
+## 9. 迁移基准
 
 从当前 Web 版迁移时，需映射：
 
@@ -326,4 +371,3 @@
 - 场景标签字符串 -> `tags` + `content_tags`
 
 Phase 1 只创建基础表结构和健康检查，不迁移真实数据。
-
