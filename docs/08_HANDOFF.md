@@ -133,6 +133,29 @@ Phase 3A 在独立 worktree `phase3-miniprogram-readonly-mvp` 中新增 `minipro
 - 未新增登录、收藏、历史、AI、导入、快照执行、后台页面或写入能力。
 - 未处理仓库顶层 `._*` AppleDouble 文件；该风险保留给后续单独授权处理。
 
+## 12. Phase 3A 小程序 Preview QA
+
+Phase 3A Preview QA 在独立 worktree `phase3-miniprogram-readonly-mvp` 中完成。QA 仅检查本地小程序骨架、页面结构、mock 数据、页面跳转、复制绑定和微信开发者工具打开准备；未连接真实后端 API，未连接数据库，未部署，未上传体验版。
+
+QA 结果：
+
+- `app.json` 页面路径与 `pages/index/index`、`pages/detail/detail` 文件结构一致。
+- `project.config.json` 仍使用 `touristappid` 占位，未写入真实应用标识或密钥。
+- JSON 解析检查通过。
+- 小程序 JS 语法检查通过。
+- WXML 标签闭合检查通过。
+- 首页 mock 列表、搜索、类型筛选、分类筛选、标签筛选和空状态逻辑通过本地脚本验证。
+- 详情页 `id` 查询、缺失内容 fallback、复制标题和复制正文绑定通过静态检查。
+- `services/contentMock.js` 只返回本地 mock 数据，不包含真实网络请求。
+- 已确认 `miniprogram/` 内没有 `wx.request`、`fetch` 或 `XMLHttpRequest`。
+- 已确认 `miniprogram/` 内没有新增写方法关键字。
+- 已确认未修改 `backend/**`、现有 Web/PWA HTML/CSS/JS、`assets/**` 或 `icon/**`。
+
+本轮最小修复：
+
+- 将详情页按钮布局从 grid 收紧为 flex，降低微信开发者工具样式兼容风险。
+- 调整 `miniprogram/README.md` 的边界说明，避免 QA 敏感词扫描误报。
+
 ## 6. 风险与注意
 
 - 现有登录形态是静态网页时代的实现，重建时必须迁移到服务端认证。
