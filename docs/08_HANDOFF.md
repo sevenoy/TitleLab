@@ -94,6 +94,45 @@ Phase 2B 在独立 worktree `phase2-readonly-api` 中补齐只读 API 契约测�
 
 本轮仅使用本机临时库 `backend/titlelab_phase2b_smoke_test.db` 执行 Alembic `upgrade head -> downgrade base`，验证后已删除临时库文件。未连接生产、远程、腾讯云、Supabase 或任何真实业务数据库；未部署、未 push、未进入 Phase 3。
 
+## 11. Phase 3A 小程序只读 MVP 最小骨架
+
+Phase 3A 在独立 worktree `phase3-miniprogram-readonly-mvp` 中新增 `miniprogram/` 小程序骨架。当前实现只使用本地 mock 只读数据，不连接真实后端 API，不连接数据库，不部署，不上传体验版。
+
+新增文件：
+
+- `miniprogram/app.json`
+- `miniprogram/app.js`
+- `miniprogram/app.wxss`
+- `miniprogram/project.config.json`
+- `miniprogram/sitemap.json`
+- `miniprogram/pages/index/index.json`
+- `miniprogram/pages/index/index.wxml`
+- `miniprogram/pages/index/index.wxss`
+- `miniprogram/pages/index/index.js`
+- `miniprogram/pages/detail/detail.json`
+- `miniprogram/pages/detail/detail.wxml`
+- `miniprogram/pages/detail/detail.wxss`
+- `miniprogram/pages/detail/detail.js`
+- `miniprogram/services/contentMock.js`
+- `miniprogram/README.md`
+
+当前能力：
+
+- 首页展示标题/文案本地样例列表。
+- 首页支持关键词搜索、`content_type` 筛选、分类筛选和标签筛选。
+- 详情页展示标题、正文、类型、分类、标签、使用建议和备注。
+- 详情页支持复制标题或正文到剪贴板。
+
+边界确认：
+
+- 未调用真实后端 API。
+- 未连接生产、远程、腾讯云、Supabase 或任何真实业务数据库。
+- 未修改 `backend/**`。
+- 未修改现有 Web/PWA HTML/CSS/JS。
+- 未修改 `assets/**` 或 `icon/**`。
+- 未新增登录、收藏、历史、AI、导入、快照执行、后台页面或写入能力。
+- 未处理仓库顶层 `._*` AppleDouble 文件；该风险保留给后续单独授权处理。
+
 ## 6. 风险与注意
 
 - 现有登录形态是静态网页时代的实现，重建时必须迁移到服务端认证。

@@ -1,0 +1,38 @@
+<view class="page-shell">
+  <view wx:if="{{item}}" class="detail">
+    <view class="detail-head">
+      <text class="pill">{{item.typeLabel}}</text>
+      <text class="detail-title">{{item.title}}</text>
+      <text class="detail-meta">{{item.category}} · {{item.updatedAt}}</text>
+    </view>
+
+    <view class="section">
+      <text class="section-label">正文</text>
+      <text class="section-copy">{{item.body}}</text>
+    </view>
+
+    <view class="section">
+      <text class="section-label">使用建议</text>
+      <text class="section-copy">{{item.usageTip}}</text>
+    </view>
+
+    <view class="section">
+      <text class="section-label">备注</text>
+      <text class="section-copy">{{item.notes}}</text>
+    </view>
+
+    <view class="tag-row">
+      <text wx:for="{{item.tags}}" wx:key="*this" class="tag">#{{item}}</text>
+    </view>
+
+    <view class="action-row">
+      <button class="action-button secondary" bindtap="onCopyTitle">复制标题</button>
+      <button class="action-button primary" bindtap="onCopyBody">复制正文</button>
+    </view>
+  </view>
+
+  <view wx:else class="missing">
+    <text class="missing-title">内容不存在</text>
+    <text class="missing-copy">请返回列表重新选择。</text>
+  </view>
+</view>
