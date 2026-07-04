@@ -3,14 +3,42 @@ const contentRepository = require("../../services/contentRepository");
 
 Page({
   data: {
-    item: null
+    item: null,
+    loading: false,
+    error: null
   },
 
   onLoad(options) {
-    const item = contentRepository.getContentItemById(options.id);
+    this.loadDetail(options.id);
+  },
+
+  loadDetail(id) {
     this.setData({
-      item
+      loading: true,
+      error: null
     });
+
+    contentRepository
+      .getContentItemById(id)
+      .then((item) => {
+        this.setData({
+          item,
+          loading: false,
+          error: item ? null : contentRepository.toDisplayError({ code: "NOT_FOUND", message: "内容不存在" })
+        });
+      })
+      .catch((error) => {
+        const displayError = contentRepository.toDisplayError(error);
+        this.setData({
+          item: null,
+          loading: false,
+          error: displayError
+        });
+
+        if (!displayError.isNotFound) {
+          wechat.showToast({ title: displayError.message || "内容加载失败" });
+        }
+      });
   },
 
   onCopyTitle() {

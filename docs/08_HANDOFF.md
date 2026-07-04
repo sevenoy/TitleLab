@@ -233,9 +233,10 @@ Phase 3C 计划轮已在独立 worktree `phase3-miniprogram-readonly-mvp` 中完
 下一步最小建议：
 
 先开独立 Phase 2C 后端契约 worktree，补齐统一响应包、requestId、serverTime、错误码、分页元信息和版本字段契约；验收后再回到 Phase 3C 实现小程序真实只读 API 接入。
+
 ## 17. Phase 2C API response contract
 
-Phase 2C 在独立 worktree `phase2c-api-response-contract` 中完成后端只读 API response contract。目标是为后续 Phase 3C 小程序真实只读 API 接入提供稳定响应包；本阶段不新增写接口、不做登录、不修改数据库模型或 migration、不连接真实数据库、不部署、不 push。
+Phase 2C 在独立 worktree `phase2c-api-response-contract` 中完成后端只读 API response contract。目标是为后续 Phase 3C 小程序真实只读 API 接入提供稳定响应包；本阶段不新增写接口、不做登录、不修改数据库模型或 migration、不连接真实数据库、不部署。Phase 2C commit `c2babc0` 已本地 fast-forward 合并到 `main`，并已 push 到 `origin/main`。
 
 实现结果：
 
@@ -263,6 +264,31 @@ Phase 2C 在独立 worktree `phase2c-api-response-contract` 中完成后端只�
 下一步建议：
 
 Phase 3C 小程序真实只读 API 接入应以本契约为准，统一从 `data.items` / `data` 读取业务数据，并保留 `requestId` 作为排障锚点。
+
+## 18. Phase 3C 小程序真实只读 API envelope 接入
+
+Phase 3C 在独立 worktree `phase3-miniprogram-readonly-mvp` 中吸收 Phase 2C contract，并完成小程序真实只读 API envelope 接入。默认仍为本地 mock 模式，real API gate 默认关闭；本轮没有部署、没有上传体验版、没有提审、没有连接数据库、没有执行 migration、没有接入 OpenAI。
+
+实现结果：
+
+- `miniprogram/config/env.js` 锁定唯一允许 API base：`https://api.title.mirroroo.top/api/v1`。
+- `miniprogram/services/request.js` 只封装 `GET`，统一发送 `X-Request-Id`，校验 Phase 2C envelope，并将非 `OK` 响应归一化为页面可展示错误。
+- `miniprogram/services/contentApi.js` 只映射四个 workspace 只读路由：内容列表、内容详情、分类列表、标签列表。
+- `miniprogram/services/contentRepository.js` 保持默认 mock，real mode 下调用 `contentApi`，并统一返回列表 `items/limit/offset/hasMore`、详情 content object 和展示用错误对象。
+- `pages/index/index.js` 和 `pages/detail/detail.js` 只做 repository 返回结构、loading 和 error 的最小适配；页面没有直接调用 `wx.request`。
+- `miniprogram/README.md` 已记录 Phase 3C envelope、默认 mock、real gate 关闭、真实域名限制和 OpenAI/secret 边界。
+
+边界确认：
+
+- 未新增小程序页面。
+- 未新增 `POST`、`PUT`、`PATCH`、`DELETE`。
+- 未修改 `backend/alembic/**`、`backend/app/models/**`、`backend/app/db/**`。
+- 未修改 `miniprogram/project.private.config.json`，未提交本机私有配置。
+- 未修改 `assets/**`、`icon/**`、现有 Web/PWA HTML/CSS/JS。
+- 未连接真实后端 API；真实请求 gate 默认关闭。
+- 未连接任何数据库。
+- 未部署、未上传体验版、未提交审核。
+
 ## 6. 风险与注意
 
 - 现有登录形态是静态网页时代的实现，重建时必须迁移到服务端认证。

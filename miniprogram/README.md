@@ -27,6 +27,17 @@
 - `services/contentApi.js`：预留后续只读内容接口映射。
 - `services/contentRepository.js`：统一内容读取入口，当前默认委托 `contentMock.js`。
 
+## Phase 3C 只读 API envelope 接入
+
+- 当前默认仍为 `mock` 模式，`realApiGateEnabled` 默认关闭。
+- 唯一允许的真实 API base 为 `https://api.title.mirroroo.top/api/v1`。
+- 真实请求只能通过 `services/request.js` 发起，页面不得直接调用 `wx.request`。
+- `services/request.js` 只封装 `GET`，会发送 `X-Request-Id` 并校验 Phase 2C envelope。
+- 成功响应只在 `code=OK` 时进入页面渲染；列表读取 `data.items`、`data.limit`、`data.offset`、`data.hasMore`。
+- 错误响应统一保留 `code`、`message`、`requestId`、`serverTime`、`version`，由 repository 转为页面可展示错误。
+- `services/contentApi.js` 只映射内容列表、内容详情、分类列表和标签列表四个只读 workspace `GET` 路由。
+- 小程序端不包含 OpenAI 直连、AppSecret、API key、DB 密码、token 或 cookie。
+
 ## 后续接入规则
 
 后续接入真实只读接口必须单独开启 gate，并继续限制在 Phase 2 已验收的只读内容接口和公开 meta 接口内。

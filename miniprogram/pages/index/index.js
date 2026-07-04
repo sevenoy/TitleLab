@@ -14,16 +14,13 @@ Page({
     categoryLabel: "全部分类",
     tagLabel: "全部标签",
     items: [],
-    total: 0
+    total: 0,
+    loading: false,
+    error: null
   },
 
   onLoad() {
-    this.setData({
-      typeOptions: contentRepository.getTypeOptions(),
-      categoryOptions: contentRepository.getCategoryOptions(),
-      tagOptions: contentRepository.getTagOptions()
-    });
-    this.refreshList();
+    this.loadOptions();
   },
 
   onSearchInput(event) {
@@ -79,23 +76,74 @@ Page({
     wechat.navigateTo(`/pages/detail/detail?id=${id}`);
   },
 
+  loadOptions() {
+    Promise.all([
+      contentRepository.getTypeOptions(),
+      contentRepository.getCategoryOptions(),
+      contentRepository.getTagOptions()
+    ])
+      .then(([typeOptions, categoryOptions, tagOptions]) => {
+        this.setData(
+          {
+            typeOptions,
+            categoryOptions,
+            tagOptions
+          },
+          () => this.refreshList()
+        );
+      })
+      .catch((error) => this.handleLoadError(error));
+  },
+
   refreshList() {
+    const requestToken = Date.now();
+    this.listRequestToken = requestToken;
+
     const type = this.data.typeOptions[this.data.typeIndex] || { value: "all" };
     const category = this.data.categoryOptions[this.data.categoryIndex] || { value: "all" };
     const tag = this.data.tagOptions[this.data.tagIndex] || { value: "all" };
-    const items = contentRepository.getContentItems({
-      keyword: this.data.keyword,
-      contentType: type.value,
-      category: category.value,
-      tag: tag.value
-    });
 
     this.setData({
-      items,
-      total: items.length,
+      loading: true,
+      error: null,
       typeLabel: type.label,
       categoryLabel: category.label,
       tagLabel: tag.label
     });
+
+    contentRepository
+      .getContentItems({
+        keyword: this.data.keyword,
+        contentType: type.value,
+        category: category.value,
+        categoryId: category.value,
+        tag: tag.value,
+        tagId: tag.value
+      })
+      .then((result) => {
+        if (this.listRequestToken !== requestToken) {
+          return;
+        }
+
+        const items = result.items || [];
+        this.setData({
+          items,
+          total: items.length,
+          loading: false,
+          error: null
+        });
+      })
+      .catch((error) => this.handleLoadError(error));
+  },
+
+  handleLoadError(error) {
+    const displayError = contentRepository.toDisplayError(error);
+    this.setData({
+      items: [],
+      total: 0,
+      loading: false,
+      error: displayError
+    });
+    wechat.showToast({ title: displayError.message || "内容加载失败" });
   }
 });
