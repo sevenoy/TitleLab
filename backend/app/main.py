@@ -30,7 +30,12 @@ def error_response(request: Request, code: ErrorCode, message: str, status_code:
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
-    code = ErrorCode.NOT_FOUND if exc.status_code == 404 else ErrorCode.INTERNAL_ERROR
+    code_by_status = {
+        401: ErrorCode.UNAUTHORIZED,
+        403: ErrorCode.FORBIDDEN,
+        404: ErrorCode.NOT_FOUND,
+    }
+    code = code_by_status.get(exc.status_code, ErrorCode.INTERNAL_ERROR)
     return error_response(request, code, str(exc.detail), exc.status_code)
 
 

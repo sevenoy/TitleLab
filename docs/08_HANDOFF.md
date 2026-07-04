@@ -289,6 +289,36 @@ Phase 3C 在独立 worktree `phase3-miniprogram-readonly-mvp` 中吸收 Phase 2C
 - 未连接任何数据库。
 - 未部署、未上传体验版、未提交审核。
 
+## 19. Phase 4A workspace 对象级鉴权基础
+
+Phase 4A 在独立 worktree `phase4a-workspace-authorization-foundation` 中实现后端只读 workspace API 的对象级鉴权基础。目标是让 readonly API 不再只依赖 URL 中的 `workspace_id`，而是先通过当前用户上下文和 `workspace_members` 关系校验访问权限。
+
+实现结果：
+
+- 新增 `backend/app/deps/auth.py`，提供最小 `AuthContext`、`X-TitleLab-User-Id` development/test header 解析和 workspace membership 校验。
+- 四个 workspace readonly `GET` API 已接入 `workspace_members.workspace_id + workspace_members.user_id` 校验。
+- 未提供用户身份返回 `401` / `UNAUTHORIZED`。
+- 用户不存在、被禁用或不是 workspace member 返回 `403` / `FORBIDDEN`。
+- workspace member 可继续读取自己 workspace 的内容、详情、分类和标签。
+- 内容不存在仍返回 `404` / `NOT_FOUND`。
+- `/healthz` 保持 raw public。
+- `/api/meta` 保持 envelope public，不要求用户身份。
+- Phase 2C response envelope 保持 `code`、`message`、`data`、`requestId`、`serverTime`、`version`。
+
+边界确认：
+
+- `X-TitleLab-User-Id` 只是 Phase 4A development/test auth context，不是生产正式登录方案。
+- 未做微信登录、JWT、session、refresh token、注册、密码登录或手机号登录。
+- 未新增 `POST`、`PUT`、`PATCH`、`DELETE`。
+- 未修改数据库 schema、migration、`backend/alembic/**`、`backend/app/models/**` 或 `backend/app/db/**`。
+- 未修改 `miniprogram/**`。
+- 未连接真实数据库，未执行 Alembic migration。
+- 未部署、未上传体验版、未提交审核。
+
+下一步建议：
+
+Phase 4B 可在独立 worktree 中继续做正式微信登录 / JWT 或 server-side session 方案；如要先做小程序真机合法域名与真实 API preflight，也必须保持 real API gate 受控并单独过 RELEASE_GATE。
+
 ## 6. 风险与注意
 
 - 现有登录形态是静态网页时代的实现，重建时必须迁移到服务端认证。

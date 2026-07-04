@@ -3,6 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
+from app.deps.auth import AuthContext, build_metadata, require_workspace_member, resolve_current_user
 from app.models.core import Category, ContentItem, ContentTag, Tag
 from app.schemas import (
     CategoryListPayload,
@@ -17,24 +18,19 @@ from app.schemas import (
     TagListPayload,
     TagListResponse,
     TagOut,
-    response_metadata,
 )
 
 router = APIRouter(
     prefix="/api/v1/workspaces/{workspace_id}",
     tags=["readonly"],
     responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
         500: {"model": ErrorResponse},
     },
 )
-
-
-def build_metadata(request: Request, response: Response) -> dict[str, object]:
-    metadata = response_metadata(request.headers.get("x-request-id"))
-    response.headers["X-Request-Id"] = str(metadata["requestId"])
-    return metadata
 
 
 @router.get("/contents", response_model=ContentItemListResponse)
@@ -49,7 +45,9 @@ def list_contents(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
+    auth_context: AuthContext = Depends(resolve_current_user),
 ) -> ContentItemListResponse:
+    require_workspace_member(db, workspace_id, auth_context)
     stmt = select(ContentItem).where(
         ContentItem.workspace_id == workspace_id,
         ContentItem.is_deleted.is_(False),
@@ -84,7 +82,9 @@ def get_content(
     workspace_id: str,
     content_id: str,
     db: Session = Depends(get_db),
+    auth_context: AuthContext = Depends(resolve_current_user),
 ) -> ContentItemResponse:
+    require_workspace_member(db, workspace_id, auth_context)
     item = db.scalar(
         select(ContentItem).where(
             ContentItem.workspace_id == workspace_id,
@@ -108,7 +108,9 @@ def list_categories(
     response: Response,
     workspace_id: str,
     db: Session = Depends(get_db),
+    auth_context: AuthContext = Depends(resolve_current_user),
 ) -> CategoryListResponse:
+    require_workspace_member(db, workspace_id, auth_context)
     stmt = (
         select(Category)
         .where(Category.workspace_id == workspace_id, Category.status == "active")
@@ -130,7 +132,9 @@ def list_tags(
     response: Response,
     workspace_id: str,
     db: Session = Depends(get_db),
+    auth_context: AuthContext = Depends(resolve_current_user),
 ) -> TagListResponse:
+    require_workspace_member(db, workspace_id, auth_context)
     stmt = select(Tag).where(Tag.workspace_id == workspace_id, Tag.status == "active").order_by(Tag.name)
     items = [TagOut.model_validate(item) for item in db.scalars(stmt)]
     payload = TagListPayload(items=items, limit=len(items), offset=0, hasMore=False)

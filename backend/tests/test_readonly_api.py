@@ -9,7 +9,7 @@ from sqlalchemy.pool import StaticPool
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
-from app.models.core import Category, ContentItem, ContentTag, Tag, Workspace
+from app.models.core import Category, ContentItem, ContentTag, Tag, User, Workspace, WorkspaceMember
 
 
 def assert_success_envelope(data: dict[str, object], expected_request_id: str | None = None) -> None:
@@ -61,8 +61,13 @@ def client() -> Generator[TestClient, None, None]:
 def seed_data(session: Session) -> None:
     session.add_all(
         [
+            User(id="user-a", username="user-a", display_name="User A", status="active"),
+            User(id="user-b", username="user-b", display_name="User B", status="active"),
+            User(id="user-disabled", username="user-disabled", display_name="Disabled User", status="disabled"),
             Workspace(id="workspace-a", name="Workspace A", slug="workspace-a"),
             Workspace(id="workspace-b", name="Workspace B", slug="workspace-b"),
+            WorkspaceMember(id="member-a", workspace_id="workspace-a", user_id="user-a", role="viewer"),
+            WorkspaceMember(id="member-b", workspace_id="workspace-b", user_id="user-b", role="viewer"),
             Category(
                 id="category-a",
                 workspace_id="workspace-a",
@@ -121,8 +126,24 @@ def seed_data(session: Session) -> None:
     session.commit()
 
 
+def auth_headers(user_id: str = "user-a", request_id: str | None = None) -> dict[str, str]:
+    headers = {"X-TitleLab-User-Id": user_id}
+    if request_id:
+        headers["X-Request-Id"] = request_id
+    return headers
+
+
+def assert_error_envelope(data: dict[str, object], code: str, message: str) -> None:
+    assert data["code"] == code
+    assert data["message"] == message
+    assert data["data"] is None
+    assert isinstance(data["requestId"], str)
+    assert isinstance(data["serverTime"], str)
+    assert data["version"] == "v1"
+
+
 def test_list_contents_success(client: TestClient) -> None:
-    response = client.get("/api/v1/workspaces/workspace-a/contents", headers={"X-Request-Id": "list-request-id"})
+    response = client.get("/api/v1/workspaces/workspace-a/contents", headers=auth_headers(request_id="list-request-id"))
 
     assert response.status_code == 200
     assert response.headers["x-request-id"] == "list-request-id"
@@ -138,7 +159,7 @@ def test_list_contents_success(client: TestClient) -> None:
 
 
 def test_list_contents_has_more_with_limit(client: TestClient) -> None:
-    response = client.get("/api/v1/workspaces/workspace-a/contents?limit=1&offset=0")
+    response = client.get("/api/v1/workspaces/workspace-a/contents?limit=1&offset=0", headers=auth_headers())
 
     assert response.status_code == 200
     envelope = response.json()
@@ -152,7 +173,7 @@ def test_list_contents_has_more_with_limit(client: TestClient) -> None:
 
 
 def test_get_content_detail_success(client: TestClient) -> None:
-    response = client.get("/api/v1/workspaces/workspace-a/contents/content-title-a")
+    response = client.get("/api/v1/workspaces/workspace-a/contents/content-title-a", headers=auth_headers())
 
     assert response.status_code == 200
     envelope = response.json()
@@ -161,13 +182,13 @@ def test_get_content_detail_success(client: TestClient) -> None:
 
 
 def test_workspace_isolation_for_content_detail(client: TestClient) -> None:
-    response = client.get("/api/v1/workspaces/workspace-a/contents/content-title-b")
+    response = client.get("/api/v1/workspaces/workspace-a/contents/content-title-b", headers=auth_headers())
 
     assert response.status_code == 404
 
 
 def test_content_type_filter(client: TestClient) -> None:
-    response = client.get("/api/v1/workspaces/workspace-a/contents?content_type=title")
+    response = client.get("/api/v1/workspaces/workspace-a/contents?content_type=title", headers=auth_headers())
 
     assert response.status_code == 200
     envelope = response.json()
@@ -176,9 +197,9 @@ def test_content_type_filter(client: TestClient) -> None:
 
 
 def test_category_and_tag_reading(client: TestClient) -> None:
-    categories = client.get("/api/v1/workspaces/workspace-a/categories")
-    tags = client.get("/api/v1/workspaces/workspace-a/tags")
-    tagged_contents = client.get("/api/v1/workspaces/workspace-a/contents?tag_id=tag-a")
+    categories = client.get("/api/v1/workspaces/workspace-a/categories", headers=auth_headers())
+    tags = client.get("/api/v1/workspaces/workspace-a/tags", headers=auth_headers())
+    tagged_contents = client.get("/api/v1/workspaces/workspace-a/contents?tag_id=tag-a", headers=auth_headers())
 
     assert categories.status_code == 200
     category_envelope = categories.json()
@@ -195,7 +216,7 @@ def test_category_and_tag_reading(client: TestClient) -> None:
 
 
 def test_missing_content_returns_404(client: TestClient) -> None:
-    response = client.get("/api/v1/workspaces/workspace-a/contents/missing")
+    response = client.get("/api/v1/workspaces/workspace-a/contents/missing", headers=auth_headers())
 
     assert response.status_code == 404
     data = response.json()
@@ -208,7 +229,7 @@ def test_missing_content_returns_404(client: TestClient) -> None:
 
 
 def test_invalid_query_param_returns_stable_error_code(client: TestClient) -> None:
-    response = client.get("/api/v1/workspaces/workspace-a/contents?limit=0")
+    response = client.get("/api/v1/workspaces/workspace-a/contents?limit=0", headers=auth_headers())
 
     assert response.status_code == 422
     data = response.json()
@@ -218,6 +239,37 @@ def test_invalid_query_param_returns_stable_error_code(client: TestClient) -> No
     assert isinstance(data["requestId"], str)
     assert isinstance(data["serverTime"], str)
     assert data["version"] == "v1"
+
+
+def test_missing_user_context_returns_401(client: TestClient) -> None:
+    response = client.get("/api/v1/workspaces/workspace-a/contents")
+
+    assert response.status_code == 401
+    assert_error_envelope(response.json(), "UNAUTHORIZED", "missing_user_context")
+
+
+def test_non_member_user_cannot_read_workspace(client: TestClient) -> None:
+    response = client.get("/api/v1/workspaces/workspace-a/contents", headers=auth_headers("user-b"))
+
+    assert response.status_code == 403
+    assert_error_envelope(response.json(), "FORBIDDEN", "workspace_forbidden")
+
+
+def test_disabled_user_cannot_read_workspace(client: TestClient) -> None:
+    response = client.get("/api/v1/workspaces/workspace-a/contents", headers=auth_headers("user-disabled"))
+
+    assert response.status_code == 403
+    assert_error_envelope(response.json(), "FORBIDDEN", "workspace_forbidden")
+
+
+def test_public_health_and_meta_do_not_require_user_context(client: TestClient) -> None:
+    health = client.get("/healthz")
+    meta = client.get("/api/meta")
+
+    assert health.status_code == 200
+    assert health.json()["ok"] is True
+    assert meta.status_code == 200
+    assert_success_envelope(meta.json())
 
 
 def test_no_mutating_phase_2a_workspace_routes() -> None:

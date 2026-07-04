@@ -102,6 +102,8 @@ with `hasMore=false`.
 Stable response codes are:
 
 - `OK`
+- `UNAUTHORIZED`
+- `FORBIDDEN`
 - `NOT_FOUND`
 - `INVALID_PARAM`
 - `INTERNAL_ERROR`
@@ -117,6 +119,38 @@ stable.
 
 Phase 3C mini program real read-only API integration should depend on this
 envelope instead of consuming bare arrays or bare objects.
+
+## Phase 4A Workspace Authorization Foundation
+
+Phase 4A adds object-level workspace authorization to the four read-only
+workspace APIs. It does not add production login, WeChat login, JWT/session
+handling, write routes, database migrations, deployment, or mini program code.
+
+The Phase 4A development/test auth context is passed with:
+
+```text
+X-TitleLab-User-Id: <user_id>
+```
+
+This header is only a temporary development/test mechanism so backend tests can
+verify workspace membership. It is not a production authentication scheme and
+must be replaced by formal WeChat login plus server-side session/JWT handling in
+a later phase.
+
+Authorization rules:
+
+- Missing `X-TitleLab-User-Id` returns `401` with code `UNAUTHORIZED`.
+- Unknown, disabled, or non-member users return `403` with code `FORBIDDEN`.
+- Member users may read only the requested workspace through the existing
+  `workspace_members.workspace_id + workspace_members.user_id` relationship.
+- Missing content still returns `404` with code `NOT_FOUND`.
+- `/healthz` remains a raw public health probe.
+- `/api/meta` remains a public response envelope and does not require the
+  development/test auth header.
+
+Mini program real API gate should remain closed until a later gate provides a
+real workspace id and formal authentication flow. The current `default`
+workspace id placeholder is not sufficient for production traffic.
 
 ## Local Setup
 
