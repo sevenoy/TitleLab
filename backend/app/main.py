@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from app.api.auth import router as auth_router
 from app.api.health import router as health_router
 from app.api.meta import router as meta_router
 from app.api.readonly import router as readonly_router
@@ -10,12 +11,13 @@ from app.schemas import ErrorCode, ErrorResponse, response_metadata
 
 app = FastAPI(
     title=PROJECT_NAME,
-    description="TitleLab Phase 1 backend foundation",
+    description="TitleLab backend",
     version="0.1.0",
 )
 
 app.include_router(health_router)
 app.include_router(meta_router)
+app.include_router(auth_router)
 app.include_router(readonly_router)
 
 
@@ -35,7 +37,13 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
         403: ErrorCode.FORBIDDEN,
         404: ErrorCode.NOT_FOUND,
     }
-    code = code_by_status.get(exc.status_code, ErrorCode.INTERNAL_ERROR)
+    code_by_detail = {
+        "auth_config_error": ErrorCode.AUTH_CONFIG_ERROR,
+        "auth_provider_error": ErrorCode.AUTH_PROVIDER_ERROR,
+        "session_expired": ErrorCode.SESSION_EXPIRED,
+        "session_revoked": ErrorCode.SESSION_REVOKED,
+    }
+    code = code_by_detail.get(str(exc.detail), code_by_status.get(exc.status_code, ErrorCode.INTERNAL_ERROR))
     return error_response(request, code, str(exc.detail), exc.status_code)
 
 

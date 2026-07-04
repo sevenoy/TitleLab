@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Any
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 API_VERSION = "v1"
 
@@ -14,6 +14,10 @@ class ErrorCode(str, Enum):
     FORBIDDEN = "FORBIDDEN"
     NOT_FOUND = "NOT_FOUND"
     INVALID_PARAM = "INVALID_PARAM"
+    AUTH_PROVIDER_ERROR = "AUTH_PROVIDER_ERROR"
+    AUTH_CONFIG_ERROR = "AUTH_CONFIG_ERROR"
+    SESSION_EXPIRED = "SESSION_EXPIRED"
+    SESSION_REVOKED = "SESSION_REVOKED"
     INTERNAL_ERROR = "INTERNAL_ERROR"
 
 
@@ -94,6 +98,45 @@ class MetaOut(BaseModel):
     release_ready: bool
 
 
+class AuthLoginRequest(BaseModel):
+    code: str = Field(min_length=1, max_length=256)
+    deviceLabel: str | None = Field(default=None, max_length=120)
+
+
+class UserOut(BaseModel):
+    id: str
+    display_name: str | None
+    avatar_url: str | None
+    status: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class WorkspaceOut(BaseModel):
+    id: str
+    name: str
+    slug: str
+    role: str
+
+
+class AuthLoginOut(BaseModel):
+    accessToken: str
+    tokenType: str = "Bearer"
+    expiresAt: datetime
+    user: UserOut
+    memberships: list[WorkspaceOut]
+
+
+class AuthMeOut(BaseModel):
+    user: UserOut
+    memberships: list[WorkspaceOut]
+    sessionExpiresAt: datetime | None
+
+
+class AuthLogoutOut(BaseModel):
+    revoked: bool
+
+
 class ContentItemListPayload(BaseModel):
     items: list[ContentItemOut]
     limit: int
@@ -117,6 +160,18 @@ class TagListPayload(BaseModel):
 
 class MetaResponse(ApiResponseBase):
     data: MetaOut
+
+
+class AuthLoginResponse(ApiResponseBase):
+    data: AuthLoginOut
+
+
+class AuthMeResponse(ApiResponseBase):
+    data: AuthMeOut
+
+
+class AuthLogoutResponse(ApiResponseBase):
+    data: AuthLogoutOut
 
 
 class ContentItemResponse(ApiResponseBase):

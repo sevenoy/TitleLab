@@ -152,6 +152,42 @@ Mini program real API gate should remain closed until a later gate provides a
 real workspace id and formal authentication flow. The current `default`
 workspace id placeholder is not sufficient for production traffic.
 
+## Phase 4B Auth Session Foundation
+
+Phase 4B adds the backend server-side session foundation for formal
+authentication. It does not deploy, call WeChat online APIs, read a real
+AppSecret, connect to a real database, or modify mini program code.
+
+New auth tables:
+
+- `auth_identities`: maps a provider identity such as WeChat `openid` to a
+  TitleLab user with `unique(provider, provider_user_id)`.
+- `user_sessions`: stores server-side sessions with `token_hash`, expiry,
+  optional device/user-agent metadata, and optional revocation time.
+
+Session token rules:
+
+- Login returns the plaintext `accessToken` once.
+- The database stores only `sha256` token hashes, never plaintext access tokens.
+- Authenticated backend calls use `Authorization: Bearer <accessToken>`.
+- `POST /api/v1/auth/logout` revokes only the current session.
+
+Auth endpoints:
+
+- `POST /api/v1/auth/wechat-login`
+- `GET /api/v1/auth/me`
+- `POST /api/v1/auth/logout`
+
+WeChat code exchange is behind `app.services.wechat_auth_service.WeChatAuthService`.
+The default implementation does not make network calls and returns a stable
+`AUTH_CONFIG_ERROR` path until a later gate wires explicit production config.
+Tests use dependency overrides to mock the code exchange.
+
+Readonly workspace APIs now prefer `Authorization: Bearer <token>` and keep the
+Phase 4A `workspace_members` authorization check. `X-TitleLab-User-Id` remains
+available only as a local/dev/test fallback and is not a production login
+scheme.
+
 ## Local Setup
 
 Use a local virtual environment or a temporary runner. Do not put real secrets
@@ -198,8 +234,15 @@ The Phase 1 migration lives at:
 backend/alembic/versions/0001_phase1_core_schema.py
 ```
 
-It defines the initial workspace-first schema only. Do not run `alembic upgrade`
-against production. This phase does not apply migrations to any database.
+Phase 4B adds:
+
+```text
+backend/alembic/versions/0002_phase4b_auth_session_foundation.py
+```
+
+Use only local temporary SQLite files for migration dry-runs unless a later
+release gate explicitly authorizes another database target. Do not run
+`alembic upgrade` against production.
 
 ## Release Gate
 

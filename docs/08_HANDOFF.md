@@ -319,6 +319,42 @@ Phase 4A 在独立 worktree `phase4a-workspace-authorization-foundation` 中实�
 
 Phase 4B 可在独立 worktree 中继续做正式微信登录 / JWT 或 server-side session 方案；如要先做小程序真机合法域名与真实 API preflight，也必须保持 real API gate 受控并单独过 RELEASE_GATE。
 
+## 20. Phase 4B auth/session 基础
+
+Phase 4B 在独立 worktree `phase4b-auth-session-foundation` 中实现后端正式 auth/session 基础。目标是从 Phase 4A 的 `X-TitleLab-User-Id` dev/test header 过渡到后端 server-side session；本阶段没有部署、没有上传体验版、没有提交审核、没有连接真实数据库、没有对真实数据库执行 migration、没有真实调用微信接口、没有修改小程序代码。
+
+实现结果：
+
+- 新增 Alembic migration `backend/alembic/versions/0002_phase4b_auth_session_foundation.py`。
+- 新增 `auth_identities` 表，保存 `provider`、`provider_user_id`、可选 `provider_union_id` 与 `user_id` 的绑定，并约束 `unique(provider, provider_user_id)`。
+- 新增 `user_sessions` 表，保存 `token_hash`、`auth_mode`、设备/UA 元数据、过期时间和撤销时间，并约束 `token_hash` 唯一。
+- 新增标准库 token 工具：明文 session token 只在登录成功时返回一次，数据库只保存 `sha256` hash。
+- 新增微信登录服务抽象 `WeChatAuthService`；默认实现不请求微信线上接口，测试通过 dependency override mock code exchange。
+- 新增 auth endpoints：`POST /api/v1/auth/wechat-login`、`GET /api/v1/auth/me`、`POST /api/v1/auth/logout`。
+- readonly workspace API 优先支持 `Authorization: Bearer <token>`，并继续通过 `workspace_members` 校验对象级权限。
+- `X-TitleLab-User-Id` 仅保留为 local/dev/test fallback，不是生产登录方案。
+- `/healthz` 继续保持 public raw；`/api/meta` 继续保持 public envelope。
+- OpenAPI 契约只新增允许的 auth POST：`/api/v1/auth/wechat-login` 和 `/api/v1/auth/logout`，未新增业务写接口。
+
+验证结果：
+
+- `python3 -m compileall backend/app backend/tests` 通过。
+- 后端 pytest 通过，覆盖 auth API、auth service、readonly Bearer session、dev/test header fallback、revoked/expired session、health/meta 和 OpenAPI 写方法限制。
+- 本地临时 SQLite `backend/titlelab_phase4b_migration_test.db` 完成 `alembic upgrade head -> 表存在检查 -> downgrade base -> upgrade head`，验证后已删除临时库。
+
+边界确认：
+
+- 未修改 `miniprogram/**`。
+- 未调用真实微信 `jscode2session` 或任何微信线上接口。
+- 未读取、打印或写入真实 AppSecret、API key、DB 密码、token、cookie。
+- 未连接生产、远程、腾讯云、Supabase 或任何真实业务数据库。
+- 未部署、未上传体验版、未提交审核。
+- 未接入 OpenAI。
+
+下一步最小建议：
+
+Phase 4C 可另起独立 worktree 做小程序登录接入规划/实现，仍需保持 real API gate、合法域名、AppID、隐私指引和体验版上传为单独 RELEASE_GATE；如果先做真实 API preflight，也必须只走明确授权的测试环境和只读 smoke。
+
 ## 6. 风险与注意
 
 - 现有登录形态是静态网页时代的实现，重建时必须迁移到服务端认证。

@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from datetime import datetime, timezone
 
 import pytest
 from fastapi.testclient import TestClient
@@ -9,7 +10,8 @@ from sqlalchemy.pool import StaticPool
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
-from app.models.core import Category, ContentItem, ContentTag, Tag, User, Workspace, WorkspaceMember
+from app.models.core import Category, ContentItem, ContentTag, Tag, User, UserSession, Workspace, WorkspaceMember
+from app.security.tokens import hash_session_token
 
 
 def assert_success_envelope(data: dict[str, object], expected_request_id: str | None = None) -> None:
@@ -68,6 +70,35 @@ def seed_data(session: Session) -> None:
             Workspace(id="workspace-b", name="Workspace B", slug="workspace-b"),
             WorkspaceMember(id="member-a", workspace_id="workspace-a", user_id="user-a", role="viewer"),
             WorkspaceMember(id="member-b", workspace_id="workspace-b", user_id="user-b", role="viewer"),
+            UserSession(
+                id="session-a",
+                user_id="user-a",
+                token_hash=hash_session_token("valid-session-token"),
+                auth_mode="wechat_session",
+                expires_at=datetime(2099, 1, 1, tzinfo=timezone.utc),
+            ),
+            UserSession(
+                id="session-b",
+                user_id="user-b",
+                token_hash=hash_session_token("other-user-token"),
+                auth_mode="wechat_session",
+                expires_at=datetime(2099, 1, 1, tzinfo=timezone.utc),
+            ),
+            UserSession(
+                id="session-revoked",
+                user_id="user-a",
+                token_hash=hash_session_token("revoked-session-token"),
+                auth_mode="wechat_session",
+                expires_at=datetime(2099, 1, 1, tzinfo=timezone.utc),
+                revoked_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+            ),
+            UserSession(
+                id="session-expired",
+                user_id="user-a",
+                token_hash=hash_session_token("expired-session-token"),
+                auth_mode="wechat_session",
+                expires_at=datetime(2020, 1, 1, tzinfo=timezone.utc),
+            ),
             Category(
                 id="category-a",
                 workspace_id="workspace-a",
@@ -133,6 +164,13 @@ def auth_headers(user_id: str = "user-a", request_id: str | None = None) -> dict
     return headers
 
 
+def bearer_headers(token: str = "valid-session-token", request_id: str | None = None) -> dict[str, str]:
+    headers = {"Authorization": f"Bearer {token}"}
+    if request_id:
+        headers["X-Request-Id"] = request_id
+    return headers
+
+
 def assert_error_envelope(data: dict[str, object], code: str, message: str) -> None:
     assert data["code"] == code
     assert data["message"] == message
@@ -156,6 +194,41 @@ def test_list_contents_success(client: TestClient) -> None:
     assert payload["hasMore"] is False
     ids = {item["id"] for item in items}
     assert ids == {"content-title-a", "content-copy-a"}
+
+
+def test_bearer_session_can_read_workspace(client: TestClient) -> None:
+    response = client.get(
+        "/api/v1/workspaces/workspace-a/contents",
+        headers=bearer_headers(request_id="bearer-read-request-id"),
+    )
+
+    assert response.status_code == 200
+    assert response.headers["x-request-id"] == "bearer-read-request-id"
+    envelope = response.json()
+    assert_success_envelope(envelope, expected_request_id="bearer-read-request-id")
+    ids = {item["id"] for item in assert_list_payload(envelope["data"])}
+    assert ids == {"content-title-a", "content-copy-a"}
+
+
+def test_bearer_session_non_member_cannot_read_workspace(client: TestClient) -> None:
+    response = client.get("/api/v1/workspaces/workspace-a/contents", headers=bearer_headers("other-user-token"))
+
+    assert response.status_code == 403
+    assert_error_envelope(response.json(), "FORBIDDEN", "workspace_forbidden")
+
+
+def test_revoked_session_cannot_read_workspace(client: TestClient) -> None:
+    response = client.get("/api/v1/workspaces/workspace-a/contents", headers=bearer_headers("revoked-session-token"))
+
+    assert response.status_code == 401
+    assert_error_envelope(response.json(), "SESSION_REVOKED", "session_revoked")
+
+
+def test_expired_session_cannot_read_workspace(client: TestClient) -> None:
+    response = client.get("/api/v1/workspaces/workspace-a/contents", headers=bearer_headers("expired-session-token"))
+
+    assert response.status_code == 401
+    assert_error_envelope(response.json(), "SESSION_EXPIRED", "session_expired")
 
 
 def test_list_contents_has_more_with_limit(client: TestClient) -> None:

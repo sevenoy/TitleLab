@@ -68,6 +68,10 @@ def test_openapi_contains_only_phase2a_workspace_get_routes() -> None:
 def test_openapi_does_not_expose_mutating_methods() -> None:
     openapi = app.openapi()
     forbidden_methods = {"post", "put", "patch", "delete"}
+    allowed_mutating_operations = {
+        "POST /api/v1/auth/wechat-login",
+        "POST /api/v1/auth/logout",
+    }
     mutating_operations = [
         f"{method.upper()} {path}"
         for path, methods in openapi["paths"].items()
@@ -75,7 +79,8 @@ def test_openapi_does_not_expose_mutating_methods() -> None:
         if method in forbidden_methods
     ]
 
-    assert mutating_operations == []
+    assert set(mutating_operations) == allowed_mutating_operations
+    assert not any(operation.startswith(("PUT ", "PATCH ", "DELETE ")) for operation in mutating_operations)
 
 
 def test_openapi_response_schema_fields_are_stable() -> None:
