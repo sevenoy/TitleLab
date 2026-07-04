@@ -12,11 +12,12 @@ const runtimeEnv = {
   apiMode: API_MODES.MOCK,
   realApiGateEnabled: false,
   authRealApiGateEnabled: false,
+  aiRealApiGateEnabled: false,
   environmentLabel: "local-mock",
   apiBaseUrl: API_BASE_URL,
   allowedApiBaseUrl: ALLOWED_API_BASE_URL,
   workspaceId: DEFAULT_WORKSPACE_ID,
-  appVersion: "phase4e-controlled-real-gate-readiness"
+  appVersion: "phase6-miniprogram-ai-title-mock-only"
 };
 
 function getRuntimeEnv() {
@@ -33,6 +34,10 @@ function isRealApiEnabled() {
 
 function isAuthRealApiEnabled() {
   return isRealApiEnabled() && runtimeEnv.authRealApiGateEnabled;
+}
+
+function isAiRealApiEnabled() {
+  return isRealApiEnabled() && runtimeEnv.aiRealApiGateEnabled;
 }
 
 function assertAllowedApiBaseUrl(apiBaseUrl) {
@@ -70,6 +75,7 @@ module.exports = {
   isMockMode,
   isRealApiEnabled,
   isAuthRealApiEnabled,
+  isAiRealApiEnabled,
   assertRealApiEnabled,
   assertAuthRealApiEnabled,
   getWorkspaceId

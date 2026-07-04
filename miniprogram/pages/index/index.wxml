@@ -3,6 +3,7 @@
     <text class="pill">本地只读样例</text>
     <text class="hero-title">标题与文案素材</text>
     <text class="hero-subtitle">先验证列表、筛选、详情和复制闭环，后续 API 接入单独过 gate。</text>
+    <button class="ai-entry-button" bindtap="onOpenAI">AI 标题生成</button>
   </view>
 
   <view class="search-panel">

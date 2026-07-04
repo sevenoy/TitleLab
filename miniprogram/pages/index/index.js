@@ -76,6 +76,10 @@ Page({
     wechat.navigateTo(`/pages/detail/detail?id=${id}`);
   },
 
+  onOpenAI() {
+    wechat.navigateTo("/pages/ai/index");
+  },
+
   loadOptions() {
     Promise.all([
       contentRepository.getTypeOptions(),

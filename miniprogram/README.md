@@ -45,7 +45,7 @@
 - `services/authApi.js` 只映射 `POST /api/v1/auth/wechat-login`、`GET /api/v1/auth/me`、`POST /api/v1/auth/logout`。
 - `services/authRepository.js` 封装 `loginWithWechat`、`restoreSession`、`getCurrentUser`、`logout` 和 `isAuthenticated`。
 - `adapters/wechat.js` 封装 `wx.login`、设备标签和 storage；页面不得直接调用 `wx.login` 或 `wx.request`。
-- `services/request.js` 在 gate 显式开启后自动从 `sessionStore` 读取 token 并注入 `Authorization: Bearer <token>`。
+- `services/request.js` 在 gate 显式开启后自动从 `sessionStore` 读取 session 并注入标准 bearer 认证头。
 - 默认 gate 关闭时不会调用 `wx.login`，不会请求后端，也不会阻断 mock 内容展示。
 - 只允许 auth POST；业务内容仍不得新增 `POST`、`PUT`、`PATCH` 或 `DELETE`。
 - 真机登录、真实 AppID、合法域名、隐私指引、体验版上传和提审仍必须另起 RELEASE_GATE。
@@ -83,6 +83,38 @@ python3 scripts/titlelab_phase4e_real_gate_check.py
 - `workspaceId=default`、`placeholder`、`demo` 或 `test` 不得用于真实请求。
 - auth gate 开启但缺 session readiness 时返回 `REAL_AUTH_SESSION_REQUIRED`。
 - 默认 mock 模式不调用 `wx.login`，不访问后端，不阻断本地内容展示。
+
+## Phase 6 AI 标题生成 mock-only
+
+Phase 6 新增 `pages/ai/index` 和小程序 AI service/repository/mock 分层。本阶段默认仍为 `mock` 模式：
+
+- `realApiGateEnabled=false`
+- `authRealApiGateEnabled=false`
+- `aiRealApiGateEnabled=false`
+
+当前能力：
+
+- 首页提供“AI 标题生成”入口。
+- AI 页面支持输入 sourceText、contentType、tone、platform、count。
+- `services/aiMock.js` 本地返回结构化 suggestions。
+- `services/aiRepository.js` 默认走 mock；真实 AI gate 不满足时 fail-fast。
+- `services/aiApi.js` 只保留后端 AI Facade endpoint 映射。
+- 结果展示 `title`、`rationale`、`tags`、`riskLevel`、`score`，并支持复制标题。
+
+当前边界：
+
+- 不强制登录。
+- 不真实请求后端 AI。
+- 不上传 sourceText。
+- 不调用 OpenAI。
+- 不读取或写入真实 OpenAI key。
+- 页面不直接调用 `wx.request` 或 `wx.login`。
+
+本地检查：
+
+```bash
+python3 scripts/titlelab_phase6_miniprogram_ai_mock_check.py
+```
 
 ## 后续接入规则
 

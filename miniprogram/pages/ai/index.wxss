@@ -1,0 +1,209 @@
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  padding: 16rpx 0 28rpx;
+}
+
+.hero-title {
+  color: #162033;
+  font-size: 44rpx;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.hero-subtitle {
+  color: #697386;
+  font-size: 27rpx;
+  line-height: 1.55;
+}
+
+.form-panel,
+.state-panel,
+.result-card {
+  border: 1rpx solid #dde5ef;
+  border-radius: 8rpx;
+  background: #ffffff;
+}
+
+.form-panel {
+  padding: 22rpx;
+}
+
+.source-input {
+  width: 100%;
+  min-height: 220rpx;
+  padding: 20rpx;
+  border-radius: 8rpx;
+  background: #f1f5f9;
+  color: #172033;
+  font-size: 28rpx;
+  line-height: 1.55;
+}
+
+.source-placeholder {
+  color: #8a94a6;
+}
+
+.option-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14rpx;
+  margin-top: 18rpx;
+}
+
+.option-control {
+  min-height: 88rpx;
+  padding: 14rpx;
+  border: 1rpx solid #dde5ef;
+  border-radius: 8rpx;
+  background: #fbfcfe;
+}
+
+.option-label {
+  display: block;
+  color: #8a3c2f;
+  font-size: 21rpx;
+}
+
+.option-value {
+  display: block;
+  margin-top: 8rpx;
+  color: #172033;
+  font-size: 25rpx;
+  font-weight: 600;
+}
+
+.action-row {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 20rpx;
+}
+
+.action-button {
+  flex: 1;
+  min-height: 82rpx;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.action-button.primary {
+  background: #0f766e;
+  color: #ffffff;
+}
+
+.action-button.secondary,
+.copy-button {
+  border: 1rpx solid #b9c6d6;
+  background: #ffffff;
+  color: #283447;
+}
+
+.state-panel {
+  display: flex;
+  min-height: 180rpx;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10rpx;
+  margin-top: 24rpx;
+  padding: 28rpx;
+}
+
+.error-panel {
+  border-color: #f0b3a5;
+  background: #fff7f4;
+}
+
+.state-title {
+  color: #172033;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.state-copy {
+  color: #697386;
+  font-size: 25rpx;
+  line-height: 1.5;
+}
+
+.result-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+  margin-top: 24rpx;
+}
+
+.result-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 16rpx;
+  color: #697386;
+  font-size: 23rpx;
+}
+
+.result-card {
+  padding: 24rpx;
+  border-left: 8rpx solid #0f766e;
+}
+
+.result-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+}
+
+.risk-badge {
+  padding: 6rpx 14rpx;
+  border-radius: 8rpx;
+  background: #edf7f5;
+  color: #0f766e;
+  font-size: 22rpx;
+}
+
+.score-text {
+  color: #8a3c2f;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.result-title {
+  display: block;
+  color: #172033;
+  font-size: 32rpx;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.result-rationale {
+  display: block;
+  margin-top: 12rpx;
+  color: #4f5b6d;
+  font-size: 25rpx;
+  line-height: 1.55;
+}
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 18rpx;
+}
+
+.tag {
+  padding: 6rpx 12rpx;
+  border-radius: 8rpx;
+  background: #fff0e8;
+  color: #b64b34;
+  font-size: 22rpx;
+}
+
+.copy-button {
+  width: 100%;
+  min-height: 72rpx;
+  margin-top: 18rpx;
+  border-radius: 8rpx;
+  font-size: 26rpx;
+  font-weight: 700;
+}

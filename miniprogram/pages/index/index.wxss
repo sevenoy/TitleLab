@@ -19,6 +19,16 @@
   line-height: 1.55;
 }
 
+.ai-entry-button {
+  width: 220rpx;
+  min-height: 64rpx;
+  border-radius: 8rpx;
+  background: #0f766e;
+  color: #ffffff;
+  font-size: 25rpx;
+  font-weight: 700;
+}
+
 .search-panel {
   padding: 22rpx;
   border: 1rpx solid #dde5ef;

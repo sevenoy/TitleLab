@@ -1,0 +1,83 @@
+<view class="page-shell">
+  <view class="hero">
+    <text class="pill">Mock-only</text>
+    <text class="hero-title">AI 标题生成</text>
+    <text class="hero-subtitle">本地生成结构化标题建议，不登录、不请求后端、不上传内容。</text>
+  </view>
+
+  <view class="form-panel">
+    <textarea
+      class="source-input"
+      value="{{sourceText}}"
+      maxlength="1200"
+      placeholder="粘贴一段内容、卖点、复盘结论或发布说明"
+      placeholder-class="source-placeholder"
+      bindinput="onSourceInput"
+    />
+
+    <view class="option-grid">
+      <picker range="{{contentTypeOptions}}" range-key="label" value="{{contentTypeIndex}}" bindchange="onContentTypeChange">
+        <view class="option-control">
+          <text class="option-label">内容</text>
+          <text class="option-value">{{contentTypeOptions[contentTypeIndex].label}}</text>
+        </view>
+      </picker>
+
+      <picker range="{{toneOptions}}" range-key="label" value="{{toneIndex}}" bindchange="onToneChange">
+        <view class="option-control">
+          <text class="option-label">语气</text>
+          <text class="option-value">{{toneOptions[toneIndex].label}}</text>
+        </view>
+      </picker>
+
+      <picker range="{{platformOptions}}" range-key="label" value="{{platformIndex}}" bindchange="onPlatformChange">
+        <view class="option-control">
+          <text class="option-label">平台</text>
+          <text class="option-value">{{platformOptions[platformIndex].label}}</text>
+        </view>
+      </picker>
+
+      <picker range="{{countOptions}}" range-key="label" value="{{countIndex}}" bindchange="onCountChange">
+        <view class="option-control">
+          <text class="option-label">数量</text>
+          <text class="option-value">{{countOptions[countIndex].label}}</text>
+        </view>
+      </picker>
+    </view>
+
+    <view class="action-row">
+      <button class="action-button secondary" bindtap="onClear">清空</button>
+      <button class="action-button primary" loading="{{loading}}" disabled="{{loading}}" bindtap="onGenerate">生成标题</button>
+    </view>
+  </view>
+
+  <view wx:if="{{error}}" class="state-panel error-panel">
+    <text class="state-title">{{error.code}}</text>
+    <text class="state-copy">{{error.message}}</text>
+  </view>
+
+  <view wx:if="{{!loading && !error && !suggestions.length}}" class="state-panel">
+    <text class="state-title">等待输入内容</text>
+    <text class="state-copy">输入一段素材后生成 mock 标题建议。</text>
+  </view>
+
+  <view wx:if="{{suggestions.length}}" class="result-list">
+    <view class="result-meta">
+      <text>{{result.provider}} · {{result.model}}</text>
+      <text>{{result.usageEstimate.returnedCount}} 条 · {{result.usageEstimate.estimatedCostCents}} cents</text>
+    </view>
+
+    <view wx:for="{{suggestions}}" wx:key="title" class="result-card">
+      <view class="result-head">
+        <text class="risk-badge">{{item.riskLevel}}</text>
+        <text class="score-text">{{item.score}}</text>
+      </view>
+      <text class="result-title">{{item.title}}</text>
+      <text class="result-rationale">{{item.rationale}}</text>
+      <view class="tag-row">
+        <text wx:for="{{item.tags}}" wx:key="*this" class="tag">#{{item}}</text>
+      </view>
+      <button class="copy-button" data-index="{{index}}" bindtap="onCopyTitle">复制标题</button>
+    </view>
+  </view>
+</view>
