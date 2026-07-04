@@ -188,6 +188,32 @@ Phase 4A `workspace_members` authorization check. `X-TitleLab-User-Id` remains
 available only as a local/dev/test fallback and is not a production login
 scheme.
 
+## Phase 4D Real Auth Preflight
+
+Phase 4D adds a local static preflight harness for the mini program real API
+and auth gates. It does not change backend auth implementation, deploy, call
+WeChat online APIs, connect to a real database, run real database migrations, or
+open production gates.
+
+Run from the repository root:
+
+```bash
+python3 scripts/titlelab_phase4d_preflight_check.py
+```
+
+Backend requirements before any later real-login gate:
+
+- `/healthz` stays public raw and does not expose sensitive settings.
+- `/api/meta` stays public response-envelope output and does not expose secrets.
+- Auth endpoints remain limited to `POST /api/v1/auth/wechat-login`,
+  `GET /api/v1/auth/me`, and `POST /api/v1/auth/logout`.
+- WeChat code exchange must be mocked in tests unless a later release gate
+  explicitly authorizes a real test environment.
+- `X-TitleLab-User-Id` remains local/dev/test fallback only; production traffic
+  must use server-side session auth.
+- `realApiGateEnabled=false` and `authRealApiGateEnabled=false` remain the
+  mini program defaults until a later controlled gate.
+
 ## Local Setup
 
 Use a local virtual environment or a temporary runner. Do not put real secrets

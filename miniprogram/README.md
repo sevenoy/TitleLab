@@ -50,6 +50,23 @@
 - 只允许 auth POST；业务内容仍不得新增 `POST`、`PUT`、`PATCH` 或 `DELETE`。
 - 真机登录、真实 AppID、合法域名、隐私指引、体验版上传和提审仍必须另起 RELEASE_GATE。
 
+## Phase 4D real auth preflight
+
+Phase 4D 新增本地静态检查脚本：
+
+```bash
+python3 scripts/titlelab_phase4d_preflight_check.py
+```
+
+该脚本只检查本地文件，不请求后端、不调用微信、不连接数据库、不读取 secret。当前默认 gate 必须保持 `realApiGateEnabled=false` 和 `authRealApiGateEnabled=false`。
+
+真实登录前必须另外完成：
+
+- 微信后台正式 AppID、request 合法域名、隐私保护指引和测试成员检查。
+- 后端测试环境、非生产测试数据库、workspace membership 和回滚策略检查。
+- `workspaceId` 从 `default` placeholder 替换为已授权 workspace。
+- 用户单独授权后才允许上传体验版、提交审核或部署。
+
 ## 后续接入规则
 
 后续接入真实只读接口必须单独开启 gate，并继续限制在 Phase 2 已验收的只读内容接口和公开 meta 接口内。

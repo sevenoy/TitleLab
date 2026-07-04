@@ -385,6 +385,45 @@ Phase 4C 在独立 worktree `phase4c-miniprogram-auth-session-integration` 中�
 
 Phase 4D 可单独做受控真机/测试环境登录 preflight 规划，先明确 AppID、合法域名、隐私指引、测试账号/成员、后端环境和回滚策略；任何体验版上传、真实微信后台配置或生产 API smoke 都必须另起 RELEASE_GATE。
 
+## 22. Phase 4D real auth preflight harness
+
+Phase 4D 在独立 worktree `phase4d-real-auth-preflight-harness` 中新增真实 API / 登录 gate 打开前的本地静态 preflight harness 和人工检查清单。本阶段没有部署、没有上传体验版、没有提交审核、没有连接真实数据库、没有对真实数据库执行 migration、没有真实调用微信接口、没有接入 OpenAI，也没有打开真实 API gate。
+
+新增 / 更新文件：
+
+- `scripts/titlelab_phase4d_preflight_check.py`
+- `docs/14_PHASE4D_REAL_AUTH_PREFLIGHT_CHECKLIST.md`
+- `miniprogram/README.md`
+- `backend/README.md`
+- `docs/08_HANDOFF.md`
+
+preflight 脚本检查：
+
+- `realApiGateEnabled=false` 和 `authRealApiGateEnabled=false` 仍为默认值。
+- 唯一允许 API base 为 `https://api.title.mirroroo.top/api/v1`。
+- 小程序运行时代码不引用禁用域名、Cloudflare 临时域名或 `api.openai.com`。
+- 页面不直接调用 `wx.request` 或 `wx.login`。
+- `wx.request` 只允许在 `miniprogram/services/request.js`。
+- `wx.login` 只允许在 `miniprogram/adapters/wechat.js`。
+- `POST` 调用只允许 `miniprogram/services/authApi.js` 中的 `wechat-login` 和 `logout`。
+- 不允许新增 `PUT`、`PATCH` 或 `DELETE`。
+- `miniprogram/project.private.config.json` 未被 git 跟踪。
+- session storage key 使用 `titlelab.*` 命名空间。
+- `workspaceId=default` 作为风险项输出，不作为脚本失败。
+- README 和 handoff 明确 real gate 未开启。
+
+边界确认：
+
+- 未修改 backend auth 实现代码。
+- 未修改 `backend/alembic/**`、`backend/app/models/**` 或 `backend/app/db/**`。
+- 未新增业务 `POST`、`PUT`、`PATCH`、`DELETE`。
+- 未上传体验版、未提审、未部署、未改服务器 / Nginx / DNS / Cloudflare / 腾讯云配置。
+- 未读取、打印或写入真实 AppSecret、API key、DB 密码、token、cookie。
+
+下一步最小建议：
+
+Phase 4E 可在单独授权的 RELEASE_GATE 中做 controlled real API gate enable：先替换真实 workspaceId、核对微信后台合法域名 / 隐私指引 / 测试成员和非生产后端测试环境，再只对测试成员打开真实登录；如优先推进 AI，则另起 Phase 5 AI Facade，继续禁止小程序直连 OpenAI。
+
 ## 6. 风险与注意
 
 - 现有登录形态是静态网页时代的实现，重建时必须迁移到服务端认证。
