@@ -671,6 +671,51 @@ Phase 6 在独立 worktree `phase6-miniprogram-ai-title-mock-only-full` 中实�
 
 如需真实 AI smoke，另起 Phase 5E RELEASE_GATE；如需让小程序接后端 AI mock/test API，另起 Phase 6B/6C，并继续保持小程序不直连 OpenAI、不保存 API key、不默认打开真实 gate。
 
+## 27. Phase 6B Mini Program AI mock UX QA hardening
+
+Phase 6B 在独立 worktree `phase6b-miniprogram-ai-mock-ux-qa-hardening` 中完成小程序 AI 标题生成 mock-only UX QA hardening。本阶段没有进入 Phase 5E，没有真实调用 OpenAI，没有请求真实后端 AI，没有连接真实数据库，没有新增 migration，没有新增依赖，没有部署、上传体验版或提交审核。
+
+新增 / 更新文件：
+
+- `miniprogram/config/env.js`
+- `miniprogram/pages/ai/index.js`
+- `miniprogram/pages/ai/index.wxml`
+- `miniprogram/pages/ai/index.wxss`
+- `miniprogram/pages/index/index.wxml`
+- `miniprogram/pages/index/index.wxss`
+- `miniprogram/services/aiMock.js`
+- `miniprogram/services/aiRepository.js`
+- `scripts/titlelab_phase6b_miniprogram_ai_mock_ux_check.py`
+- `docs/22_PHASE6B_MINIPROGRAM_AI_MOCK_UX_QA_HARDENING.md`
+- `miniprogram/README.md`
+- `docs/08_HANDOFF.md`
+
+实现结果：
+
+- AI 页面新增字符计数、输入校验、mock-only notice、预设示例、loading、错误态、空态、暂无结果态和 warnings 展示。
+- 新增 copy all / 复制全部、复制单个标题、清空和重新生成。
+- `aiMock.js` 增强为更稳定的小红书/旅拍场景 mock 输出，并保持 `title`、`rationale`、`tags`、`riskLevel`、`score` schema。
+- 疑似敏感输入不原样扩散到 mock 标题，并返回 `SECRET_LIKE_INPUT_REDACTED` warning。
+- `realApiGateEnabled=false`、`authRealApiGateEnabled=false`、`aiRealApiGateEnabled=false` 仍为默认关闭。
+- 新增 Phase 6B preflight：`python3 scripts/titlelab_phase6b_miniprogram_ai_mock_ux_check.py`。
+
+边界确认：
+
+- 未修改 `backend/alembic/**`。
+- 未修改 `backend/app/db/**`。
+- 未修改 `backend/app/models/**`。
+- 未新增依赖。
+- 未新增内容 CRUD 写接口。
+- 未真实请求后端 AI。
+- 未调用真实 OpenAI、微信或任何外部 API。
+- 未连接真实数据库，未执行真实数据库 migration。
+- 未部署，未上传体验版，未提交审核。
+- 未提交 `miniprogram/project.private.config.json`。
+
+下一步最小建议：
+
+如需真实 AI smoke，另起 Phase 5E RELEASE_GATE；如需小程序接后端 AI mock/test API，另起 Phase 6C，并继续保持小程序不直连 OpenAI、不保存 API key、不默认打开真实 gate。
+
 ## 6. 风险与注意
 
 - 现有登录形态是静态网页时代的实现，重建时必须迁移到服务端认证。

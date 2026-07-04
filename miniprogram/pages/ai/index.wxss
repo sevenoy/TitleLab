@@ -18,6 +18,16 @@
   line-height: 1.55;
 }
 
+.mock-notice {
+  padding: 16rpx 18rpx;
+  border-left: 8rpx solid #0f766e;
+  border-radius: 8rpx;
+  background: #edf7f5;
+  color: #24534d;
+  font-size: 24rpx;
+  line-height: 1.45;
+}
+
 .form-panel,
 .state-panel,
 .result-card {
@@ -28,6 +38,31 @@
 
 .form-panel {
   padding: 22rpx;
+}
+
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-bottom: 18rpx;
+}
+
+.preset-button {
+  min-width: 190rpx;
+  min-height: 58rpx;
+  padding: 0 18rpx;
+  border: 1rpx solid #b9c6d6;
+  border-radius: 8rpx;
+  background: #ffffff;
+  color: #283447;
+  font-size: 23rpx;
+}
+
+.preset-button.active {
+  border-color: #0f766e;
+  background: #edf7f5;
+  color: #0f766e;
+  font-weight: 700;
 }
 
 .source-input {
@@ -43,6 +78,16 @@
 
 .source-placeholder {
   color: #8a94a6;
+}
+
+.input-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 18rpx;
+  margin-top: 12rpx;
+  color: #697386;
+  font-size: 22rpx;
+  line-height: 1.4;
 }
 
 .option-grid {
@@ -93,8 +138,13 @@
   color: #ffffff;
 }
 
+.action-button[disabled] {
+  opacity: 0.55;
+}
+
 .action-button.secondary,
-.copy-button {
+.copy-button,
+.state-action {
   border: 1rpx solid #b9c6d6;
   background: #ffffff;
   color: #283447;
@@ -115,6 +165,11 @@
   background: #fff7f4;
 }
 
+.loading-panel {
+  border-color: #b9d7f5;
+  background: #f5f9ff;
+}
+
 .state-title {
   color: #172033;
   font-size: 30rpx;
@@ -125,6 +180,14 @@
   color: #697386;
   font-size: 25rpx;
   line-height: 1.5;
+}
+
+.state-action {
+  width: 180rpx;
+  min-height: 62rpx;
+  margin-top: 8rpx;
+  border-radius: 8rpx;
+  font-size: 24rpx;
 }
 
 .result-list {
@@ -140,6 +203,27 @@
   gap: 16rpx;
   color: #697386;
   font-size: 23rpx;
+}
+
+.warning-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  padding: 18rpx;
+  border-left: 8rpx solid #d95f43;
+  border-radius: 8rpx;
+  background: #fff7f4;
+}
+
+.warning-item {
+  color: #8a3c2f;
+  font-size: 23rpx;
+  line-height: 1.45;
+}
+
+.result-actions {
+  display: flex;
+  gap: 14rpx;
 }
 
 .result-card {

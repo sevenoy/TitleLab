@@ -17,7 +17,7 @@ const runtimeEnv = {
   apiBaseUrl: API_BASE_URL,
   allowedApiBaseUrl: ALLOWED_API_BASE_URL,
   workspaceId: DEFAULT_WORKSPACE_ID,
-  appVersion: "phase6-miniprogram-ai-title-mock-only"
+  appVersion: "phase6b-miniprogram-ai-mock-ux-qa"
 };
 
 function getRuntimeEnv() {

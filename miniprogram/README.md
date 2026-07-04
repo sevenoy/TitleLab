@@ -116,6 +116,29 @@ Phase 6 新增 `pages/ai/index` 和小程序 AI service/repository/mock 分层�
 python3 scripts/titlelab_phase6_miniprogram_ai_mock_check.py
 ```
 
+## Phase 6B AI mock UX QA
+
+Phase 6B 继续保持 mock-only，只打磨 AI 标题生成页面体验：
+
+- `realApiGateEnabled=false`
+- `authRealApiGateEnabled=false`
+- `aiRealApiGateEnabled=false`
+
+新增体验：
+
+- sourceText 字符计数和输入校验。
+- 香港迪士尼旅拍、摄影师跟拍、求婚记录本地预设。
+- loading、错误态、空态、暂无结果态和 warnings 展示。
+- 复制单个标题、copy all / 复制全部、清空和重新生成。
+- `services/aiMock.js` 输出更稳定的小红书/旅拍场景 mock 标题。
+- 疑似敏感输入不原样扩散到标题。
+
+本地检查：
+
+```bash
+python3 scripts/titlelab_phase6b_miniprogram_ai_mock_ux_check.py
+```
+
 ## 后续接入规则
 
 后续接入真实只读接口必须单独开启 gate，并继续限制在 Phase 2 已验收的只读内容接口和公开 meta 接口内。
