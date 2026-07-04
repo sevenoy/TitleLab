@@ -12,6 +12,27 @@ from app.main import app
 from app.models.core import Category, ContentItem, ContentTag, Tag, Workspace
 
 
+def assert_success_envelope(data: dict[str, object], expected_request_id: str | None = None) -> None:
+    assert data["code"] == "OK"
+    assert data["message"] == "OK"
+    assert isinstance(data["requestId"], str)
+    assert data["requestId"]
+    if expected_request_id:
+        assert data["requestId"] == expected_request_id
+    assert isinstance(data["serverTime"], str)
+    assert data["version"] == "v1"
+    assert "data" in data
+
+
+def assert_list_payload(payload: dict[str, object]) -> list[dict[str, object]]:
+    assert set(payload) == {"items", "limit", "offset", "hasMore"}
+    assert isinstance(payload["items"], list)
+    assert isinstance(payload["limit"], int)
+    assert isinstance(payload["offset"], int)
+    assert isinstance(payload["hasMore"], bool)
+    return payload["items"]
+
+
 @pytest.fixture()
 def client() -> Generator[TestClient, None, None]:
     engine = create_engine(
@@ -101,18 +122,42 @@ def seed_data(session: Session) -> None:
 
 
 def test_list_contents_success(client: TestClient) -> None:
-    response = client.get("/api/v1/workspaces/workspace-a/contents")
+    response = client.get("/api/v1/workspaces/workspace-a/contents", headers={"X-Request-Id": "list-request-id"})
 
     assert response.status_code == 200
-    ids = {item["id"] for item in response.json()}
+    assert response.headers["x-request-id"] == "list-request-id"
+    envelope = response.json()
+    assert_success_envelope(envelope, expected_request_id="list-request-id")
+    payload = envelope["data"]
+    items = assert_list_payload(payload)
+    assert payload["limit"] == 20
+    assert payload["offset"] == 0
+    assert payload["hasMore"] is False
+    ids = {item["id"] for item in items}
     assert ids == {"content-title-a", "content-copy-a"}
+
+
+def test_list_contents_has_more_with_limit(client: TestClient) -> None:
+    response = client.get("/api/v1/workspaces/workspace-a/contents?limit=1&offset=0")
+
+    assert response.status_code == 200
+    envelope = response.json()
+    assert_success_envelope(envelope)
+    payload = envelope["data"]
+    items = assert_list_payload(payload)
+    assert len(items) == 1
+    assert payload["limit"] == 1
+    assert payload["offset"] == 0
+    assert payload["hasMore"] is True
 
 
 def test_get_content_detail_success(client: TestClient) -> None:
     response = client.get("/api/v1/workspaces/workspace-a/contents/content-title-a")
 
     assert response.status_code == 200
-    assert response.json()["text"] == "夏日上新标题"
+    envelope = response.json()
+    assert_success_envelope(envelope)
+    assert envelope["data"]["text"] == "夏日上新标题"
 
 
 def test_workspace_isolation_for_content_detail(client: TestClient) -> None:
@@ -125,7 +170,9 @@ def test_content_type_filter(client: TestClient) -> None:
     response = client.get("/api/v1/workspaces/workspace-a/contents?content_type=title")
 
     assert response.status_code == 200
-    assert [item["id"] for item in response.json()] == ["content-title-a"]
+    envelope = response.json()
+    assert_success_envelope(envelope)
+    assert [item["id"] for item in assert_list_payload(envelope["data"])] == ["content-title-a"]
 
 
 def test_category_and_tag_reading(client: TestClient) -> None:
@@ -134,18 +181,43 @@ def test_category_and_tag_reading(client: TestClient) -> None:
     tagged_contents = client.get("/api/v1/workspaces/workspace-a/contents?tag_id=tag-a")
 
     assert categories.status_code == 200
-    assert [item["id"] for item in categories.json()] == ["category-a"]
+    category_envelope = categories.json()
+    assert_success_envelope(category_envelope)
+    assert [item["id"] for item in assert_list_payload(category_envelope["data"])] == ["category-a"]
     assert tags.status_code == 200
-    assert [item["id"] for item in tags.json()] == ["tag-a"]
+    tag_envelope = tags.json()
+    assert_success_envelope(tag_envelope)
+    assert [item["id"] for item in assert_list_payload(tag_envelope["data"])] == ["tag-a"]
     assert tagged_contents.status_code == 200
-    assert [item["id"] for item in tagged_contents.json()] == ["content-title-a"]
+    tagged_envelope = tagged_contents.json()
+    assert_success_envelope(tagged_envelope)
+    assert [item["id"] for item in assert_list_payload(tagged_envelope["data"])] == ["content-title-a"]
 
 
 def test_missing_content_returns_404(client: TestClient) -> None:
     response = client.get("/api/v1/workspaces/workspace-a/contents/missing")
 
     assert response.status_code == 404
-    assert response.json()["message"] == "content_not_found"
+    data = response.json()
+    assert data["code"] == "NOT_FOUND"
+    assert data["message"] == "content_not_found"
+    assert data["data"] is None
+    assert isinstance(data["requestId"], str)
+    assert isinstance(data["serverTime"], str)
+    assert data["version"] == "v1"
+
+
+def test_invalid_query_param_returns_stable_error_code(client: TestClient) -> None:
+    response = client.get("/api/v1/workspaces/workspace-a/contents?limit=0")
+
+    assert response.status_code == 422
+    data = response.json()
+    assert data["code"] == "INVALID_PARAM"
+    assert data["message"] == "invalid_param"
+    assert data["data"] is None
+    assert isinstance(data["requestId"], str)
+    assert isinstance(data["serverTime"], str)
+    assert data["version"] == "v1"
 
 
 def test_no_mutating_phase_2a_workspace_routes() -> None:

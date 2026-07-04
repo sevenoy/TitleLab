@@ -49,6 +49,9 @@ TAG_FIELDS = {
     "updated_at",
 }
 
+API_RESPONSE_FIELDS = {"code", "message", "data", "requestId", "serverTime", "version"}
+LIST_PAYLOAD_FIELDS = {"items", "limit", "offset", "hasMore"}
+
 
 def test_openapi_contains_only_phase2a_workspace_get_routes() -> None:
     openapi = app.openapi()
@@ -81,6 +84,14 @@ def test_openapi_response_schema_fields_are_stable() -> None:
     assert set(schemas["ContentItemOut"]["properties"]) == CONTENT_ITEM_FIELDS
     assert set(schemas["CategoryOut"]["properties"]) == CATEGORY_FIELDS
     assert set(schemas["TagOut"]["properties"]) == TAG_FIELDS
+    assert set(schemas["ContentItemResponse"]["properties"]) == API_RESPONSE_FIELDS
+    assert set(schemas["ContentItemListResponse"]["properties"]) == API_RESPONSE_FIELDS
+    assert set(schemas["CategoryListResponse"]["properties"]) == API_RESPONSE_FIELDS
+    assert set(schemas["TagListResponse"]["properties"]) == API_RESPONSE_FIELDS
+    assert set(schemas["ContentItemListPayload"]["properties"]) == LIST_PAYLOAD_FIELDS
+    assert set(schemas["CategoryListPayload"]["properties"]) == LIST_PAYLOAD_FIELDS
+    assert set(schemas["TagListPayload"]["properties"]) == LIST_PAYLOAD_FIELDS
+    assert set(schemas["ErrorResponse"]["properties"]) == API_RESPONSE_FIELDS | {"details"}
 
 
 def test_phase2a_readonly_route_response_contracts() -> None:
@@ -93,7 +104,7 @@ def test_phase2a_readonly_route_response_contracts() -> None:
     categories_response = openapi["paths"]["/api/v1/workspaces/{workspace_id}/categories"]["get"]["responses"]["200"]
     tags_response = openapi["paths"]["/api/v1/workspaces/{workspace_id}/tags"]["get"]["responses"]["200"]
 
-    assert contents_response["content"]["application/json"]["schema"]["items"]["$ref"].endswith("/ContentItemOut")
-    assert content_detail_response["content"]["application/json"]["schema"]["$ref"].endswith("/ContentItemOut")
-    assert categories_response["content"]["application/json"]["schema"]["items"]["$ref"].endswith("/CategoryOut")
-    assert tags_response["content"]["application/json"]["schema"]["items"]["$ref"].endswith("/TagOut")
+    assert contents_response["content"]["application/json"]["schema"]["$ref"].endswith("/ContentItemListResponse")
+    assert content_detail_response["content"]["application/json"]["schema"]["$ref"].endswith("/ContentItemResponse")
+    assert categories_response["content"]["application/json"]["schema"]["$ref"].endswith("/CategoryListResponse")
+    assert tags_response["content"]["application/json"]["schema"]["$ref"].endswith("/TagListResponse")
