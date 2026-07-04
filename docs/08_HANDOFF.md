@@ -424,6 +424,46 @@ preflight 脚本检查：
 
 Phase 4E 可在单独授权的 RELEASE_GATE 中做 controlled real API gate enable：先替换真实 workspaceId、核对微信后台合法域名 / 隐私指引 / 测试成员和非生产后端测试环境，再只对测试成员打开真实登录；如优先推进 AI，则另起 Phase 5 AI Facade，继续禁止小程序直连 OpenAI。
 
+## 23. Phase 4E controlled real gate readiness
+
+Phase 4E 在独立 worktree `phase4e-controlled-real-gate-readiness` 中实现 controlled real API gate readiness。本阶段没有打开真实 gate，没有默认真实请求，没有部署、上传体验版、提交审核，没有连接真实数据库，没有真实调用微信接口，也没有接入 OpenAI。
+
+新增 / 更新文件：
+
+- `miniprogram/services/realGateGuard.js`
+- `scripts/titlelab_phase4e_real_gate_check.py`
+- `docs/15_PHASE4E_CONTROLLED_REAL_GATE_READINESS.md`
+- `miniprogram/config/env.js`
+- `miniprogram/services/request.js`
+- `miniprogram/services/authRepository.js`
+- `miniprogram/services/contentRepository.js`
+- `miniprogram/README.md`
+- `backend/README.md`
+- `docs/08_HANDOFF.md`
+
+实现结果：
+
+- `realApiGateEnabled=false` 和 `authRealApiGateEnabled=false` 继续保持默认关闭。
+- `realGateGuard` 提供 `validateRealApiReadiness`、`assertRealApiReadiness`、`isPlaceholderWorkspaceId`、`normalizeGateError`。
+- 真实请求前统一校验 API base、workspaceId、auth gate 和 session readiness。
+- `workspaceId=default` 在 gate 关闭时仍只作为风险；gate 开启后必须失败为 `REAL_WORKSPACE_REQUIRED`。
+- auth gate 开启但需要 session 的请求缺少 token 时必须失败为 `REAL_AUTH_SESSION_REQUIRED`。
+- `request.js` 保持 envelope 校验和 Bearer 注入逻辑。
+- `authRepository.loginWithWechat()` 在 readiness 不满足时先 fail-fast，不触发 `wx.login`。
+- `contentRepository` 在 real mode 下调用内容 API 前先校验 workspace readiness。
+
+边界确认：
+
+- 未修改 backend auth 实现。
+- 未修改 `backend/alembic/**`、`backend/app/models/**` 或 `backend/app/db/**`。
+- 未新增业务 `POST`、`PUT`、`PATCH`、`DELETE`。
+- 未上传体验版、未提审、未部署、未改服务器 / Nginx / DNS / Cloudflare / 腾讯云配置。
+- 未读取、打印或写入真实 AppSecret、API key、DB 密码、token、cookie。
+
+下一步最小建议：
+
+在用户单独授权后，可做 Phase 4F controlled real test：先准备非生产后端测试环境、真实 workspaceId、微信后台合法域名、隐私指引和测试成员，再只对测试成员短时打开真实 gate；也可以转入 Phase 5 AI Facade，继续禁止小程序直连 OpenAI。
+
 ## 6. 风险与注意
 
 - 现有登录形态是静态网页时代的实现，重建时必须迁移到服务端认证。

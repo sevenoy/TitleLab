@@ -67,6 +67,23 @@ python3 scripts/titlelab_phase4d_preflight_check.py
 - `workspaceId` 从 `default` placeholder 替换为已授权 workspace。
 - 用户单独授权后才允许上传体验版、提交审核或部署。
 
+## Phase 4E controlled real gate readiness
+
+Phase 4E 新增 `services/realGateGuard.js` 和检查脚本：
+
+```bash
+python3 scripts/titlelab_phase4e_real_gate_check.py
+```
+
+当前默认仍是 `apiMode=mock`、`realApiGateEnabled=false`、`authRealApiGateEnabled=false`。`workspaceId=default` 在 gate 关闭时仅作为风险项；一旦 real gate 被开启，guard 会要求真实 workspaceId、唯一合法 API base 和 auth readiness，否则 fail-fast，不发起真实请求。
+
+运行时规则：
+
+- 真实请求前必须通过 `realGateGuard.assertRealApiReadiness`。
+- `workspaceId=default`、`placeholder`、`demo` 或 `test` 不得用于真实请求。
+- auth gate 开启但缺 session readiness 时返回 `REAL_AUTH_SESSION_REQUIRED`。
+- 默认 mock 模式不调用 `wx.login`，不访问后端，不阻断本地内容展示。
+
 ## 后续接入规则
 
 后续接入真实只读接口必须单独开启 gate，并继续限制在 Phase 2 已验收的只读内容接口和公开 meta 接口内。

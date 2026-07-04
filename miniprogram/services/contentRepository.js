@@ -1,6 +1,7 @@
 const env = require("../config/env");
 const contentApi = require("./contentApi");
 const contentMock = require("./contentMock");
+const realGateGuard = require("./realGateGuard");
 
 const FALLBACK_TYPE_OPTIONS = [
   { value: "all", label: "全部类型" },
@@ -26,6 +27,8 @@ function toDisplayError(error) {
     isInvalidParam: code === "INVALID_PARAM",
     isAuthRequired: code === "UNAUTHORIZED",
     isForbidden: code === "FORBIDDEN",
+    isRealGateNotReady: code === "REAL_GATE_NOT_READY",
+    isRealWorkspaceRequired: code === "REAL_WORKSPACE_REQUIRED",
     isSessionExpired: code === "SESSION_EXPIRED",
     isSessionRevoked: code === "SESSION_REVOKED",
     isRetryable: code === "NETWORK_ERROR" || code === "INTERNAL_ERROR"
@@ -42,6 +45,13 @@ function getWorkspaceId(workspaceId) {
   return workspaceId || env.getWorkspaceId();
 }
 
+function assertContentReadiness(workspaceId) {
+  realGateGuard.assertRealApiReadiness({
+    ...env.getRuntimeEnv(),
+    workspaceId: getWorkspaceId(workspaceId)
+  });
+}
+
 function getContentItems(filters = {}, workspaceId) {
   if (env.isMockMode()) {
     return asPromise({
@@ -52,6 +62,7 @@ function getContentItems(filters = {}, workspaceId) {
     });
   }
 
+  assertContentReadiness(workspaceId);
   return withDisplayError(contentApi.listContents(getWorkspaceId(workspaceId), filters));
 }
 
@@ -60,6 +71,7 @@ function getContentItemById(id, workspaceId) {
     return asPromise(contentMock.getContentItemById(id));
   }
 
+  assertContentReadiness(workspaceId);
   return withDisplayError(contentApi.getContentDetail(getWorkspaceId(workspaceId), id));
 }
 
@@ -76,6 +88,7 @@ function getCategoryOptions(workspaceId) {
     return asPromise(contentMock.getCategoryOptions());
   }
 
+  assertContentReadiness(workspaceId);
   return withDisplayError(contentApi.listCategories(getWorkspaceId(workspaceId))).then((payload) => [
     { value: "all", label: "全部分类" },
     ...payload.items
@@ -87,6 +100,7 @@ function getTagOptions(workspaceId) {
     return asPromise(contentMock.getTagOptions());
   }
 
+  assertContentReadiness(workspaceId);
   return withDisplayError(contentApi.listTags(getWorkspaceId(workspaceId))).then((payload) => [
     { value: "all", label: "全部标签" },
     ...payload.items

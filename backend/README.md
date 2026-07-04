@@ -214,6 +214,21 @@ Backend requirements before any later real-login gate:
 - `realApiGateEnabled=false` and `authRealApiGateEnabled=false` remain the
   mini program defaults until a later controlled gate.
 
+## Phase 4E Controlled Real Gate Readiness
+
+Phase 4E keeps backend auth implementation unchanged and adds mini program
+fail-fast readiness checks before any real API or auth request can be made.
+
+Backend requirements for a future controlled real gate:
+
+- Use a non-production test database only.
+- Keep WeChat code exchange server-side; never put AppSecret in mini program
+  files.
+- Keep `/healthz` public raw and `/api/meta` public envelope.
+- Keep readonly workspace APIs scoped by `workspace_members`.
+- Keep auth POST limited to login/logout; do not add business write routes.
+- Do not deploy or run real database migrations in Phase 4E.
+
 ## Local Setup
 
 Use a local virtual environment or a temporary runner. Do not put real secrets

@@ -1,4 +1,5 @@
 const env = require("../config/env");
+const realGateGuard = require("./realGateGuard");
 const sessionStore = require("./sessionStore");
 
 const OK_CODE = "OK";
@@ -21,6 +22,13 @@ function createApiError(code, message, meta = {}) {
   return error;
 }
 
+function createApiErrorFromGate(error) {
+  const normalized = realGateGuard.normalizeGateError(error);
+  return createApiError(normalized.code, normalized.message, {
+    gateDetail: normalized.detail || {}
+  });
+}
+
 function normalizePath(path) {
   return path.startsWith("/") ? path : `/${path}`;
 }
@@ -31,9 +39,13 @@ function assertRequestAllowed(method, path, options = {}) {
   const needsAuthGate = options.requiresAuthGate || normalizedPath.startsWith(AUTH_PATH_PREFIX);
 
   if (needsAuthGate) {
-    env.assertAuthRealApiEnabled();
+    realGateGuard.assertRealApiReadiness(env.getRuntimeEnv(), {
+      requiresAuthGate: true,
+      requiresSessionToken: normalizedPath !== "/auth/wechat-login",
+      sessionToken: sessionStore.getAccessToken()
+    });
   } else {
-    env.assertRealApiEnabled();
+    realGateGuard.assertRealApiReadiness(env.getRuntimeEnv());
   }
 
   if (normalizedMethod === "get") {
@@ -101,7 +113,7 @@ function requestWithMethod(method, path, options = {}) {
   try {
     url = buildApiUrl(path, options.query || {}, { ...options, method });
   } catch (error) {
-    return Promise.reject(error);
+    return Promise.reject(error.isGateError ? createApiErrorFromGate(error) : error);
   }
 
   return new Promise((resolve, reject) => {
@@ -151,5 +163,6 @@ module.exports = {
   get,
   post,
   buildApiUrl,
-  createApiError
+  createApiError,
+  createApiErrorFromGate
 };

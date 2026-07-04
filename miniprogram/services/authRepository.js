@@ -1,6 +1,8 @@
 const env = require("../config/env");
 const wechat = require("../adapters/wechat");
 const authApi = require("./authApi");
+const realGateGuard = require("./realGateGuard");
+const request = require("./request");
 const sessionStore = require("./sessionStore");
 
 function gateClosedResult() {
@@ -37,6 +39,12 @@ function loginWithWechat() {
     return Promise.resolve(gateClosedResult());
   }
 
+  try {
+    realGateGuard.assertRealApiReadiness(env.getRuntimeEnv(), { requiresAuthGate: true });
+  } catch (error) {
+    return Promise.reject(request.createApiErrorFromGate(error));
+  }
+
   return wechat.login().then((code) => {
     return authApi.wechatLogin(code, { deviceLabel: wechat.getDeviceLabel() }).then((payload) => {
       const session = sessionStore.setSession(normalizeAuthPayload(payload));
@@ -56,6 +64,16 @@ function restoreSession() {
     return Promise.resolve(sessionResult(session, { skipped: true, reason: "AUTH_REAL_API_GATE_CLOSED" }));
   }
 
+  try {
+    realGateGuard.assertRealApiReadiness(env.getRuntimeEnv(), {
+      requiresAuthGate: true,
+      requiresSessionToken: true,
+      sessionToken: session.accessToken
+    });
+  } catch (error) {
+    return Promise.reject(request.createApiErrorFromGate(error));
+  }
+
   return authApi.getMe().then((payload) => {
     const data = payload.data || {};
     const refreshedSession = sessionStore.setSession({
@@ -71,6 +89,16 @@ function restoreSession() {
 function getCurrentUser() {
   if (!env.isAuthRealApiEnabled()) {
     return Promise.resolve(sessionResult(sessionStore.getSession(), { skipped: true, reason: "AUTH_REAL_API_GATE_CLOSED" }));
+  }
+
+  try {
+    realGateGuard.assertRealApiReadiness(env.getRuntimeEnv(), {
+      requiresAuthGate: true,
+      requiresSessionToken: true,
+      sessionToken: sessionStore.getAccessToken()
+    });
+  } catch (error) {
+    return Promise.reject(request.createApiErrorFromGate(error));
   }
 
   return authApi.getMe().then((payload) => {
@@ -92,6 +120,16 @@ function logout() {
   if (!env.isAuthRealApiEnabled() || !hasSession) {
     sessionStore.clearSession();
     return Promise.resolve({ revoked: false, localOnly: true });
+  }
+
+  try {
+    realGateGuard.assertRealApiReadiness(env.getRuntimeEnv(), {
+      requiresAuthGate: true,
+      requiresSessionToken: true,
+      sessionToken: sessionStore.getAccessToken()
+    });
+  } catch (error) {
+    return Promise.reject(request.createApiErrorFromGate(error));
   }
 
   return authApi

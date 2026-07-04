@@ -5,15 +5,18 @@ const API_MODES = {
 
 const ALLOWED_API_ORIGIN = "https://api.title.mirroroo.top";
 const API_BASE_URL = `${ALLOWED_API_ORIGIN}/api/v1`;
+const ALLOWED_API_BASE_URL = API_BASE_URL;
 const DEFAULT_WORKSPACE_ID = "default";
 
 const runtimeEnv = {
   apiMode: API_MODES.MOCK,
   realApiGateEnabled: false,
   authRealApiGateEnabled: false,
+  environmentLabel: "local-mock",
   apiBaseUrl: API_BASE_URL,
+  allowedApiBaseUrl: ALLOWED_API_BASE_URL,
   workspaceId: DEFAULT_WORKSPACE_ID,
-  appVersion: "phase4c-miniprogram-auth-session"
+  appVersion: "phase4e-controlled-real-gate-readiness"
 };
 
 function getRuntimeEnv() {
@@ -33,7 +36,7 @@ function isAuthRealApiEnabled() {
 }
 
 function assertAllowedApiBaseUrl(apiBaseUrl) {
-  if (apiBaseUrl !== API_BASE_URL) {
+  if (apiBaseUrl !== ALLOWED_API_BASE_URL) {
     throw new Error("INVALID_API_BASE");
   }
 }
@@ -62,6 +65,7 @@ module.exports = {
   API_MODES,
   ALLOWED_API_ORIGIN,
   API_BASE_URL,
+  ALLOWED_API_BASE_URL,
   getRuntimeEnv,
   isMockMode,
   isRealApiEnabled,
