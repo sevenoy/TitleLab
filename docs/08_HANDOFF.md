@@ -213,6 +213,27 @@ Phase 3B 在独立 worktree `phase3-miniprogram-readonly-mvp` 中新增小程序
 - 未新增登录、收藏、历史、AI 真实调用、导入、快照执行或后台页面。
 - 未提交 `miniprogram/project.private.config.json`。
 
+## 16. Phase 3C 真实只读 API 接入计划
+
+Phase 3C 计划轮已在独立 worktree `phase3-miniprogram-readonly-mvp` 中完成，只新增接入计划文档，不开发接入代码，不修改小程序业务代码，不修改后端，不配置真实 API 域名，不打开 real API gate，不连接后端 API，不连接数据库，不部署，不上传体验版，不 push。
+
+新增文档：
+
+- `docs/13_PHASE3C_READONLY_API_INTEGRATION_PLAN.md`
+
+计划结论：
+
+- 当前后端只读 API 仍是四个 workspace `GET` 路由：内容列表、内容详情、分类列表、标签列表。
+- 当前小程序已具备 `config/env.js`、`adapters/wechat.js`、`services/request.js`、`services/contentApi.js`、`services/contentRepository.js` 分层。
+- 当前后端响应是裸数组或裸对象，不是统一 `ApiResponse<T>` 包装；建议先做 Phase 2C API response contract，再做 Phase 3C 真实 API 接入。
+- 真实 API 只能使用 `https://api.title.mirroroo.top` / `https://api.title.mirroroo.top/api/v1`，不得使用禁用域名。
+- 页面不得直接 wx.request，真实请求必须统一走 `miniprogram/services/request.js`。
+- 小程序不得直连 OpenAI，不得新增写接口，不得新增登录、收藏、历史、AI、导入、快照执行或后台页面。
+
+下一步最小建议：
+
+先开独立 Phase 2C 后端契约 worktree，补齐统一响应包、requestId、serverTime、错误码、分页元信息和版本字段契约；验收后再回到 Phase 3C 实现小程序真实只读 API 接入。
+
 ## 6. 风险与注意
 
 - 现有登录形态是静态网页时代的实现，重建时必须迁移到服务端认证。
