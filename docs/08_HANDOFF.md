@@ -94,6 +94,37 @@ Phase 2B 在独立 worktree `phase2-readonly-api` 中补齐只读 API 契约测�
 
 本轮仅使用本机临时库 `backend/titlelab_phase2b_smoke_test.db` 执行 Alembic `upgrade head -> downgrade base`，验证后已删除临时库文件。未连接生产、远程、腾讯云、Supabase 或任何真实业务数据库；未部署、未 push、未进入 Phase 3。
 
+## 11. Phase 2C API response contract
+
+Phase 2C 在独立 worktree `phase2c-api-response-contract` 中完成后端只读 API response contract。目标是为后续 Phase 3C 小程序真实只读 API 接入提供稳定响应包；本阶段不新增写接口、不做登录、不修改数据库模型或 migration、不连接真实数据库、不部署、不 push。
+
+实现结果：
+
+- `GET /api/meta` 返回统一 `ApiResponse<MetaOut>`。
+- `GET /api/v1/workspaces/{workspace_id}/contents` 返回 `ApiResponse<ListPayload<ContentItemOut>>`。
+- `GET /api/v1/workspaces/{workspace_id}/contents/{content_id}` 返回 `ApiResponse<ContentItemOut>`。
+- `GET /api/v1/workspaces/{workspace_id}/categories` 返回 `ApiResponse<ListPayload<CategoryOut>>`。
+- `GET /api/v1/workspaces/{workspace_id}/tags` 返回 `ApiResponse<ListPayload<TagOut>>`。
+- 成功响应统一包含 `code`、`message`、`data`、`requestId`、`serverTime`、`version`。
+- 列表响应的 `data` 统一包含 `items`、`limit`、`offset`、`hasMore`；本阶段暂不引入 `total`，避免增加额外计数查询。
+- 错误响应稳定到 `NOT_FOUND`、`INVALID_PARAM`、`INTERNAL_ERROR`，并继续返回 `requestId`、`serverTime`、`version`。
+- `X-Request-Id` 请求头会优先进入响应体和响应头；未提供时由服务端生成。
+- `GET /healthz` 保持 raw health probe，是 Phase 2C response envelope 的唯一例外。
+
+边界确认：
+
+- 未新增 `POST`、`PUT`、`PATCH`、`DELETE`。
+- 未修改 `backend/alembic/**`。
+- 未修改 `backend/app/models/**`。
+- 未修改 `backend/app/db/**`。
+- 未修改 `miniprogram/**`。
+- 未连接任何真实数据库。
+- 未执行 Alembic migration。
+
+下一步建议：
+
+Phase 3C 小程序真实只读 API 接入应以本契约为准，统一从 `data.items` / `data` 读取业务数据，并保留 `requestId` 作为排障锚点。
+
 ## 6. 风险与注意
 
 - 现有登录形态是静态网页时代的实现，重建时必须迁移到服务端认证。

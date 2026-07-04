@@ -1,10 +1,12 @@
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.api.health import router as health_router
 from app.api.meta import router as meta_router
 from app.api.readonly import router as readonly_router
 from app.config import PHASE, PROJECT_NAME, SERVICE_NAME
+from app.schemas import ErrorCode, ErrorResponse, response_metadata
 
 app = FastAPI(
     title=PROJECT_NAME,
@@ -17,17 +19,29 @@ app.include_router(meta_router)
 app.include_router(readonly_router)
 
 
+def error_response(request: Request, code: ErrorCode, message: str, status_code: int) -> JSONResponse:
+    metadata = response_metadata(request.headers.get("x-request-id"))
+    return JSONResponse(
+        status_code=status_code,
+        content=ErrorResponse(code=code, message=message, **metadata).model_dump(mode="json"),
+        headers={"X-Request-Id": str(metadata["requestId"])},
+    )
+
+
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={
-            "code": "http_error",
-            "message": str(exc.detail),
-            "request_id": request.headers.get("x-request-id", ""),
-            "details": None,
-        },
-    )
+    code = ErrorCode.NOT_FOUND if exc.status_code == 404 else ErrorCode.INTERNAL_ERROR
+    return error_response(request, code, str(exc.detail), exc.status_code)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    return error_response(request, ErrorCode.INVALID_PARAM, "invalid_param", 422)
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    return error_response(request, ErrorCode.INTERNAL_ERROR, "internal_error", 500)
 
 
 @app.get("/")

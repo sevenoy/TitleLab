@@ -62,6 +62,62 @@ rm -f titlelab_phase2b_smoke_test.db
 Never run these commands against production, remote, shared test, Tencent Cloud,
 or Supabase databases.
 
+## Phase 2C API Response Contract
+
+Phase 2C wraps public meta and read-only content APIs in a stable response
+envelope. It does not add write routes, login, database migrations, production
+database access, deployment, or mini program code.
+
+Successful responses use:
+
+```json
+{
+  "code": "OK",
+  "message": "OK",
+  "data": {},
+  "requestId": "client-or-server-generated-id",
+  "serverTime": "2026-07-04T00:00:00Z",
+  "version": "v1"
+}
+```
+
+List responses put rows under `data.items` and include pagination metadata:
+
+```json
+{
+  "data": {
+    "items": [],
+    "limit": 20,
+    "offset": 0,
+    "hasMore": false
+  }
+}
+```
+
+Phase 2C uses `hasMore` instead of `total` to avoid adding count queries in this
+slice. `GET /api/v1/workspaces/{workspace_id}/contents` fetches one extra row to
+compute `hasMore`; categories and tags return all active rows for the workspace
+with `hasMore=false`.
+
+Stable response codes are:
+
+- `OK`
+- `NOT_FOUND`
+- `INVALID_PARAM`
+- `INTERNAL_ERROR`
+
+`requestId` is read from `X-Request-Id` when provided, otherwise the backend
+generates one. The same value is returned in the response body and
+`X-Request-Id` response header. `serverTime` is UTC ISO time and `version` is the
+API contract version (`v1`).
+
+`GET /healthz` intentionally remains a raw health probe response. It is the
+only Phase 2C response-envelope exception so uptime checks can stay small and
+stable.
+
+Phase 3C mini program real read-only API integration should depend on this
+envelope instead of consuming bare arrays or bare objects.
+
 ## Local Setup
 
 Use a local virtual environment or a temporary runner. Do not put real secrets
