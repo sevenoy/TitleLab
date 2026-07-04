@@ -156,6 +156,16 @@ QA 结果：
 - 将详情页按钮布局从 grid 收紧为 flex，降低微信开发者工具样式兼容风险。
 - 调整 `miniprogram/README.md` 的边界说明，避免 QA 敏感词扫描误报。
 
+## 13. Num 小程序全流程经验深度学习
+
+本轮已读取用户提供的《num小程序从立项到上线的全流程技术文档.pdf》，并将其中对 TitleLab 后续小程序、后端、AI、多设备同步、部署、审核、域名、隐私合规和 Codex 协作有复用价值的经验沉淀为 TitleLab 专属工程文档：
+
+- `docs/12_NUM_MINIPROGRAM_FULL_PROCESS_LESSONS_FOR_TITLELAB.md`
+
+本轮只做知识沉淀和后续 gate 建议，没有开发功能，没有修改小程序页面业务代码，没有接入真实 API，没有连接数据库，没有部署，没有上传体验版。
+
+本轮没有处理微信开发者工具自动文件，包括 `miniprogram/project.config.json` 的本机改动和 `miniprogram/project.private.config.json` 的未跟踪文件。后续建议先单独执行 Phase 3A DevTools config check，确认导入路径、占位 AppID、urlCheck、私有配置和忽略规则，再继续 Phase 3B 小程序 service/adapter 层。
+
 ## 6. 风险与注意
 
 - 现有登录形态是静态网页时代的实现，重建时必须迁移到服务端认证。
