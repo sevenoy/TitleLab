@@ -3,7 +3,9 @@ from sqlalchemy.orm import Session
 
 from app.models.core import AiGenerationRecord, User, Workspace, WorkspaceMember
 from app.schemas import AITitleSuggestionRequest, ErrorCode
+from app.services.ai_budget import build_budget_policy
 from app.services.ai_facade_service import AIFacadeConfig, AIFacadeError, generate_title_suggestions
+from app.services.ai_provider_gate import AIProviderReadiness
 
 
 def seed_service_data(session: Session) -> None:
@@ -39,13 +41,34 @@ def request_payload(**overrides: object) -> AITitleSuggestionRequest:
 
 def test_mock_facade_returns_structured_suggestions_and_audit_record(db_session: Session) -> None:
     seed_service_data(db_session)
+    policy = build_budget_policy(
+        max_input_chars=2000,
+        max_output_items=5,
+        daily_budget_cents=0,
+        timeout_seconds=15,
+        max_retries=1,
+    )
+    readiness = AIProviderReadiness(
+        provider="mock",
+        model="titlelab-mock-title-v1",
+        real_provider_enabled=False,
+        api_key_required=False,
+        api_key_source="not_required",
+        budget_policy=policy,
+    )
 
     data = generate_title_suggestions(
         db=db_session,
         workspace_id="workspace-service-ai",
         user_id="user-service-ai",
         request_payload=request_payload(),
-        config=AIFacadeConfig(provider="mock", real_provider_enabled=False),
+        config=AIFacadeConfig(
+            provider="mock",
+            real_provider_enabled=False,
+            model="titlelab-mock-title-v1",
+            budget_policy=policy,
+            readiness=readiness,
+        ),
     )
 
     assert data.provider == "mock"
@@ -60,6 +83,9 @@ def test_mock_facade_returns_structured_suggestions_and_audit_record(db_session:
     assert record.workspace_id == "workspace-service-ai"
     assert record.user_id == "user-service-ai"
     assert record.input_payload["schemaVersion"] == "phase5a-title-suggestions-v1"
+    assert record.input_payload["sourceTextHash"]
+    assert record.input_payload["providerGate"]["realProviderEnabled"] is False
+    assert record.input_payload["providerGate"]["apiKeySource"] == "not_required"
     assert record.cost_amount == 0
 
 

@@ -10,6 +10,7 @@ from app.schemas import (
     ErrorCode,
     ErrorResponse,
 )
+from app.services.ai_provider_gate import AIProviderGateError, assert_ai_provider_readiness
 from app.services.ai_facade_service import AIFacadeConfig, AIFacadeError, generate_title_suggestions
 
 router = APIRouter(
@@ -37,6 +38,11 @@ def title_suggestions(
 ) -> AITitleSuggestionsResponse:
     require_workspace_member(db, workspace_id, auth_context)
     try:
+        readiness = assert_ai_provider_readiness(settings, api_key_present=False)
+    except AIProviderGateError as exc:
+        status_code = 503 if exc.code.value.startswith("AI_PROVIDER") else 400
+        raise HTTPException(status_code=status_code, detail=exc.code.value) from exc
+    try:
         data = generate_title_suggestions(
             db=db,
             workspace_id=workspace_id,
@@ -45,6 +51,9 @@ def title_suggestions(
             config=AIFacadeConfig(
                 provider=settings.titlelab_ai_provider.strip().lower(),
                 real_provider_enabled=settings.titlelab_ai_real_provider_enabled,
+                model=readiness.model,
+                budget_policy=readiness.budget_policy,
+                readiness=readiness,
             ),
         )
     except AIFacadeError as exc:

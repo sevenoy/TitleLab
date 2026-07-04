@@ -47,6 +47,7 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
         "AI_INPUT_TOO_LONG": ErrorCode.AI_INPUT_TOO_LONG,
         "AI_EMPTY_INPUT": ErrorCode.AI_EMPTY_INPUT,
         "AI_PROVIDER_DISABLED": ErrorCode.AI_PROVIDER_DISABLED,
+        "AI_CONFIG_ERROR": ErrorCode.AI_CONFIG_ERROR,
         "AI_PROVIDER_ERROR": ErrorCode.AI_PROVIDER_ERROR,
         "AI_RATE_LIMITED": ErrorCode.AI_RATE_LIMITED,
     }

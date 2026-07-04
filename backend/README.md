@@ -261,6 +261,46 @@ unsupported locales, and avoid echoing secret-looking source text. Minimal
 generation audit records are stored in the existing `ai_generation_records`
 table; no new migration is added.
 
+## Phase 5B Real AI Provider Gate Readiness
+
+Phase 5B keeps mock as the default provider and adds readiness gates before any
+future real AI provider can be enabled. It still does not call real OpenAI
+services, read a real API key, deploy, run migrations, connect to a real
+database, or modify mini program code.
+
+AI provider gate defaults:
+
+```text
+TITLELAB_AI_PROVIDER=mock
+TITLELAB_AI_REAL_PROVIDER_ENABLED=false
+TITLELAB_AI_MODEL=
+TITLELAB_AI_TIMEOUT_SECONDS=15
+TITLELAB_AI_MAX_RETRIES=1
+TITLELAB_AI_DAILY_BUDGET_CENTS=0
+TITLELAB_AI_MAX_INPUT_CHARS=2000
+TITLELAB_AI_MAX_OUTPUT_ITEMS=5
+OPENAI_API_KEY=
+```
+
+Phase 5B adds provider readiness validation, a disabled OpenAI provider
+placeholder, structured-output normalization boundaries, budget/timeout/retry
+checks, and shared redaction helpers. A future real provider must pass the gate
+with a managed server-side secret source; no client request may provide an API
+key.
+
+Run the local static preflight from the repository root:
+
+```bash
+python3 scripts/titlelab_phase5b_ai_provider_gate_check.py
+```
+
+The preflight makes no external calls and prints no secret values. It checks
+that mock remains default, real provider is disabled by default, `.env.example`
+contains only placeholders, the mini program does not reference OpenAI, the AI
+endpoint still requires auth/workspace membership, only auth POST plus AI
+title-suggestions POST are exposed, and migrations/mini program files are not
+modified.
+
 ## Local Setup
 
 Use a local virtual environment or a temporary runner. Do not put real secrets

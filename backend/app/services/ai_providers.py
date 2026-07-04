@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from app.schemas import AITitleSuggestionOut
+from app.services.ai_openai_provider import OpenAIProviderPlaceholder
+from app.services.ai_provider_gate import AIProviderReadiness, OPENAI_PROVIDER
 from app.services.ai_safety import SanitizedAIRequest
 
 MOCK_AI_PROVIDER = "mock"
@@ -46,10 +48,14 @@ class MockAIProvider:
 class AIProviderRegistry:
     provider_name: str
     real_provider_enabled: bool = False
+    model: str = ""
+    readiness: AIProviderReadiness | None = None
 
     def resolve(self) -> AIProvider:
         if self.provider_name == MOCK_AI_PROVIDER:
             return MockAIProvider()
+        if self.provider_name == OPENAI_PROVIDER and self.readiness is not None:
+            return OpenAIProviderPlaceholder(self.readiness)
         if not self.real_provider_enabled:
             raise AIProviderDisabledError("ai_provider_disabled")
         raise AIProviderDisabledError("ai_provider_not_configured")

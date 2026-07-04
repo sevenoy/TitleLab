@@ -213,3 +213,65 @@ def test_title_suggestions_real_provider_disabled_fails_fast(
     assert response.status_code == 503
     assert response.json()["code"] == "AI_PROVIDER_DISABLED"
     assert db_session.scalar(select(AiGenerationRecord)) is None
+
+
+def test_title_suggestions_real_provider_enabled_missing_model_fails_readiness(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        titlelab_ai_provider="openai",
+        titlelab_ai_real_provider_enabled=True,
+    )
+    try:
+        response = client.post(
+            "/api/v1/workspaces/workspace-ai/ai/title-suggestions",
+            json=ai_payload(),
+            headers=bearer_headers(),
+        )
+    finally:
+        app.dependency_overrides.pop(get_settings, None)
+
+    assert response.status_code == 400
+    assert response.json()["code"] == "AI_CONFIG_ERROR"
+    assert db_session.scalar(select(AiGenerationRecord)) is None
+
+
+def test_title_suggestions_real_provider_enabled_missing_key_fails_readiness(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        titlelab_ai_provider="openai",
+        titlelab_ai_real_provider_enabled=True,
+        titlelab_ai_model="gpt-placeholder",
+    )
+    try:
+        response = client.post(
+            "/api/v1/workspaces/workspace-ai/ai/title-suggestions",
+            json=ai_payload(),
+            headers=bearer_headers(),
+        )
+    finally:
+        app.dependency_overrides.pop(get_settings, None)
+
+    assert response.status_code == 503
+    assert response.json()["code"] == "AI_PROVIDER_DISABLED"
+    assert db_session.scalar(select(AiGenerationRecord)) is None
+
+
+def test_title_suggestions_budget_config_clamps_output_items(client: TestClient) -> None:
+    app.dependency_overrides[get_settings] = lambda: Settings(titlelab_ai_max_output_items=2)
+    try:
+        response = client.post(
+            "/api/v1/workspaces/workspace-ai/ai/title-suggestions",
+            json=ai_payload(count=5),
+            headers=bearer_headers(),
+        )
+    finally:
+        app.dependency_overrides.pop(get_settings, None)
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data["suggestions"]) == 2
+    assert {warning["code"] for warning in data["warnings"]} == {"COUNT_CLAMPED"}

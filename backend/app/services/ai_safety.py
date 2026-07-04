@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 
 from app.schemas import AIWarning, ErrorCode
+from app.services.ai_redaction import REDACTED_SECRET_MARKER, contains_secret_like_text, safe_preview
 
 MAX_SOURCE_TEXT_CHARS = 2000
 MAX_REFERENCE_TITLES = 5
@@ -12,12 +12,6 @@ MAX_CONSTRAINTS = 5
 MAX_CONSTRAINT_CHARS = 120
 MAX_SUGGESTION_COUNT = 5
 SUPPORTED_LOCALES = {"zh-CN", "en-US"}
-
-SECRET_LIKE_PATTERN = re.compile(
-    r"(api[_-]?key|appsecret|db[_-]?password|database_url|bearer\s+[a-z0-9._-]+|"
-    r"sk-[a-z0-9_-]{8,}|token\s*[:=]\s*[a-z0-9._-]+|cookie\s*[:=])",
-    re.IGNORECASE,
-)
 
 
 class AISafetyError(ValueError):
@@ -49,12 +43,14 @@ def sanitize_title_suggestion_request(
     constraints: list[str],
     reference_titles: list[str],
     locale: str,
+    max_source_text_chars: int = MAX_SOURCE_TEXT_CHARS,
+    max_suggestion_count: int = MAX_SUGGESTION_COUNT,
 ) -> SanitizedAIRequest:
     warnings: list[AIWarning] = []
     normalized_source = normalize_space(source_text)
     if not normalized_source:
         raise AISafetyError(ErrorCode.AI_EMPTY_INPUT, "ai_empty_input")
-    if len(normalized_source) > MAX_SOURCE_TEXT_CHARS:
+    if len(normalized_source) > max_source_text_chars:
         raise AISafetyError(ErrorCode.AI_INPUT_TOO_LONG, "ai_input_too_long")
 
     safe_locale = locale.strip() or "zh-CN"
@@ -63,14 +59,14 @@ def sanitize_title_suggestion_request(
         safe_locale = "zh-CN"
 
     safe_count = count
-    if safe_count > MAX_SUGGESTION_COUNT:
+    if safe_count > max_suggestion_count:
         warnings.append(AIWarning(code="COUNT_CLAMPED", message="count_clamped_to_safe_limit"))
-        safe_count = MAX_SUGGESTION_COUNT
+        safe_count = max_suggestion_count
 
-    contains_secret_like_text = bool(SECRET_LIKE_PATTERN.search(normalized_source))
+    contains_secret_like_text = contains_secret_like_text_in(normalized_source)
     if contains_secret_like_text:
         warnings.append(AIWarning(code="SECRET_LIKE_INPUT_REDACTED", message="secret_like_input_not_echoed"))
-        normalized_source = "[REDACTED_SECRET_LIKE_INPUT]"
+        normalized_source = REDACTED_SECRET_MARKER
 
     safe_constraints, constraint_secret_found = normalize_limited_list(
         constraints, MAX_CONSTRAINTS, MAX_CONSTRAINT_CHARS
@@ -108,14 +104,14 @@ def sanitize_title_suggestion_request(
 
 
 def normalize_space(value: str) -> str:
-    return re.sub(r"\s+", " ", value).strip()
+    return " ".join(value.split()).strip()
 
 
 def normalize_label(value: str | None, default: str) -> tuple[str, bool]:
     normalized = normalize_space(value or "")
     if not normalized:
         return default, False
-    if SECRET_LIKE_PATTERN.search(normalized):
+    if contains_secret_like_text_in(normalized):
         return default, True
     return normalized.lower(), False
 
@@ -126,9 +122,9 @@ def normalize_limited_list(values: list[str], max_items: int, max_chars: int) ->
     for value in values[:max_items]:
         item = normalize_space(value)
         if item:
-            if SECRET_LIKE_PATTERN.search(item):
+            if contains_secret_like_text_in(item):
                 secret_found = True
-                normalized.append("[REDACTED_SECRET_LIKE_INPUT]")
+                normalized.append(REDACTED_SECRET_MARKER)
             else:
                 normalized.append(item[:max_chars])
     return normalized, secret_found
@@ -136,5 +132,9 @@ def normalize_limited_list(values: list[str], max_items: int, max_chars: int) ->
 
 def redacted_source_summary(sanitized: SanitizedAIRequest) -> str:
     if sanitized.contains_secret_like_text:
-        return "[REDACTED_SECRET_LIKE_INPUT]"
-    return sanitized.source_text[:240]
+        return REDACTED_SECRET_MARKER
+    return safe_preview(sanitized.source_text, max_chars=240)
+
+
+def contains_secret_like_text_in(value: str) -> bool:
+    return contains_secret_like_text(value)

@@ -287,6 +287,43 @@ Phase 5A 在独立 worktree `phase5a-ai-facade-foundation` 中新增后端 AI Fa
 - 未调用真实 OpenAI、微信或任何外部 AI API。
 - 未连接真实数据库，未执行真实数据库 migration。
 - 未部署，未上传体验版，未提交审核。
+
+## 19. Phase 5B Real AI Provider Gate Readiness
+
+Phase 5B 在独立 worktree `phase5b-real-ai-provider-gate-readiness` 中新增真实 AI provider 开启前的后端 gate readiness。本阶段不是启用真实 provider；默认仍为 mock provider，real provider gate 关闭。不真实调用 OpenAI，不读取真实 API key，不修改小程序，不新增 migration，不连接真实数据库，不部署。
+
+实现结果：
+
+- 新增 `backend/app/services/ai_provider_gate.py`：统一 `validate_ai_provider_readiness(settings)` / `assert_ai_provider_readiness(settings)`。
+- 新增 `backend/app/services/ai_openai_provider.py`：OpenAI provider disabled placeholder 和 structured output schema boundary，不执行真实调用。
+- 新增 `backend/app/services/ai_budget.py`：timeout、retry、input/output 上限和 daily budget gate。
+- 新增 `backend/app/services/ai_redaction.py`：secret-like input preview/hash redaction helper。
+- 更新 AI Facade service：provider readiness 先行，mock 仍默认，audit record 保存脱敏 preview、hash 和 provider gate 摘要。
+- 新增 `scripts/titlelab_phase5b_ai_provider_gate_check.py`：本地静态 preflight，不联网、不读 secret、不连接数据库。
+- 新增 `docs/17_PHASE5B_REAL_AI_PROVIDER_GATE_READINESS.md`。
+
+配置边界：
+
+- `TITLELAB_AI_PROVIDER=mock`
+- `TITLELAB_AI_REAL_PROVIDER_ENABLED=false`
+- `TITLELAB_AI_MODEL=`
+- `TITLELAB_AI_TIMEOUT_SECONDS=15`
+- `TITLELAB_AI_MAX_RETRIES=1`
+- `TITLELAB_AI_DAILY_BUDGET_CENTS=0`
+- `TITLELAB_AI_MAX_INPUT_CHARS=2000`
+- `TITLELAB_AI_MAX_OUTPUT_ITEMS=5`
+- `OPENAI_API_KEY=` 仅为空占位，不写真实值。
+
+边界确认：
+
+- 未修改 `miniprogram/**`。
+- 未修改 `backend/alembic/**`。
+- 未修改 `backend/app/db/**`。
+- 未新增内容 CRUD 写接口。
+- 只允许 auth login/logout POST 和 AI title-suggestions POST。
+- 未调用真实 OpenAI、微信或任何外部 AI API。
+- 未连接真实数据库，未执行真实数据库 migration。
+- 未部署，未上传体验版，未提交审核。
 - 未连接任何真实数据库。
 - 未执行 Alembic migration。
 
