@@ -11,6 +11,10 @@ ALLOWED_WORKSPACE_GET_PATHS = {
     "/api/v1/workspaces/{workspace_id}/tags",
 }
 
+ALLOWED_WORKSPACE_POST_PATHS = {
+    "/api/v1/workspaces/{workspace_id}/ai/title-suggestions",
+}
+
 CONTENT_ITEM_FIELDS = {
     "id",
     "workspace_id",
@@ -51,18 +55,46 @@ TAG_FIELDS = {
 
 API_RESPONSE_FIELDS = {"code", "message", "data", "requestId", "serverTime", "version"}
 LIST_PAYLOAD_FIELDS = {"items", "limit", "offset", "hasMore"}
+AI_TITLE_SUGGESTION_REQUEST_FIELDS = {
+    "sourceText",
+    "contentType",
+    "tone",
+    "platform",
+    "count",
+    "constraints",
+    "referenceTitles",
+    "locale",
+}
+AI_TITLE_SUGGESTION_FIELDS = {"title", "rationale", "tags", "riskLevel", "score"}
+AI_TITLE_SUGGESTIONS_DATA_FIELDS = {
+    "suggestions",
+    "provider",
+    "model",
+    "mock",
+    "usageEstimate",
+    "warnings",
+}
+AI_USAGE_ESTIMATE_FIELDS = {"inputCharacters", "requestedCount", "returnedCount", "estimatedTokens"}
+AI_WARNING_FIELDS = {"code", "message"}
 
 
 def test_openapi_contains_only_phase2a_workspace_get_routes() -> None:
     openapi = app.openapi()
-    workspace_paths = {
-        path: methods
-        for path, methods in openapi["paths"].items()
-        if path.startswith("/api/v1/workspaces/")
-    }
+    workspace_paths = {path: methods for path, methods in openapi["paths"].items() if path in ALLOWED_WORKSPACE_GET_PATHS}
 
     assert set(workspace_paths) == ALLOWED_WORKSPACE_GET_PATHS
     assert all(set(methods) == {"get"} for methods in workspace_paths.values())
+
+
+def test_openapi_contains_only_allowed_workspace_post_route() -> None:
+    openapi = app.openapi()
+    workspace_post_paths = {
+        path
+        for path, methods in openapi["paths"].items()
+        if path.startswith("/api/v1/workspaces/") and "post" in methods
+    }
+
+    assert workspace_post_paths == ALLOWED_WORKSPACE_POST_PATHS
 
 
 def test_openapi_does_not_expose_mutating_methods() -> None:
@@ -71,6 +103,7 @@ def test_openapi_does_not_expose_mutating_methods() -> None:
     allowed_mutating_operations = {
         "POST /api/v1/auth/wechat-login",
         "POST /api/v1/auth/logout",
+        "POST /api/v1/workspaces/{workspace_id}/ai/title-suggestions",
     }
     mutating_operations = [
         f"{method.upper()} {path}"
@@ -93,6 +126,12 @@ def test_openapi_response_schema_fields_are_stable() -> None:
     assert set(schemas["ContentItemListResponse"]["properties"]) == API_RESPONSE_FIELDS
     assert set(schemas["CategoryListResponse"]["properties"]) == API_RESPONSE_FIELDS
     assert set(schemas["TagListResponse"]["properties"]) == API_RESPONSE_FIELDS
+    assert set(schemas["AITitleSuggestionRequest"]["properties"]) == AI_TITLE_SUGGESTION_REQUEST_FIELDS
+    assert set(schemas["AITitleSuggestionOut"]["properties"]) == AI_TITLE_SUGGESTION_FIELDS
+    assert set(schemas["AITitleSuggestionsData"]["properties"]) == AI_TITLE_SUGGESTIONS_DATA_FIELDS
+    assert set(schemas["AIUsageEstimate"]["properties"]) == AI_USAGE_ESTIMATE_FIELDS
+    assert set(schemas["AIWarning"]["properties"]) == AI_WARNING_FIELDS
+    assert set(schemas["AITitleSuggestionsResponse"]["properties"]) == API_RESPONSE_FIELDS
     assert set(schemas["ContentItemListPayload"]["properties"]) == LIST_PAYLOAD_FIELDS
     assert set(schemas["CategoryListPayload"]["properties"]) == LIST_PAYLOAD_FIELDS
     assert set(schemas["TagListPayload"]["properties"]) == LIST_PAYLOAD_FIELDS
@@ -113,3 +152,13 @@ def test_phase2a_readonly_route_response_contracts() -> None:
     assert content_detail_response["content"]["application/json"]["schema"]["$ref"].endswith("/ContentItemResponse")
     assert categories_response["content"]["application/json"]["schema"]["$ref"].endswith("/CategoryListResponse")
     assert tags_response["content"]["application/json"]["schema"]["$ref"].endswith("/TagListResponse")
+
+
+def test_phase5a_ai_route_response_contract() -> None:
+    openapi = app.openapi()
+
+    ai_response = openapi["paths"]["/api/v1/workspaces/{workspace_id}/ai/title-suggestions"]["post"]["responses"][
+        "200"
+    ]
+
+    assert ai_response["content"]["application/json"]["schema"]["$ref"].endswith("/AITitleSuggestionsResponse")

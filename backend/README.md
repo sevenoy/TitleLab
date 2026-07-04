@@ -229,6 +229,38 @@ Backend requirements for a future controlled real gate:
 - Keep auth POST limited to login/logout; do not add business write routes.
 - Do not deploy or run real database migrations in Phase 4E.
 
+## Phase 5A AI Facade Foundation
+
+Phase 5A adds a backend-only AI Facade foundation. It does not call real OpenAI
+services, read a real API key, deploy, run migrations, connect to a real
+database, or modify mini program code.
+
+New endpoint:
+
+```text
+POST /api/v1/workspaces/{workspace_id}/ai/title-suggestions
+```
+
+The endpoint requires `Authorization: Bearer <session>` or the existing
+local/dev/test `X-TitleLab-User-Id` fallback, then verifies workspace membership
+before generating title suggestions. Responses keep the Phase 2C envelope with
+`requestId`, `serverTime`, and `version`.
+
+Phase 5A AI config defaults:
+
+```text
+TITLELAB_AI_PROVIDER=mock
+TITLELAB_AI_REAL_PROVIDER_ENABLED=false
+OPENAI_API_KEY=
+```
+
+The mock provider returns deterministic structured suggestions with
+`suggestions`, `provider`, `model`, `mock`, `usageEstimate`, and `warnings`.
+Safety gates reject empty or oversized input, clamp excessive counts, warn on
+unsupported locales, and avoid echoing secret-looking source text. Minimal
+generation audit records are stored in the existing `ai_generation_records`
+table; no new migration is added.
+
 ## Local Setup
 
 Use a local virtual environment or a temporary runner. Do not put real secrets

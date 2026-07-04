@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from app.api.ai import router as ai_router
 from app.api.auth import router as auth_router
 from app.api.health import router as health_router
 from app.api.meta import router as meta_router
@@ -19,6 +20,7 @@ app.include_router(health_router)
 app.include_router(meta_router)
 app.include_router(auth_router)
 app.include_router(readonly_router)
+app.include_router(ai_router)
 
 
 def error_response(request: Request, code: ErrorCode, message: str, status_code: int) -> JSONResponse:
@@ -42,6 +44,11 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
         "auth_provider_error": ErrorCode.AUTH_PROVIDER_ERROR,
         "session_expired": ErrorCode.SESSION_EXPIRED,
         "session_revoked": ErrorCode.SESSION_REVOKED,
+        "AI_INPUT_TOO_LONG": ErrorCode.AI_INPUT_TOO_LONG,
+        "AI_EMPTY_INPUT": ErrorCode.AI_EMPTY_INPUT,
+        "AI_PROVIDER_DISABLED": ErrorCode.AI_PROVIDER_DISABLED,
+        "AI_PROVIDER_ERROR": ErrorCode.AI_PROVIDER_ERROR,
+        "AI_RATE_LIMITED": ErrorCode.AI_RATE_LIMITED,
     }
     code = code_by_detail.get(str(exc.detail), code_by_status.get(exc.status_code, ErrorCode.INTERNAL_ERROR))
     return error_response(request, code, str(exc.detail), exc.status_code)

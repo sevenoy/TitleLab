@@ -258,6 +258,35 @@ Phase 2C 在独立 worktree `phase2c-api-response-contract` 中完成后端只�
 - 未修改 `backend/app/models/**`。
 - 未修改 `backend/app/db/**`。
 - 未修改 `miniprogram/**`。
+
+## 18. Phase 5A AI Facade Foundation
+
+Phase 5A 在独立 worktree `phase5a-ai-facade-foundation` 中新增后端 AI Facade 基础。本阶段只实现 mock-only 后端生成入口、结构化 schema、安全/成本门禁和最小审计记录，不接真实 OpenAI，不读取真实 API key，不接小程序 AI UI，不连接真实数据库，不新增 migration，不部署。
+
+新增 endpoint：
+
+- `POST /api/v1/workspaces/{workspace_id}/ai/title-suggestions`
+
+实现结果：
+
+- AI endpoint 要求 `Authorization: Bearer <session>`，并保留 Phase 4A local/dev/test `X-TitleLab-User-Id` fallback。
+- AI endpoint 调用 `workspace_members` 校验，保持对象级 workspace 鉴权。
+- AI endpoint 返回 Phase 2C envelope，包含 `requestId`、`serverTime` 和 `version`。
+- 新增 `AITitleSuggestionRequest`、`AITitleSuggestionOut`、`AITitleSuggestionsData`、`AIUsageEstimate`、`AIWarning` schema。
+- 默认 provider 为 `mock`，模型名为 `titlelab-mock-title-v1`，输出稳定、可测试的结构化标题建议。
+- real provider gate 默认关闭：`TITLELAB_AI_REAL_PROVIDER_ENABLED=false`。
+- 空输入返回 `AI_EMPTY_INPUT`，超长输入返回 `AI_INPUT_TOO_LONG`，非 mock provider 在 gate 关闭时返回 `AI_PROVIDER_DISABLED`。
+- 复用既有 `ai_generation_records` 表保存最小审计记录；本轮未新增或修改 migration。
+
+边界确认：
+
+- 未修改 `miniprogram/**`。
+- 未修改 `backend/alembic/**`。
+- 未修改 `backend/app/db/**`。
+- 未新增内容 CRUD 写接口。
+- 未调用真实 OpenAI、微信或任何外部 AI API。
+- 未连接真实数据库，未执行真实数据库 migration。
+- 未部署，未上传体验版，未提交审核。
 - 未连接任何真实数据库。
 - 未执行 Alembic migration。
 

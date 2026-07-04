@@ -18,6 +18,11 @@ class ErrorCode(str, Enum):
     AUTH_CONFIG_ERROR = "AUTH_CONFIG_ERROR"
     SESSION_EXPIRED = "SESSION_EXPIRED"
     SESSION_REVOKED = "SESSION_REVOKED"
+    AI_INPUT_TOO_LONG = "AI_INPUT_TOO_LONG"
+    AI_EMPTY_INPUT = "AI_EMPTY_INPUT"
+    AI_PROVIDER_DISABLED = "AI_PROVIDER_DISABLED"
+    AI_PROVIDER_ERROR = "AI_PROVIDER_ERROR"
+    AI_RATE_LIMITED = "AI_RATE_LIMITED"
     INTERNAL_ERROR = "INTERNAL_ERROR"
 
 
@@ -137,6 +142,46 @@ class AuthLogoutOut(BaseModel):
     revoked: bool
 
 
+class AIWarning(BaseModel):
+    code: str
+    message: str
+
+
+class AIUsageEstimate(BaseModel):
+    inputCharacters: int
+    requestedCount: int
+    returnedCount: int
+    estimatedTokens: int
+
+
+class AITitleSuggestionRequest(BaseModel):
+    sourceText: str = Field(max_length=5000)
+    contentType: str = Field(default="title", max_length=40)
+    tone: str | None = Field(default=None, max_length=40)
+    platform: str | None = Field(default=None, max_length=40)
+    count: int = Field(default=3, ge=1, le=10)
+    constraints: list[str] = Field(default_factory=list, max_length=8)
+    referenceTitles: list[str] = Field(default_factory=list, max_length=8)
+    locale: str = Field(default="zh-CN", max_length=16)
+
+
+class AITitleSuggestionOut(BaseModel):
+    title: str
+    rationale: str
+    tags: list[str]
+    riskLevel: str
+    score: float
+
+
+class AITitleSuggestionsData(BaseModel):
+    suggestions: list[AITitleSuggestionOut]
+    provider: str
+    model: str
+    mock: bool
+    usageEstimate: AIUsageEstimate
+    warnings: list[AIWarning]
+
+
 class ContentItemListPayload(BaseModel):
     items: list[ContentItemOut]
     limit: int
@@ -172,6 +217,10 @@ class AuthMeResponse(ApiResponseBase):
 
 class AuthLogoutResponse(ApiResponseBase):
     data: AuthLogoutOut
+
+
+class AITitleSuggestionsResponse(ApiResponseBase):
+    data: AITitleSuggestionsData
 
 
 class ContentItemResponse(ApiResponseBase):
