@@ -166,6 +166,23 @@ QA 结果：
 
 本轮没有处理微信开发者工具自动文件，包括 `miniprogram/project.config.json` 的本机改动和 `miniprogram/project.private.config.json` 的未跟踪文件。后续建议先单独执行 Phase 3A DevTools config check，确认导入路径、占位 AppID、urlCheck、私有配置和忽略规则，再继续 Phase 3B 小程序 service/adapter 层。
 
+## 14. Phase 3A DevTools Config Check
+
+本轮快速处理微信开发者工具导入 `miniprogram/` 后产生的自动配置状态，目标是解除 Phase 3A dirty status 阻塞，不开发功能，不接真实 API，不上传体验版，不 push。
+
+检查结论：
+
+- `miniprogram/project.config.json` 由微信开发者工具自动修改，主要变化是 `appid` 从占位值变为非占位 AppID，并补充 DevTools setting 字段。
+- `miniprogram/project.config.json` 未发现敏感字段名；JSON 解析通过。
+- `miniprogram/project.config.json` 本轮按 DevTools 本地预览/导入所需配置保留。
+- `miniprogram/project.private.config.json` 是微信开发者工具生成的本机私有配置；JSON 解析通过。
+- `miniprogram/project.private.config.json` 未发现敏感字段名或敏感值模式。
+- 已新增 `miniprogram/.gitignore`，忽略 `project.private.config.json`。
+- 本轮没有 stage 或 commit `miniprogram/project.private.config.json` 内容。
+- 本轮没有修改 `backend/**`、小程序页面业务代码、服务代码、真实 API、数据库或部署配置。
+
+下一步建议：在继续 Phase 3B 前，使用当前 DevTools 配置做一次本地可视预览确认；如需替换正式 AppID、上传体验版或配置合法域名，必须另起 RELEASE_GATE。
+
 ## 6. 风险与注意
 
 - 现有登录形态是静态网页时代的实现，重建时必须迁移到服务端认证。
