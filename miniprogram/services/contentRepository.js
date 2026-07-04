@@ -24,6 +24,10 @@ function toDisplayError(error) {
     version: error && error.version ? error.version : "",
     isNotFound: code === "NOT_FOUND",
     isInvalidParam: code === "INVALID_PARAM",
+    isAuthRequired: code === "UNAUTHORIZED",
+    isForbidden: code === "FORBIDDEN",
+    isSessionExpired: code === "SESSION_EXPIRED",
+    isSessionRevoked: code === "SESSION_REVOKED",
     isRetryable: code === "NETWORK_ERROR" || code === "INTERNAL_ERROR"
   };
 }

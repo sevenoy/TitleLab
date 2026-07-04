@@ -355,6 +355,36 @@ Phase 4B 在独立 worktree `phase4b-auth-session-foundation` 中实现后端正
 
 Phase 4C 可另起独立 worktree 做小程序登录接入规划/实现，仍需保持 real API gate、合法域名、AppID、隐私指引和体验版上传为单独 RELEASE_GATE；如果先做真实 API preflight，也必须只走明确授权的测试环境和只读 smoke。
 
+## 21. Phase 4C 小程序 auth/session 接入层
+
+Phase 4C 在独立 worktree `phase4c-miniprogram-auth-session-integration` 中实现小程序侧 auth/session 接入层。目标是让小程序具备受控的 `wx.login -> POST /api/v1/auth/wechat-login` 调用能力、session token 本地存储、`request.js` 自动注入 `Authorization: Bearer <token>`、`/auth/me` 与 `/auth/logout` service 封装。本阶段默认仍为 mock，real API gate 和 auth real gate 均默认关闭；没有部署、没有上传体验版、没有提交审核、没有连接真实数据库、没有真实调用微信接口、没有接入 OpenAI。
+
+实现结果：
+
+- `miniprogram/config/env.js` 保持 `apiMode=mock`、`realApiGateEnabled=false`，并新增 `authRealApiGateEnabled=false`。
+- `miniprogram/adapters/wechat.js` 封装 `wx.login`、设备标签和 storage 能力，页面不直接调用 `wx.login`。
+- 新增 `miniprogram/services/sessionStore.js`，使用 `titlelab.*` 命名空间保存 access token、用户摘要、workspace 摘要和过期时间。
+- 新增 `miniprogram/services/authApi.js`，只映射 `wechatLogin(code)`、`getMe()`、`logout()`。
+- 新增 `miniprogram/services/authRepository.js`，封装 `loginWithWechat()`、`restoreSession()`、`getCurrentUser()`、`logout()` 和 `isAuthenticated()`；gate 关闭时不真实请求。
+- `miniprogram/services/request.js` 支持 `GET` 和允许的 auth `POST`，默认仍受 gate 阻断，并在有 session token 时自动注入 Bearer header。
+- `miniprogram/app.js` 启动时尝试 `restoreSession()`，不强制登录，不阻断 mock 内容展示。
+- `miniprogram/services/contentRepository.js` 补充 auth/session 错误标记，方便后续页面最小处理。
+- `miniprogram/README.md` 记录 Phase 4C 接入层、默认 mock、真实 gate 默认关闭、只允许 auth POST 和 release gate 边界。
+
+边界确认：
+
+- 未新增登录页面，未做 UI 大改版。
+- 未修改 `backend/alembic/**`、`backend/app/models/**` 或 `backend/app/db/**`。
+- 未新增业务 `POST`、`PUT`、`PATCH`、`DELETE`。
+- 未调用真实微信 `jscode2session` 或任何微信线上接口。
+- 未读取、打印或写入真实 AppSecret、API key、DB 密码、token、cookie。
+- 未连接生产、远程、腾讯云、Supabase 或任何真实业务数据库。
+- 未部署、未上传体验版、未提交审核。
+
+下一步最小建议：
+
+Phase 4D 可单独做受控真机/测试环境登录 preflight 规划，先明确 AppID、合法域名、隐私指引、测试账号/成员、后端环境和回滚策略；任何体验版上传、真实微信后台配置或生产 API smoke 都必须另起 RELEASE_GATE。
+
 ## 6. 风险与注意
 
 - 现有登录形态是静态网页时代的实现，重建时必须迁移到服务端认证。

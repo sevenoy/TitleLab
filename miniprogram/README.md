@@ -38,6 +38,18 @@
 - `services/contentApi.js` 只映射内容列表、内容详情、分类列表和标签列表四个只读 workspace `GET` 路由。
 - 小程序端不包含 OpenAI 直连、AppSecret、API key、DB 密码、token 或 cookie。
 
+## Phase 4C auth/session 接入层
+
+- 当前默认仍为 `mock` 模式，`realApiGateEnabled=false`，`authRealApiGateEnabled=false`。
+- `services/sessionStore.js` 使用 `titlelab.*` 命名空间保存 session token、用户摘要、workspace 摘要和过期时间。
+- `services/authApi.js` 只映射 `POST /api/v1/auth/wechat-login`、`GET /api/v1/auth/me`、`POST /api/v1/auth/logout`。
+- `services/authRepository.js` 封装 `loginWithWechat`、`restoreSession`、`getCurrentUser`、`logout` 和 `isAuthenticated`。
+- `adapters/wechat.js` 封装 `wx.login`、设备标签和 storage；页面不得直接调用 `wx.login` 或 `wx.request`。
+- `services/request.js` 在 gate 显式开启后自动从 `sessionStore` 读取 token 并注入 `Authorization: Bearer <token>`。
+- 默认 gate 关闭时不会调用 `wx.login`，不会请求后端，也不会阻断 mock 内容展示。
+- 只允许 auth POST；业务内容仍不得新增 `POST`、`PUT`、`PATCH` 或 `DELETE`。
+- 真机登录、真实 AppID、合法域名、隐私指引、体验版上传和提审仍必须另起 RELEASE_GATE。
+
 ## 后续接入规则
 
 后续接入真实只读接口必须单独开启 gate，并继续限制在 Phase 2 已验收的只读内容接口和公开 meta 接口内。

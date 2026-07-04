@@ -1,6 +1,9 @@
 const env = require("../config/env");
+const sessionStore = require("./sessionStore");
 
 const OK_CODE = "OK";
+const AUTH_PATH_PREFIX = "/auth/";
+const ALLOWED_AUTH_WRITE_PATHS = ["/auth/wechat-login", "/auth/logout"];
 
 function createRequestId() {
   return `tl-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
@@ -18,16 +21,50 @@ function createApiError(code, message, meta = {}) {
   return error;
 }
 
-function buildReadOnlyUrl(path, query = {}) {
-  env.assertRealApiEnabled();
+function normalizePath(path) {
+  return path.startsWith("/") ? path : `/${path}`;
+}
+
+function assertRequestAllowed(method, path, options = {}) {
+  const normalizedPath = normalizePath(path);
+  const normalizedMethod = method.toLowerCase();
+  const needsAuthGate = options.requiresAuthGate || normalizedPath.startsWith(AUTH_PATH_PREFIX);
+
+  if (needsAuthGate) {
+    env.assertAuthRealApiEnabled();
+  } else {
+    env.assertRealApiEnabled();
+  }
+
+  if (normalizedMethod === "get") {
+    return normalizedPath;
+  }
+
+  if (normalizedMethod === "post" && ALLOWED_AUTH_WRITE_PATHS.includes(normalizedPath)) {
+    return normalizedPath;
+  }
+
+  throw createApiError("INVALID_PARAM", "method_not_allowed");
+}
+
+function buildApiUrl(path, query = {}, options = {}) {
+  const normalizedPath = assertRequestAllowed(options.method || "get", path, options);
 
   const search = Object.keys(query)
     .filter((key) => query[key] !== undefined && query[key] !== null && query[key] !== "")
     .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(query[key])}`)
     .join("&");
 
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   return `${env.getRuntimeEnv().apiBaseUrl}${normalizedPath}${search ? `?${search}` : ""}`;
+}
+
+function buildHeaders(requestId, header = {}) {
+  const token = sessionStore.getAccessToken();
+  return {
+    "X-Request-Id": requestId,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...header
+  };
 }
 
 function assertEnvelope(body, statusCode) {
@@ -57,19 +94,23 @@ function assertEnvelope(body, statusCode) {
   return body;
 }
 
-function get(path, options = {}) {
+function requestWithMethod(method, path, options = {}) {
   const requestId = options.requestId || createRequestId();
-  const url = buildReadOnlyUrl(path, options.query || {});
+  let url = "";
+
+  try {
+    url = buildApiUrl(path, options.query || {}, { ...options, method });
+  } catch (error) {
+    return Promise.reject(error);
+  }
 
   return new Promise((resolve, reject) => {
     wx.request({
       url,
-      method: "GET",
+      method: method.toUpperCase(),
+      data: options.body || undefined,
       timeout: options.timeout || 10000,
-      header: {
-        "X-Request-Id": requestId,
-        ...(options.header || {})
-      },
+      header: buildHeaders(requestId, options.header || {}),
       success(response) {
         const statusCode = response.statusCode || 0;
 
@@ -98,8 +139,17 @@ function get(path, options = {}) {
   });
 }
 
+function get(path, options = {}) {
+  return requestWithMethod("get", path, options);
+}
+
+function post(path, options = {}) {
+  return requestWithMethod("post", path, options);
+}
+
 module.exports = {
   get,
-  buildReadOnlyUrl,
+  post,
+  buildApiUrl,
   createApiError
 };

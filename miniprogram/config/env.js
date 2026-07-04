@@ -10,9 +10,10 @@ const DEFAULT_WORKSPACE_ID = "default";
 const runtimeEnv = {
   apiMode: API_MODES.MOCK,
   realApiGateEnabled: false,
+  authRealApiGateEnabled: false,
   apiBaseUrl: API_BASE_URL,
   workspaceId: DEFAULT_WORKSPACE_ID,
-  appVersion: "phase3c-readonly-api-envelope"
+  appVersion: "phase4c-miniprogram-auth-session"
 };
 
 function getRuntimeEnv() {
@@ -23,6 +24,14 @@ function isMockMode() {
   return runtimeEnv.apiMode === API_MODES.MOCK;
 }
 
+function isRealApiEnabled() {
+  return runtimeEnv.apiMode === API_MODES.REAL && runtimeEnv.realApiGateEnabled && Boolean(runtimeEnv.apiBaseUrl);
+}
+
+function isAuthRealApiEnabled() {
+  return isRealApiEnabled() && runtimeEnv.authRealApiGateEnabled;
+}
+
 function assertAllowedApiBaseUrl(apiBaseUrl) {
   if (apiBaseUrl !== API_BASE_URL) {
     throw new Error("INVALID_API_BASE");
@@ -30,11 +39,19 @@ function assertAllowedApiBaseUrl(apiBaseUrl) {
 }
 
 function assertRealApiEnabled() {
-  if (runtimeEnv.apiMode !== API_MODES.REAL || !runtimeEnv.realApiGateEnabled || !runtimeEnv.apiBaseUrl) {
+  if (!isRealApiEnabled()) {
     throw new Error("REAL_API_GATE_CLOSED");
   }
 
   assertAllowedApiBaseUrl(runtimeEnv.apiBaseUrl);
+}
+
+function assertAuthRealApiEnabled() {
+  assertRealApiEnabled();
+
+  if (!runtimeEnv.authRealApiGateEnabled) {
+    throw new Error("AUTH_REAL_API_GATE_CLOSED");
+  }
 }
 
 function getWorkspaceId() {
@@ -47,6 +64,9 @@ module.exports = {
   API_BASE_URL,
   getRuntimeEnv,
   isMockMode,
+  isRealApiEnabled,
+  isAuthRealApiEnabled,
   assertRealApiEnabled,
+  assertAuthRealApiEnabled,
   getWorkspaceId
 };
