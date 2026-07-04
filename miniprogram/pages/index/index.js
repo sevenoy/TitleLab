@@ -1,4 +1,5 @@
-const contentService = require("../../services/contentMock");
+const wechat = require("../../adapters/wechat");
+const contentRepository = require("../../services/contentRepository");
 
 Page({
   data: {
@@ -18,9 +19,9 @@ Page({
 
   onLoad() {
     this.setData({
-      typeOptions: contentService.getTypeOptions(),
-      categoryOptions: contentService.getCategoryOptions(),
-      tagOptions: contentService.getTagOptions()
+      typeOptions: contentRepository.getTypeOptions(),
+      categoryOptions: contentRepository.getCategoryOptions(),
+      tagOptions: contentRepository.getTagOptions()
     });
     this.refreshList();
   },
@@ -75,16 +76,14 @@ Page({
 
   onOpenDetail(event) {
     const id = event.currentTarget.dataset.id;
-    wx.navigateTo({
-      url: `/pages/detail/detail?id=${id}`
-    });
+    wechat.navigateTo(`/pages/detail/detail?id=${id}`);
   },
 
   refreshList() {
     const type = this.data.typeOptions[this.data.typeIndex] || { value: "all" };
     const category = this.data.categoryOptions[this.data.categoryIndex] || { value: "all" };
     const tag = this.data.tagOptions[this.data.tagIndex] || { value: "all" };
-    const items = contentService.getContentItems({
+    const items = contentRepository.getContentItems({
       keyword: this.data.keyword,
       contentType: type.value,
       category: category.value,

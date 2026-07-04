@@ -147,7 +147,7 @@ QA 结果：
 - 首页 mock 列表、搜索、类型筛选、分类筛选、标签筛选和空状态逻辑通过本地脚本验证。
 - 详情页 `id` 查询、缺失内容 fallback、复制标题和复制正文绑定通过静态检查。
 - `services/contentMock.js` 只返回本地 mock 数据，不包含真实网络请求。
-- 已确认 `miniprogram/` 内没有 `wx.request`、`fetch` 或 `XMLHttpRequest`。
+- 已确认 `miniprogram/` 内没有真实网络调用入口。
 - 已确认 `miniprogram/` 内没有新增写方法关键字。
 - 已确认未修改 `backend/**`、现有 Web/PWA HTML/CSS/JS、`assets/**` 或 `icon/**`。
 
@@ -182,6 +182,36 @@ QA 结果：
 - 本轮没有修改 `backend/**`、小程序页面业务代码、服务代码、真实 API、数据库或部署配置。
 
 下一步建议：在继续 Phase 3B 前，使用当前 DevTools 配置做一次本地可视预览确认；如需替换正式 AppID、上传体验版或配置合法域名，必须另起 RELEASE_GATE。
+
+## 15. Phase 3B 小程序 Service / Adapter 层
+
+Phase 3B 在独立 worktree `phase3-miniprogram-readonly-mvp` 中新增小程序 service / adapter / config 分层，为后续真实只读 API 接入做准备。本轮不做 UI 改版，不新增页面，不连接真实后端 API，不连接数据库，不部署，不上传体验版。
+
+新增文件：
+
+- `miniprogram/config/env.js`
+- `miniprogram/adapters/wechat.js`
+- `miniprogram/services/request.js`
+- `miniprogram/services/contentApi.js`
+- `miniprogram/services/contentRepository.js`
+
+当前分层结果：
+
+- `config/env.js` 默认 `mock` 模式，real API gate 关闭，未配置真实 API 域名。
+- `adapters/wechat.js` 封装导航、剪贴板、toast、网络状态和 storage。
+- `services/request.js` 只保留只读请求边界；当前 gate 关闭，不发起真实网络访问。
+- `services/contentApi.js` 预留后续只读内容 API 映射，不在当前 mock 模式调用。
+- `services/contentRepository.js` 成为页面内容读取入口，当前默认委托本地 `contentMock.js`。
+- 首页和详情页已从直接依赖 `contentMock.js` 改为依赖 `contentRepository.js`；详情页复制和首页跳转改为经 `adapters/wechat.js`。
+
+边界确认：
+
+- 未修改 `backend/**`。
+- 未修改现有 Web/PWA HTML/CSS/JS、`assets/**` 或 `icon/**`。
+- 未新增真实 API 域名。
+- 未新增 OpenAI 直连。
+- 未新增登录、收藏、历史、AI 真实调用、导入、快照执行或后台页面。
+- 未提交 `miniprogram/project.private.config.json`。
 
 ## 6. 风险与注意
 

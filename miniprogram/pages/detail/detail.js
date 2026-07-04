@@ -1,4 +1,5 @@
-const contentService = require("../../services/contentMock");
+const wechat = require("../../adapters/wechat");
+const contentRepository = require("../../services/contentRepository");
 
 Page({
   data: {
@@ -6,7 +7,7 @@ Page({
   },
 
   onLoad(options) {
-    const item = contentService.getContentItemById(options.id);
+    const item = contentRepository.getContentItemById(options.id);
     this.setData({
       item
     });
@@ -30,14 +31,9 @@ Page({
   },
 
   copyText(data, title) {
-    wx.setClipboardData({
-      data,
-      success: () => {
-        wx.showToast({
-          title,
-          icon: "success"
-        });
-      }
-    });
+    wechat
+      .setClipboardData(data)
+      .then(() => wechat.showToast({ title, icon: "success" }))
+      .catch(() => wechat.showToast({ title: "复制失败" }));
   }
 });
