@@ -24,7 +24,7 @@ def test_healthz_returns_phase_one_status() -> None:
     assert response.json() == {
         "ok": True,
         "service": "titlelab-backend",
-        "phase": "phase5c-openai-provider-dryrun-contract",
+        "phase": "phase5d-live-openai-smoke-readiness-harness",
     }
 
 
@@ -39,7 +39,7 @@ def test_meta_returns_public_non_secret_information() -> None:
     data = envelope["data"]
     assert data["service"] == "titlelab-backend"
     assert data["project"] == "TitleLab"
-    assert data["phase"] == "phase5c-openai-provider-dryrun-contract"
+    assert data["phase"] == "phase5d-live-openai-smoke-readiness-harness"
     assert data["api_base_domain"] == "api.title.mirroroo.top"
     assert data["api_base_url"] == "https://api.title.mirroroo.top"
     assert data["web_domain"] == "title.mirroroo.top"

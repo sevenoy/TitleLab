@@ -581,6 +581,45 @@ Phase 5C 在独立 worktree `phase5c-openai-provider-dryrun-contract` 中实现�
 
 Phase 5D 如需 controlled live OpenAI smoke，必须另起 RELEASE_GATE，先确认非生产环境、受管 server-side secret、预算/限流/超时/回滚、脱敏日志和用户明确授权；继续禁止小程序直连 OpenAI。
 
+## 25. Phase 5D Live OpenAI smoke readiness harness
+
+Phase 5D 在独立 worktree `phase5d-live-openai-smoke-readiness-harness` 中实现后端 live smoke readiness harness。本阶段没有执行真实 OpenAI 调用，没有读取真实 `OPENAI_API_KEY`，没有触网，没有新增 OpenAI SDK 依赖，没有修改小程序，没有新增 migration，没有连接真实数据库，没有部署、上传体验版或提交审核。
+
+新增 / 更新文件：
+
+- `backend/app/services/ai_live_smoke_guard.py`
+- `backend/app/config.py`
+- `backend/.env.example`
+- `backend/tests/test_ai_live_smoke_guard.py`
+- `scripts/titlelab_phase5d_live_openai_smoke_readiness_check.py`
+- `scripts/titlelab_phase5d_live_openai_smoke_runner.py`
+- `docs/19_PHASE5D_LIVE_OPENAI_SMOKE_READINESS_HARNESS.md`
+- `backend/README.md`
+- `docs/08_HANDOFF.md`
+
+实现结果：
+
+- 新增 live smoke guard：校验 live smoke enabled、kill switch、manual approval、最大请求数、预算上限、expected model、provider gate 和 managed secret presence 布尔事实。
+- 新增 runner：默认只输出 safe refusal plan，返回非零退出码，不执行真实请求，不读取 secret value，不触网。
+- 新增 Phase 5D preflight：串联 Phase 5B / Phase 5C preflight，并检查 Phase 5D 默认值、runner 默认拒绝、无新增 SDK、无 miniprogram/migration/db/dependency diff、无 runtime OpenAI endpoint marker。
+- `.env.example` 只新增安全占位：live smoke 默认关闭，kill switch 默认开启，预算和 expected model 默认空。
+- `TITLELAB_AI_PROVIDER=mock`、`TITLELAB_AI_REAL_PROVIDER_ENABLED=false`、`TITLELAB_AI_OPENAI_DRYRUN_ENABLED=false`、`TITLELAB_AI_LIVE_SMOKE_ENABLED=false`、`TITLELAB_AI_LIVE_SMOKE_KILL_SWITCH=true` 仍是安全默认值。
+
+边界确认：
+
+- 未修改 `miniprogram/**`。
+- 未修改 `backend/alembic/**`。
+- 未修改 `backend/app/db/**`。
+- 未新增内容 CRUD 写接口。
+- 只允许 auth login/logout POST 和 AI title-suggestions POST。
+- 未调用真实 OpenAI、微信或任何外部 AI API。
+- 未连接真实数据库，未执行真实数据库 migration。
+- 未部署，未上传体验版，未提交审核。
+
+下一步最小建议：
+
+Phase 5E 如需 controlled live OpenAI smoke，必须另起 RELEASE_GATE，并由用户在当轮明确授权真实外部调用；执行前确认非生产环境、受管 server-side secret、一次请求上限、极小预算、expected model、kill switch rollback、脱敏日志和 requestId / audit 追踪。
+
 ## 6. 风险与注意
 
 - 现有登录形态是静态网页时代的实现，重建时必须迁移到服务端认证。

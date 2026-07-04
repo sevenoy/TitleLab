@@ -338,6 +338,45 @@ mismatch/rate-limit/timeout tests, prompt-cache tests, no mini program or
 migration diffs, no dependency diffs, and no runtime direct OpenAI endpoint
 marker.
 
+## Phase 5D Live OpenAI Smoke Readiness Harness
+
+Phase 5D adds only the readiness harness for a future controlled live OpenAI
+smoke. It does not execute live traffic, read a real API key, add an OpenAI SDK
+dependency, deploy, run migrations, connect to a real database, or modify mini
+program code.
+
+Live smoke readiness defaults:
+
+```text
+TITLELAB_AI_PROVIDER=mock
+TITLELAB_AI_REAL_PROVIDER_ENABLED=false
+TITLELAB_AI_OPENAI_DRYRUN_ENABLED=false
+TITLELAB_AI_LIVE_SMOKE_ENABLED=false
+TITLELAB_AI_LIVE_SMOKE_MAX_REQUESTS=1
+TITLELAB_AI_LIVE_SMOKE_MAX_BUDGET_CENTS=
+TITLELAB_AI_LIVE_SMOKE_REQUIRE_MANUAL_APPROVAL=true
+TITLELAB_AI_LIVE_SMOKE_EXPECTED_MODEL=
+TITLELAB_AI_LIVE_SMOKE_KILL_SWITCH=true
+OPENAI_API_KEY=
+```
+
+Run the Phase 5D local static preflight from the repository root:
+
+```bash
+python3 scripts/titlelab_phase5d_live_openai_smoke_readiness_check.py
+```
+
+The readiness runner is intentionally refusal-first:
+
+```bash
+python3 scripts/titlelab_phase5d_live_openai_smoke_runner.py
+```
+
+By default it prints a safe plan and exits non-zero without executing a real
+request. Future live execution requires a separate Phase 5E authorization, a
+managed server-side secret, a one-request cap, an explicit tiny budget, a matching
+expected model, and kill switch rollback to mock provider.
+
 ## Local Setup
 
 Use a local virtual environment or a temporary runner. Do not put real secrets
