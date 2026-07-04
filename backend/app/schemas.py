@@ -21,6 +21,10 @@ class ErrorCode(str, Enum):
     AI_INPUT_TOO_LONG = "AI_INPUT_TOO_LONG"
     AI_EMPTY_INPUT = "AI_EMPTY_INPUT"
     AI_PROVIDER_DISABLED = "AI_PROVIDER_DISABLED"
+    AI_PROVIDER_RATE_LIMITED = "AI_PROVIDER_RATE_LIMITED"
+    AI_PROVIDER_TIMEOUT = "AI_PROVIDER_TIMEOUT"
+    AI_PROVIDER_SCHEMA_MISMATCH = "AI_PROVIDER_SCHEMA_MISMATCH"
+    AI_PROVIDER_BAD_RESPONSE = "AI_PROVIDER_BAD_RESPONSE"
     AI_CONFIG_ERROR = "AI_CONFIG_ERROR"
     AI_PROVIDER_ERROR = "AI_PROVIDER_ERROR"
     AI_RATE_LIMITED = "AI_RATE_LIMITED"
@@ -153,6 +157,10 @@ class AIUsageEstimate(BaseModel):
     requestedCount: int
     returnedCount: int
     estimatedTokens: int
+    estimatedInputTokens: int = 0
+    estimatedOutputTokens: int = 0
+    promptCachedTokens: int = 0
+    estimatedCostCents: int = 0
 
 
 class AITitleSuggestionRequest(BaseModel):

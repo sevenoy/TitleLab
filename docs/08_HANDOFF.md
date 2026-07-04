@@ -530,6 +530,57 @@ Phase 4E 在独立 worktree `phase4e-controlled-real-gate-readiness` 中实现 c
 
 在用户单独授权后，可做 Phase 4F controlled real test：先准备非生产后端测试环境、真实 workspaceId、微信后台合法域名、隐私指引和测试成员，再只对测试成员短时打开真实 gate；也可以转入 Phase 5 AI Facade，继续禁止小程序直连 OpenAI。
 
+## 24. Phase 5C OpenAI provider dry-run contract
+
+Phase 5C 在独立 worktree `phase5c-openai-provider-dryrun-contract` 中实现后端 OpenAI provider dry-run contract。本阶段没有启用真实 provider，没有读取真实 `OPENAI_API_KEY`，没有触网，没有新增 OpenAI SDK 依赖，没有修改小程序，没有新增 migration，没有连接真实数据库，没有部署、上传体验版或提交审核。
+
+新增 / 更新文件：
+
+- `backend/app/services/ai_openai_contract.py`
+- `backend/app/services/ai_usage_estimator.py`
+- `backend/app/services/ai_openai_provider.py`
+- `backend/app/services/ai_providers.py`
+- `backend/app/services/ai_facade_service.py`
+- `backend/app/schemas.py`
+- `backend/app/config.py`
+- `backend/.env.example`
+- `backend/tests/test_ai_openai_dryrun_contract.py`
+- `backend/tests/test_ai_structured_output_contract.py`
+- `backend/tests/test_ai_openai_provider_disabled.py`
+- `scripts/titlelab_phase5c_openai_dryrun_contract_check.py`
+- `docs/18_PHASE5C_OPENAI_PROVIDER_DRYRUN_CONTRACT.md`
+- `backend/README.md`
+- `docs/08_HANDOFF.md`
+
+实现结果：
+
+- 新增 OpenAI request builder，输出 model、messages、response schema、timeout、retry、requestId 和 prompt cache metadata。
+- 新增 Structured Outputs schema contract：`suggestions[]` 固定，每条 suggestion 只允许 `title`、`rationale`、`tags`、`riskLevel`、`score`。
+- 新增 prompt caching-friendly builder：稳定 system prefix 在前，动态 source / reference / constraints 在后，稳定前缀不包含 secret-like 用户输入。
+- 新增 `FakeOpenAITransport`，覆盖 success、malformed JSON、schema mismatch、rate limit、timeout、provider error 和 fake usage tokens。
+- 新增 response normalizer，禁止自由文本直接透传给客户端。
+- 新增 provider 错误映射：`AI_PROVIDER_RATE_LIMITED`、`AI_PROVIDER_TIMEOUT`、`AI_PROVIDER_SCHEMA_MISMATCH`、`AI_PROVIDER_BAD_RESPONSE`。
+- 新增 usage estimate 占位：input/output/total/cached tokens 和 0 cost cents。
+- 新增 redacted audit payload：request/response hash、provider request id、prompt preview、stable/dynamic hash 和 usage 摘要。
+- OpenAI provider placeholder 仍默认 disabled；只有测试显式注入 fake transport 且 dry-run enabled 时才执行 contract。
+- `TITLELAB_AI_PROVIDER=mock`、`TITLELAB_AI_REAL_PROVIDER_ENABLED=false`、`TITLELAB_AI_OPENAI_DRYRUN_ENABLED=false` 仍是安全默认值。
+- 新增 Phase 5C preflight：`python3 scripts/titlelab_phase5c_openai_dryrun_contract_check.py`。
+
+边界确认：
+
+- 未修改 `miniprogram/**`。
+- 未修改 `backend/alembic/**`。
+- 未修改 `backend/app/db/**`。
+- 未新增内容 CRUD 写接口。
+- 只允许 auth login/logout POST 和 AI title-suggestions POST。
+- 未调用真实 OpenAI、微信或任何外部 AI API。
+- 未连接真实数据库，未执行真实数据库 migration。
+- 未部署，未上传体验版，未提交审核。
+
+下一步最小建议：
+
+Phase 5D 如需 controlled live OpenAI smoke，必须另起 RELEASE_GATE，先确认非生产环境、受管 server-side secret、预算/限流/超时/回滚、脱敏日志和用户明确授权；继续禁止小程序直连 OpenAI。
+
 ## 6. 风险与注意
 
 - 现有登录形态是静态网页时代的实现，重建时必须迁移到服务端认证。

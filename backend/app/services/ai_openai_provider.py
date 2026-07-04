@@ -1,40 +1,28 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from app.schemas import AITitleSuggestionOut, ErrorCode
+from app.services.ai_openai_contract import (
+    OpenAIContractError,
+    OpenAITransport,
+    build_openai_title_suggestion_request,
+    build_structured_output_schema,
+    run_openai_dryrun_contract,
+)
 from app.services.ai_provider_gate import AIProviderGateError, AIProviderReadiness
 from app.services.ai_safety import SanitizedAIRequest
 
-OPENAI_STRUCTURED_OUTPUT_SCHEMA = {
-    "type": "object",
-    "required": ["suggestions"],
-    "additionalProperties": False,
-    "properties": {
-        "suggestions": {
-            "type": "array",
-            "minItems": 1,
-            "maxItems": 5,
-            "items": {
-                "type": "object",
-                "required": ["title", "rationale", "tags", "riskLevel", "score"],
-                "additionalProperties": False,
-                "properties": {
-                    "title": {"type": "string", "maxLength": 80},
-                    "rationale": {"type": "string", "maxLength": 200},
-                    "tags": {"type": "array", "items": {"type": "string"}, "maxItems": 6},
-                    "riskLevel": {"type": "string", "enum": ["low", "medium", "high"]},
-                    "score": {"type": "number", "minimum": 0, "maximum": 1},
-                },
-            },
-        }
-    },
-}
+OPENAI_STRUCTURED_OUTPUT_SCHEMA = build_structured_output_schema()["json_schema"]["schema"]
 
 
 @dataclass(frozen=True)
 class OpenAIProviderPlaceholder:
     readiness: AIProviderReadiness
+    dry_run_enabled: bool = False
+    transport: OpenAITransport | None = None
+    prompt_cache_key_prefix: str = ""
 
     @property
     def provider(self) -> str:
@@ -49,10 +37,23 @@ class OpenAIProviderPlaceholder:
         return False
 
     def generate_title_suggestions(self, payload: SanitizedAIRequest, prompt: str) -> list[AITitleSuggestionOut]:
-        raise AIProviderGateError(ErrorCode.AI_PROVIDER_DISABLED, "ai_real_provider_not_enabled_in_phase5b")
+        if not self.dry_run_enabled or self.transport is None:
+            raise AIProviderGateError(ErrorCode.AI_PROVIDER_DISABLED, "ai_openai_provider_dryrun_disabled")
+        request = build_openai_title_suggestion_request(
+            payload,
+            model=self.readiness.model,
+            timeout_seconds=self.readiness.budget_policy.timeout_seconds,
+            max_retries=self.readiness.budget_policy.max_retries,
+            prompt_cache_key_prefix=self.prompt_cache_key_prefix,
+        )
+        try:
+            result = run_openai_dryrun_contract(request, self.transport)
+        except OpenAIContractError as exc:
+            raise AIProviderGateError(exc.code, str(exc)) from exc
+        return result.suggestions
 
 
-def normalize_structured_suggestions(raw: dict[str, object]) -> list[AITitleSuggestionOut]:
+def normalize_structured_suggestions(raw: dict[str, Any]) -> list[AITitleSuggestionOut]:
     values = raw.get("suggestions")
     if not isinstance(values, list):
         raise AIProviderGateError(ErrorCode.AI_PROVIDER_ERROR, "ai_provider_output_invalid")

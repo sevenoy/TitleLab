@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from app.schemas import AITitleSuggestionOut
+from app.services.ai_openai_contract import OpenAITransport
 from app.services.ai_openai_provider import OpenAIProviderPlaceholder
 from app.services.ai_provider_gate import AIProviderReadiness, OPENAI_PROVIDER
 from app.services.ai_safety import SanitizedAIRequest
@@ -50,12 +51,20 @@ class AIProviderRegistry:
     real_provider_enabled: bool = False
     model: str = ""
     readiness: AIProviderReadiness | None = None
+    openai_dryrun_enabled: bool = False
+    openai_transport: OpenAITransport | None = None
+    openai_prompt_cache_key_prefix: str = ""
 
     def resolve(self) -> AIProvider:
         if self.provider_name == MOCK_AI_PROVIDER:
             return MockAIProvider()
         if self.provider_name == OPENAI_PROVIDER and self.readiness is not None:
-            return OpenAIProviderPlaceholder(self.readiness)
+            return OpenAIProviderPlaceholder(
+                self.readiness,
+                dry_run_enabled=self.openai_dryrun_enabled,
+                transport=self.openai_transport,
+                prompt_cache_key_prefix=self.openai_prompt_cache_key_prefix,
+            )
         if not self.real_provider_enabled:
             raise AIProviderDisabledError("ai_provider_disabled")
         raise AIProviderDisabledError("ai_provider_not_configured")

@@ -301,6 +301,43 @@ endpoint still requires auth/workspace membership, only auth POST plus AI
 title-suggestions POST are exposed, and migrations/mini program files are not
 modified.
 
+## Phase 5C OpenAI Provider Dry-run Contract
+
+Phase 5C adds a backend-only OpenAI provider dry-run contract. It still does not
+call real OpenAI services, read a real API key, add an OpenAI SDK dependency,
+deploy, run migrations, connect to a real database, or modify mini program
+code.
+
+AI dry-run gate defaults:
+
+```text
+TITLELAB_AI_PROVIDER=mock
+TITLELAB_AI_REAL_PROVIDER_ENABLED=false
+TITLELAB_AI_OPENAI_DRYRUN_ENABLED=false
+TITLELAB_AI_MODEL=
+TITLELAB_AI_PROMPT_CACHE_KEY_PREFIX=
+OPENAI_API_KEY=
+```
+
+The dry-run contract adds request construction, Structured Outputs JSON schema,
+prompt caching-friendly messages, fake transport tests, response normalization,
+usage estimate placeholders, provider error mapping, requestId tracing, and
+redacted audit payloads. Tests use `FakeOpenAITransport` only; real provider
+traffic remains blocked unless a later release gate explicitly authorizes a
+controlled live smoke.
+
+Run the Phase 5C local static preflight from the repository root:
+
+```bash
+python3 scripts/titlelab_phase5c_openai_dryrun_contract_check.py
+```
+
+The preflight makes no external calls and prints no secret values. It checks
+Phase 5B compatibility, dry-run defaults, fake transport coverage, schema
+mismatch/rate-limit/timeout tests, prompt-cache tests, no mini program or
+migration diffs, no dependency diffs, and no runtime direct OpenAI endpoint
+marker.
+
 ## Local Setup
 
 Use a local virtual environment or a temporary runner. Do not put real secrets

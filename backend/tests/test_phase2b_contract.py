@@ -74,7 +74,16 @@ AI_TITLE_SUGGESTIONS_DATA_FIELDS = {
     "usageEstimate",
     "warnings",
 }
-AI_USAGE_ESTIMATE_FIELDS = {"inputCharacters", "requestedCount", "returnedCount", "estimatedTokens"}
+AI_USAGE_ESTIMATE_FIELDS = {
+    "inputCharacters",
+    "requestedCount",
+    "returnedCount",
+    "estimatedTokens",
+    "estimatedInputTokens",
+    "estimatedOutputTokens",
+    "promptCachedTokens",
+    "estimatedCostCents",
+}
 AI_WARNING_FIELDS = {"code", "message"}
 
 

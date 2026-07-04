@@ -4,6 +4,7 @@ import pytest
 
 from app.config import Settings
 from app.schemas import ErrorCode
+from app.services.ai_openai_contract import FakeOpenAITransport
 from app.services.ai_openai_provider import OpenAIProviderPlaceholder, normalize_structured_suggestions
 from app.services.ai_provider_gate import AIProviderGateError, validate_ai_provider_readiness
 from app.services.ai_safety import sanitize_title_suggestion_request
@@ -41,6 +42,33 @@ def test_openai_placeholder_generate_is_disabled_even_when_readiness_exists() ->
         provider.generate_title_suggestions(payload, "prompt")
 
     assert exc_info.value.code == ErrorCode.AI_PROVIDER_DISABLED
+
+
+def test_openai_placeholder_uses_fake_transport_only_when_dryrun_enabled() -> None:
+    readiness = validate_ai_provider_readiness(
+        Settings(
+            titlelab_ai_provider="openai",
+            titlelab_ai_real_provider_enabled=True,
+            titlelab_ai_model="gpt-placeholder",
+        ),
+        api_key_present=True,
+    )
+    provider = OpenAIProviderPlaceholder(readiness, dry_run_enabled=True, transport=FakeOpenAITransport())
+    payload = sanitize_title_suggestion_request(
+        source_text="为测试写标题",
+        content_type="title",
+        tone="clear",
+        platform="wechat",
+        count=1,
+        constraints=[],
+        reference_titles=[],
+        locale="zh-CN",
+    )
+
+    suggestions = provider.generate_title_suggestions(payload, "prompt")
+
+    assert len(suggestions) == 1
+    assert suggestions[0].title.startswith("测试标题建议")
 
 
 def test_structured_output_normalization_is_strict_and_bounded() -> None:

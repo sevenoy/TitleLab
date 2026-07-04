@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 SERVICE_NAME = "titlelab-backend"
 PROJECT_NAME = "TitleLab"
-PHASE = "phase5b-real-ai-provider-gate-readiness"
+PHASE = "phase5c-openai-provider-dryrun-contract"
 API_BASE_DOMAIN = "api.title.mirroroo.top"
 WEB_DOMAIN = "title.mirroroo.top"
 ADMIN_DOMAIN = "admin.title.mirroroo.top"
@@ -18,7 +18,9 @@ class Settings(BaseSettings):
     titlelab_session_ttl_seconds: int = 60 * 60 * 24 * 7
     titlelab_ai_provider: str = "mock"
     titlelab_ai_real_provider_enabled: bool = False
+    titlelab_ai_openai_dryrun_enabled: bool = False
     titlelab_ai_model: str = ""
+    titlelab_ai_prompt_cache_key_prefix: str = ""
     titlelab_ai_timeout_seconds: int = 15
     titlelab_ai_max_retries: int = 1
     titlelab_ai_daily_budget_cents: int = 0

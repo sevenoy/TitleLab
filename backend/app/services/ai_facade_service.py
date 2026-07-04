@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 from time import perf_counter
+from typing import Any
 from uuid import uuid4
 
 from sqlalchemy.orm import Session
@@ -10,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.models.core import AiGenerationRecord
 from app.schemas import AITitleSuggestionRequest, AITitleSuggestionsData, AIUsageEstimate, ErrorCode
 from app.services.ai_budget import AIBudgetError, AIBudgetPolicy, enforce_request_budget
+from app.services.ai_openai_contract import OpenAITransport
 from app.services.ai_prompt_templates import TITLE_SUGGESTION_PROMPT_VERSION, build_title_suggestion_prompt
 from app.services.ai_provider_gate import AIProviderGateError, AIProviderReadiness
 from app.services.ai_providers import AIProviderDisabledError, AIProviderRegistry
@@ -30,6 +32,9 @@ class AIFacadeConfig:
     model: str = ""
     budget_policy: AIBudgetPolicy | None = None
     readiness: AIProviderReadiness | None = None
+    openai_dryrun_enabled: bool = False
+    openai_transport: OpenAITransport | None = None
+    openai_prompt_cache_key_prefix: str = ""
 
 
 def generate_title_suggestions(
@@ -69,6 +74,9 @@ def generate_title_suggestions(
             real_provider_enabled=active_config.real_provider_enabled,
             model=active_config.model,
             readiness=active_config.readiness,
+            openai_dryrun_enabled=active_config.openai_dryrun_enabled,
+            openai_transport=active_config.openai_transport,
+            openai_prompt_cache_key_prefix=active_config.openai_prompt_cache_key_prefix,
         ).resolve()
     except AIProviderDisabledError as exc:
         raise AIFacadeError(ErrorCode.AI_PROVIDER_DISABLED, str(exc)) from exc
@@ -89,6 +97,10 @@ def generate_title_suggestions(
         requestedCount=request_payload.count,
         returnedCount=len(suggestions),
         estimatedTokens=estimate_tokens(sanitized.source_text, prompt, suggestions),
+        estimatedInputTokens=max(1, len(prompt) // 4),
+        estimatedOutputTokens=max(1, len(str(suggestions)) // 4),
+        promptCachedTokens=0,
+        estimatedCostCents=0,
     )
     data = AITitleSuggestionsData(
         suggestions=suggestions,
@@ -133,7 +145,7 @@ def persist_generation_record(
     readiness: AIProviderReadiness | None,
     latency_ms: int,
 ) -> None:
-    readiness_payload = (
+    readiness_payload: dict[str, Any] | None = (
         {
             "realProviderEnabled": readiness.real_provider_enabled,
             "apiKeyRequired": readiness.api_key_required,
