@@ -4,6 +4,7 @@
     <text class="panel-copy">你可以在这里查看协议、隐私政策和账号退出入口。</text>
     <button class="link-row" bindtap="onOpenTerms">用户服务协议</button>
     <button class="link-row" bindtap="onOpenPrivacy">隐私政策</button>
+    <button class="link-row" bindtap="onResetLocalPassword">重置本机账号密码</button>
   </view>
 
   <view class="panel">

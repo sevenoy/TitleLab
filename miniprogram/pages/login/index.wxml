@@ -3,7 +3,7 @@
     <view class="brand-mark">THE</view>
     <text class="brand-title">TitleLab</text>
     <text class="brand-subtitle">本产品账号登录</text>
-    <text class="safe-note">本页使用产品账号进入，不要求填写微信账号、微信密码或微信验证码。</text>
+    <text class="safe-note">本页面仅用于本产品账号登录，不会要求你填写微信账号、微信密码或微信验证码。</text>
 
     <view class="form-field">
       <text class="field-label">产品账号</text>

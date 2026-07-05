@@ -161,10 +161,10 @@ def main() -> None:
     login_wxml = read_text("miniprogram/pages/login/index.wxml")
     assert_contains(login_wxml, "TitleLab", "login page")
     assert_contains(login_wxml, "\u672c\u4ea7\u54c1\u8d26\u53f7\u767b\u5f55", "login page")
-    assert_contains(login_wxml, "\u4e0d\u8981\u6c42\u586b\u5199\u5fae\u4fe1\u8d26\u53f7\u3001\u5fae\u4fe1\u5bc6\u7801\u6216\u5fae\u4fe1\u9a8c\u8bc1\u7801", "login page")
+    assert_contains(login_wxml, "\u4e0d\u4f1a\u8981\u6c42\u4f60\u586b\u5199\u5fae\u4fe1\u8d26\u53f7\u3001\u5fae\u4fe1\u5bc6\u7801\u6216\u5fae\u4fe1\u9a8c\u8bc1\u7801", "login page")
     assert_contains(login_wxml, "\u300a\u7528\u6237\u670d\u52a1\u534f\u8bae\u300b", "login page")
     assert_contains(login_wxml, "\u300a\u9690\u79c1\u653f\u7b56\u300b", "login page")
-    assert_contains(login_js, "audit_test", "login page")
+    assert_contains(login_js, "localAuth.login", "login page")
     assert_contains(login_js, "\u8bf7\u5148\u9605\u8bfb\u5e76\u52fe\u9009\u300a\u7528\u6237\u670d\u52a1\u534f\u8bae\u300b\u300a\u9690\u79c1\u653f\u7b56\u300b\u540e\u518d\u7ee7\u7eed\u3002", "login page")
 
     privacy = read_text("miniprogram/pages/legal/privacy.wxml")

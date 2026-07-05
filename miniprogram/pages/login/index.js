@@ -1,8 +1,5 @@
 const wechat = require("../../adapters/wechat");
-
-const LOGIN_FLAG_KEY = "titlelab.localAccountSignedIn";
-const ALLOWED_ACCOUNT = "audit_test";
-const ALLOWED_PASSWORD = "audit_test";
+const localAuth = require("../../services/localAuth");
 
 Page({
   data: {
@@ -38,12 +35,16 @@ Page({
       return;
     }
 
-    if (this.data.account !== ALLOWED_ACCOUNT || this.data.password !== ALLOWED_PASSWORD) {
-      wechat.showToast({ title: "账号或密码不正确" });
+    const result = localAuth.login({
+      username: this.data.account,
+      password: this.data.password
+    });
+
+    if (!result.ok) {
+      wechat.showToast({ title: result.message });
       return;
     }
 
-    wechat.setStorage(LOGIN_FLAG_KEY, true);
     wechat.reLaunch("/pages/index/index");
   }
 });

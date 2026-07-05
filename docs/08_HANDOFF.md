@@ -968,6 +968,54 @@ Phase 6G 在独立 worktree `phase6g-miniprogram-compliance-ui-login-privacy-fix
 
 在微信开发者工具中重新导入当前主仓库 `miniprogram/`，只做本地视觉和协议链路验收：登录协议拦截、登录后首页、分类横向、按钮不溢出、文案展开、设置页、协议页、隐私页和退出登录；仍不上传体验版、不提交审核、不打开真实请求。
 
+## 33. Phase 6H Mini Program local login accounts
+
+Phase 6H 在独立 worktree `phase6h-miniprogram-local-login-accounts` 中完成小程序本地登录账号配置修复。本阶段没有修改微信开发者工具缓存，没有修改旧 Phase 3 worktree，没有真实请求后端，没有连接真实数据库，没有新增 migration，没有新增依赖，没有部署、上传体验版或提交审核。
+
+新增 / 更新文件：
+
+- `miniprogram/services/localAuth.js`
+- `miniprogram/pages/login/index.js`
+- `miniprogram/pages/login/index.wxml`
+- `miniprogram/pages/settings/index.js`
+- `miniprogram/pages/settings/index.wxml`
+- `scripts/titlelab_phase6h_miniprogram_login_accounts_check.py`
+- `scripts/titlelab_phase6g_miniprogram_compliance_check.py`
+- `docs/28_PHASE6H_MINIPROGRAM_LOCAL_LOGIN_ACCOUNTS.md`
+- `docs/27_PHASE6G_MINIPROGRAM_COMPLIANCE_UI_LOGIN_PRIVACY_FIX.md`
+- `miniprogram/README.md`
+- `docs/07_ACCEPTANCE_CHECKLIST.md`
+- `docs/08_HANDOFF.md`
+
+实现结果：
+
+- 新增 `localAuth` 本地账号封装，统一处理本机登录态和本机 `olina` 密码。
+- 自用账号为 `olina`，密码由用户首次在本机登录时输入并保存到本机，后续登录必须匹配。
+- 审核检查账号为 `test / test`，只用于本地和审核检查，不连接后端。
+- 登录页不展示 `test / test`。
+- 密码为空提示 `请输入产品密码。`
+- 账号或密码不匹配提示 `账号或密码不正确。`
+- 协议复选框保持默认未勾选，未勾选仍拦截登录。
+- 登录页保留 `本产品账号登录` 和不要求微信账号、微信密码或微信验证码说明。
+- 设置页新增 `重置本机账号密码`，确认后只清除本机保存的 `olina` 密码，不影响 `test / test`。
+- 新增 Phase 6H preflight：`python3 scripts/titlelab_phase6h_miniprogram_login_accounts_check.py`。
+
+边界确认：
+
+- 当前仍为本地演示登录，不是生产账号体系。
+- 未把用户真实密码写入代码、文档、配置或测试。
+- 未调用真实后端 API。
+- 未调用 `wx.login`。
+- 未使用 `getPhoneNumber`、`wx.getUserProfile`、`wx.getUserInfo` 或 `getClipboardData`。
+- 页面不直接调用 `wx.request`。
+- 未修改 `backend/alembic/**`、`backend/app/db/**`、`backend/app/models/**`。
+- 未新增依赖。
+- 未提交 `miniprogram/project.private.config.json`。
+
+下一步最小建议：
+
+在微信开发者工具中只做本地手工验证：未勾选协议拦截、`olina` 首次设置密码、`olina` 后续密码校验、`test / test` 登录、设置页重置本机账号密码和退出登录；仍不上传体验版、不提交审核、不打开真实请求。
+
 ## 6. 风险与注意
 
 - 现有登录形态是静态网页时代的实现，重建时必须迁移到服务端认证。

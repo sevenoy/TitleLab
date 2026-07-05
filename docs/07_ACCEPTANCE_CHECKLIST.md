@@ -256,6 +256,37 @@
 - [x] 未提交审核。
 - [x] Phase 6G preflight 已新增：`python3 scripts/titlelab_phase6g_miniprogram_compliance_check.py`。
 
+## Phase 6H Mini Program Local Login Accounts
+
+- [x] Phase 6H 独立 worktree 已从 `99b4251` 创建。
+- [x] 自用账号为 `olina`。
+- [x] `olina` 密码由用户首次在本机登录时自行设置。
+- [x] 未将 `olina` 真实密码写入代码、文档、配置或测试。
+- [x] 审核检查账号为 `test / test`。
+- [x] 登录页不直接展示 `test / test`。
+- [x] 密码为空提示 `请输入产品密码。`
+- [x] 账号或密码错误提示 `账号或密码不正确。`
+- [x] 协议复选框默认未勾选。
+- [x] 未勾选协议点击登录仍提示 `请先阅读并勾选《用户服务协议》《隐私政策》后再继续。`
+- [x] 登录页保留 `本产品账号登录`。
+- [x] 登录页保留不要求微信账号、微信密码或微信验证码说明。
+- [x] 设置页包含 `重置本机账号密码`。
+- [x] 重置本机账号密码只清除本机保存的 `olina` 密码。
+- [x] 不影响 `test / test` 审核检查账号。
+- [x] 当前仍为本地演示登录，不是生产账号体系。
+- [x] 未调用真实后端 API。
+- [x] 未使用 `getPhoneNumber`。
+- [x] 未使用 `wx.getUserProfile` 或 `wx.getUserInfo`。
+- [x] 未使用 `getClipboardData`。
+- [x] 页面不直接调用 `wx.request` 或 `wx.login`。
+- [x] 未修改 `backend/alembic/**`。
+- [x] 未修改 `backend/app/db/**`。
+- [x] 未修改 `backend/app/models/**`。
+- [x] 未新增依赖。
+- [x] 未上传体验版。
+- [x] 未提交审核。
+- [x] Phase 6H preflight 已新增：`python3 scripts/titlelab_phase6h_miniprogram_login_accounts_check.py`。
+
 ## 历史规划轮次禁止项确认
 
 - [x] 未修改业务代码。

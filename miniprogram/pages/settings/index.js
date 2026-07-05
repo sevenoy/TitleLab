@@ -1,7 +1,6 @@
 const env = require("../../config/env");
 const wechat = require("../../adapters/wechat");
-
-const LOGIN_FLAG_KEY = "titlelab.localAccountSignedIn";
+const localAuth = require("../../services/localAuth");
 
 Page({
   data: {
@@ -16,8 +15,23 @@ Page({
     wechat.navigateTo("/pages/legal/privacy");
   },
 
+  onResetLocalPassword() {
+    wx.showModal({
+      title: "重置本机账号密码",
+      content: "确认清除本机保存的 olina 密码？清除后可在下次登录时重新设置。",
+      confirmText: "确认清除",
+      cancelText: "取消",
+      success(result) {
+        if (result.confirm) {
+          localAuth.resetOwnerPassword();
+          wechat.showToast({ title: "已清除" });
+        }
+      }
+    });
+  },
+
   onLogout() {
-    wechat.removeStorage(LOGIN_FLAG_KEY);
+    localAuth.clearLocalSession();
     wechat.reLaunch("/pages/login/index");
   }
 });
