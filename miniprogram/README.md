@@ -1,190 +1,54 @@
 # TitleLab Mini Program
 
-当前目录是 Phase 3A 小程序只读 MVP 骨架。
+当前目录是 TitleLab Phase 6F 小程序本地示例源码。请在微信开发者工具中导入本目录，而不是仓库根目录或旧 Phase 3 worktree。
 
 ## 当前范围
 
-- 首页展示本地样例标题和文案。
-- 支持关键词搜索、类型筛选、分类筛选和标签筛选。
-- 详情页展示正文、分类、标签、使用建议和备注。
-- 详情页支持复制标题或正文。
+- 首页为蓝白工具风格的标题/文案库。
+- 顶部包含 THE、标题 / 文案、S 用户按钮和退出按钮。
+- 分类管理保留计数、上移、下移、改。
+- 标题 Tab 支持搜索标题关键词、账号分类和标题列表。
+- 文案 Tab 支持搜索文案关键词、账号分类和文案列表。
+- 标题行内支持 `AI 标题灵感` 本地示例面板。
+- 文案支持当前卡片展开，并显示 `AI 文案助手` 本地示例面板。
+- 复制统一通过 `adapters/wechat.js` 封装。
 
 ## 当前边界
 
-- 数据来自 `services/contentMock.js`。
-- 页面通过 `services/contentRepository.js` 读取内容；当前 repository 默认走本地 mock 数据。
-- 微信平台能力统一通过 `adapters/wechat.js` 封装，页面不直接散落请求能力。
-- 当前不访问网络。
-- 当前不连接数据库。
-- 当前不包含登录、收藏、历史、导入、快照、AI 或后台能力。
-- 当前不包含真实应用标识、前端密钥、令牌或数据库配置。
+- 默认数据是页面内本地示例。
+- `config/env.js` 仍保持 mock 模式，真实请求开关关闭。
+- 页面不得直接调用 `wx.request` 或 `wx.login`。
+- `wx.request` 只保留在 `services/request.js`。
+- `wx.login` 只保留在 `adapters/wechat.js`。
+- 不连接真实数据库。
+- 不执行真实 migration。
+- 不上传体验版。
+- 不提交审核。
+- 不修改微信开发者工具缓存目录。
 
-## Phase 3B 分层
+## DevTools 导入
 
-- `config/env.js`：声明当前为 `mock` 模式，real API gate 默认关闭。
-- `adapters/wechat.js`：封装导航、剪贴板、提示、网络状态和本地存储适配。
-- `services/request.js`：保留只读请求边界，但当前不配置真实域名，也不会发起真实网络访问。
-- `services/contentApi.js`：预留后续只读内容接口映射。
-- `services/contentRepository.js`：统一内容读取入口，当前默认委托 `contentMock.js`。
+导入路径：
 
-## Phase 3C 只读 API envelope 接入
-
-- 当前默认仍为 `mock` 模式，`realApiGateEnabled` 默认关闭。
-- 唯一允许的真实 API base 为 `https://api.title.mirroroo.top/api/v1`。
-- 真实请求只能通过 `services/request.js` 发起，页面不得直接调用 `wx.request`。
-- `services/request.js` 只封装 `GET`，会发送 `X-Request-Id` 并校验 Phase 2C envelope。
-- 成功响应只在 `code=OK` 时进入页面渲染；列表读取 `data.items`、`data.limit`、`data.offset`、`data.hasMore`。
-- 错误响应统一保留 `code`、`message`、`requestId`、`serverTime`、`version`，由 repository 转为页面可展示错误。
-- `services/contentApi.js` 只映射内容列表、内容详情、分类列表和标签列表四个只读 workspace `GET` 路由。
-- 小程序端不包含 OpenAI 直连、AppSecret、API key、DB 密码、token 或 cookie。
-
-## Phase 4C auth/session 接入层
-
-- 当前默认仍为 `mock` 模式，`realApiGateEnabled=false`，`authRealApiGateEnabled=false`。
-- `services/sessionStore.js` 使用 `titlelab.*` 命名空间保存 session token、用户摘要、workspace 摘要和过期时间。
-- `services/authApi.js` 只映射 `POST /api/v1/auth/wechat-login`、`GET /api/v1/auth/me`、`POST /api/v1/auth/logout`。
-- `services/authRepository.js` 封装 `loginWithWechat`、`restoreSession`、`getCurrentUser`、`logout` 和 `isAuthenticated`。
-- `adapters/wechat.js` 封装 `wx.login`、设备标签和 storage；页面不得直接调用 `wx.login` 或 `wx.request`。
-- `services/request.js` 在 gate 显式开启后自动从 `sessionStore` 读取 session 并注入标准 bearer 认证头。
-- 默认 gate 关闭时不会调用 `wx.login`，不会请求后端，也不会阻断 mock 内容展示。
-- 只允许 auth POST；业务内容仍不得新增 `POST`、`PUT`、`PATCH` 或 `DELETE`。
-- 真机登录、真实 AppID、合法域名、隐私指引、体验版上传和提审仍必须另起 RELEASE_GATE。
-
-## Phase 4D real auth preflight
-
-Phase 4D 新增本地静态检查脚本：
-
-```bash
-python3 scripts/titlelab_phase4d_preflight_check.py
+```text
+/Users/lorenmac/Claude/Projects/TitleLab/miniprogram
 ```
 
-该脚本只检查本地文件，不请求后端、不调用微信、不连接数据库、不读取 secret。当前默认 gate 必须保持 `realApiGateEnabled=false` 和 `authRealApiGateEnabled=false`。
+`project.config.json` 当前保持：
 
-真实登录前必须另外完成：
+- `projectname=TitleLab`
+- `appid=wx5d7766982eebe9fc`
+- `compileType=miniprogram`
+- `urlCheck=true`
 
-- 微信后台正式 AppID、request 合法域名、隐私保护指引和测试成员检查。
-- 后端测试环境、非生产测试数据库、workspace membership 和回滚策略检查。
-- `workspaceId` 从 `default` placeholder 替换为已授权 workspace。
-- 用户单独授权后才允许上传体验版、提交审核或部署。
-
-## Phase 4E controlled real gate readiness
-
-Phase 4E 新增 `services/realGateGuard.js` 和检查脚本：
+## Phase 6F 本地检查
 
 ```bash
-python3 scripts/titlelab_phase4e_real_gate_check.py
-```
-
-当前默认仍是 `apiMode=mock`、`realApiGateEnabled=false`、`authRealApiGateEnabled=false`。`workspaceId=default` 在 gate 关闭时仅作为风险项；一旦 real gate 被开启，guard 会要求真实 workspaceId、唯一合法 API base 和 auth readiness，否则 fail-fast，不发起真实请求。
-
-运行时规则：
-
-- 真实请求前必须通过 `realGateGuard.assertRealApiReadiness`。
-- `workspaceId=default`、`placeholder`、`demo` 或 `test` 不得用于真实请求。
-- auth gate 开启但缺 session readiness 时返回 `REAL_AUTH_SESSION_REQUIRED`。
-- 默认 mock 模式不调用 `wx.login`，不访问后端，不阻断本地内容展示。
-
-## Phase 6 AI 标题生成 mock-only
-
-Phase 6 新增 `pages/ai/index` 和小程序 AI service/repository/mock 分层。本阶段默认仍为 `mock` 模式：
-
-- `realApiGateEnabled=false`
-- `authRealApiGateEnabled=false`
-- `aiRealApiGateEnabled=false`
-
-当前能力：
-
-- 首页提供“AI 标题生成”入口。
-- AI 页面支持输入 sourceText、contentType、tone、platform、count。
-- `services/aiMock.js` 本地返回结构化 suggestions。
-- `services/aiRepository.js` 默认走 mock；真实 AI gate 不满足时 fail-fast。
-- `services/aiApi.js` 只保留后端 AI Facade endpoint 映射。
-- 结果展示 `title`、`rationale`、`tags`、`riskLevel`、`score`，并支持复制标题。
-
-当前边界：
-
-- 不强制登录。
-- 不真实请求后端 AI。
-- 不上传 sourceText。
-- 不调用 OpenAI。
-- 不读取或写入真实 OpenAI key。
-- 页面不直接调用 `wx.request` 或 `wx.login`。
-
-本地检查：
-
-```bash
-python3 scripts/titlelab_phase6_miniprogram_ai_mock_check.py
-```
-
-## Phase 6B AI mock UX QA
-
-Phase 6B 继续保持 mock-only，只打磨 AI 标题生成页面体验：
-
-- `realApiGateEnabled=false`
-- `authRealApiGateEnabled=false`
-- `aiRealApiGateEnabled=false`
-
-新增体验：
-
-- sourceText 字符计数和输入校验。
-- 香港迪士尼旅拍、摄影师跟拍、求婚记录本地预设。
-- loading、错误态、空态、暂无结果态和 warnings 展示。
-- 复制单个标题、copy all / 复制全部、清空和重新生成。
-- `services/aiMock.js` 输出更稳定的小红书/旅拍场景 mock 标题。
-- 疑似敏感输入不原样扩散到标题。
-
-本地检查：
-
-```bash
-python3 scripts/titlelab_phase6b_miniprogram_ai_mock_ux_check.py
-```
-
-## Phase 6C AI mock acceptance QA
-
-Phase 6C 继续保持 mock-only，只做 AI 标题生成页面验收收口和 DevTools 导入前检查：
-
-- `realApiGateEnabled=false`
-- `authRealApiGateEnabled=false`
-- `aiRealApiGateEnabled=false`
-
-验收覆盖：
-
-- AI 页面四件套、首页入口、AI service/repository/mock/api 文件存在。
-- sourceText 字符计数、输入过短提示、输入上限提示和生成按钮禁用态。
-- loading、error、empty、暂无结果、warnings 和 result cards。
-- 复制单个标题、复制全部、清空后状态复位、重新生成沿用上一次输入。
-- DevTools 导入路径应为 `miniprogram/`，`project.private.config.json` 不进入 git。
-- 页面不直接调用 `wx.request` 或 `wx.login`。
-
-本地检查：
-
-```bash
-python3 scripts/titlelab_phase6c_miniprogram_ai_acceptance_check.py
-```
-
-## Phase 6D DevTools/manual acceptance pack
-
-Phase 6D 继续保持 mock-only，只为微信开发者工具人工验收准备 QA 包，不上传体验版、不提交审核、不打开真实 gate：
-
-- `realApiGateEnabled=false`
-- `authRealApiGateEnabled=false`
-- `aiRealApiGateEnabled=false`
-
-本轮新增：
-
-- DevTools 导入步骤：导入目录必须是 `miniprogram/`。
-- AI mock 页面手动测试用例。
-- 首页入口验收路线。
-- 复制单条、复制全部、清空、重试、loading、error、empty、warning、result 状态验收说明。
-- 截图清单和 bug report template。
-- Phase 6D preflight。
-
-本地检查：
-
-```bash
-python3 scripts/titlelab_phase6d_miniprogram_devtools_acceptance_check.py
+python3 scripts/titlelab_phase6f_miniprogram_original_ui_sync_check.py
+find miniprogram -maxdepth 6 -name "*.js" -print -exec node --check {} \;
+git diff --check
 ```
 
 ## 后续接入规则
 
-后续接入真实只读接口必须单独开启 gate，并继续限制在 Phase 2 已验收的只读内容接口和公开 meta 接口内。
+后续接真实后端、真实登录、真实 AI 服务、体验版上传或提审，都必须另起独立 Phase 和 RELEASE_GATE。本目录不得保存真实密钥或前端直连外部 AI 服务。

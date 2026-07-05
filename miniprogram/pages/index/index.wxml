@@ -1,72 +1,169 @@
 <view class="page-shell">
-  <view class="hero">
-    <text class="pill">本地只读样例</text>
-    <text class="hero-title">标题与文案素材</text>
-    <text class="hero-subtitle">先验证列表、筛选、详情和复制闭环，后续 API 接入单独过 gate。</text>
-    <button class="ai-entry-button" bindtap="onOpenAI">AI 标题生成</button>
+  <view class="topbar">
+    <view class="brand-block">
+      <view class="logo-mark">THE</view>
+      <view class="tab-switch">
+        <button class="tab-button {{activeTab === 'title' ? 'active' : ''}}" data-tab="title" bindtap="onSwitchTab">标题</button>
+        <button class="tab-button {{activeTab === 'copy' ? 'active' : ''}}" data-tab="copy" bindtap="onSwitchTab">文案</button>
+      </view>
+    </view>
+    <view class="user-actions">
+      <view class="user-badge">S</view>
+      <button class="exit-button" bindtap="onLocalAction">退出</button>
+    </view>
   </view>
 
-  <view class="search-panel">
+  <view class="category-panel">
+    <view class="section-head">
+      <text class="section-title">分类管理</text>
+      <text class="section-note">排序与改名仅作本地示例</text>
+    </view>
+    <view class="category-list">
+      <view
+        wx:for="{{categoryRows}}"
+        wx:key="id"
+        class="category-row {{selectedCategoryId === item.id ? 'active' : ''}}"
+        data-id="{{item.id}}"
+        bindtap="onSelectCategory"
+      >
+        <view class="category-name">
+          <text>{{item.name}}</text>
+          <text class="category-count">{{item.count}}条</text>
+        </view>
+        <view wx:if="{{!item.locked}}" class="category-tools" catchtap="onCategoryTool">
+          <button class="tool-button">上移</button>
+          <button class="tool-button">下移</button>
+          <button class="tool-button">改</button>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="toolbar-panel">
     <input
       class="search-input"
       value="{{keyword}}"
-      placeholder="搜索标题、正文、分类或标签"
+      placeholder="{{activeTab === 'title' ? '搜索标题关键词' : '搜索文案关键词'}}"
       placeholder-class="search-placeholder"
       confirm-type="search"
       bindinput="onSearchInput"
     />
-
-    <view class="filter-grid">
-      <picker range="{{typeOptions}}" range-key="label" value="{{typeIndex}}" bindchange="onTypeChange">
-        <view class="filter-control">
-          <text class="filter-label">类型</text>
-          <text class="filter-value">{{typeLabel}}</text>
-        </view>
-      </picker>
-
-      <picker range="{{categoryOptions}}" range-key="label" value="{{categoryIndex}}" bindchange="onCategoryChange">
-        <view class="filter-control">
-          <text class="filter-label">分类</text>
-          <text class="filter-value">{{categoryLabel}}</text>
-        </view>
-      </picker>
-
-      <picker range="{{tagOptions}}" range-key="label" value="{{tagIndex}}" bindchange="onTagChange">
-        <view class="filter-control">
-          <text class="filter-label">标签</text>
-          <text class="filter-value">{{tagLabel}}</text>
-        </view>
-      </picker>
+    <picker range="{{accountOptions}}" value="{{accountIndex}}" bindchange="onAccountChange">
+      <view class="account-picker">
+        <text>账号分类</text>
+        <text class="account-value">{{accountOptions[accountIndex]}}</text>
+      </view>
+    </picker>
+    <view class="action-grid">
+      <button wx:if="{{activeTab === 'title'}}" class="primary-action" bindtap="onLocalAction">新增标题</button>
+      <button wx:if="{{activeTab === 'copy'}}" class="primary-action" bindtap="onLocalAction">新增文案</button>
+      <button class="secondary-action" bindtap="onLocalAction">批量导入</button>
+      <button class="secondary-action" bindtap="onLocalAction">设为本机默认</button>
+      <button class="secondary-action" bindtap="onLocalAction">主题设置</button>
+      <button class="secondary-action" bindtap="onLocalAction">管理页面</button>
     </view>
   </view>
 
-  <view class="list-header">
-    <text class="result-count">{{total}} 条内容</text>
-    <button class="clear-button" bindtap="onClearFilters">重置</button>
-  </view>
-
-  <view wx:if="{{items.length}}" class="content-list">
-    <view
-      wx:for="{{items}}"
-      wx:key="id"
-      class="content-card"
-      bindtap="onOpenDetail"
-      data-id="{{item.id}}"
-    >
-      <view class="card-head">
-        <text class="type-badge">{{item.typeLabel}}</text>
-        <text class="category-text">{{item.category}}</text>
+  <view wx:if="{{activeTab === 'title'}}" class="content-section">
+    <view class="section-head compact">
+      <text class="section-title">标题列表</text>
+      <text class="section-note">{{titleItems.length}} 条本地示例</text>
+    </view>
+    <view wx:for="{{titleItems}}" wx:key="id" class="library-row">
+      <view class="row-main">
+        <text class="star-index">⭐ {{index + 1}}</text>
+        <text class="row-title">{{item.text}}</text>
       </view>
-      <text class="card-title">{{item.title}}</text>
-      <text class="card-body">{{item.body}}</text>
-      <view class="tag-row">
-        <text wx:for="{{item.tags}}" wx:key="*this" class="tag">#{{item}}</text>
+      <view class="row-actions">
+        <button class="row-button" data-id="{{item.id}}" bindtap="onCopyTitle">复制</button>
+        <button class="row-button ai" data-id="{{item.id}}" bindtap="onToggleTitleAi">✨AI</button>
+        <button class="row-button" bindtap="onLocalAction">修改</button>
+        <button class="row-button danger" bindtap="onLocalAction">删除</button>
+      </view>
+
+      <view wx:if="{{activeAiTitleId === item.id}}" class="inline-ai-panel">
+        <view class="ai-panel-head">
+          <text class="ai-title">AI 标题灵感</text>
+          <text class="local-badge">本地示例</text>
+        </view>
+        <text class="ai-source">当前标题：{{item.text}}</text>
+        <view class="chip-row">
+          <button
+            wx:for="{{titleAiModes}}"
+            wx:key="id"
+            class="chip {{activeTitleAiMode === item.id ? 'active' : ''}}"
+            data-mode="{{item.id}}"
+            bindtap="onSetTitleAiMode"
+          >
+            {{item.label}}
+          </button>
+        </view>
+        <view wx:for="{{titleAiResults}}" wx:key="*this" class="ai-result-row">
+          <text class="ai-result-index">{{index + 1}}</text>
+          <text class="ai-result-text">{{item}}</text>
+          <button class="ai-mini-button" data-index="{{index}}" bindtap="onCopyTitleAiResult">复制</button>
+          <button class="ai-mini-button add" bindtap="onAddTitleAiResult">加入标题库</button>
+        </view>
+        <view class="ai-footer">
+          <button class="secondary-action small" bindtap="onRefreshTitleAi">换一批</button>
+          <button class="secondary-action small" bindtap="onCloseTitleAi">关闭</button>
+        </view>
       </view>
     </view>
   </view>
 
-  <view wx:else class="empty-state">
-    <text class="empty-title">没有匹配内容</text>
-    <text class="empty-copy">换个关键词，或重置筛选后再看。</text>
+  <view wx:if="{{activeTab === 'copy'}}" class="content-section">
+    <view class="section-head compact">
+      <text class="section-title">文案列表</text>
+      <text class="section-note">{{copyItems.length}} 条本地示例</text>
+    </view>
+    <view wx:for="{{copyItems}}" wx:key="id" class="library-row">
+      <view class="row-main">
+        <text class="star-index">⭐ {{index + 1}}</text>
+        <text class="row-title">{{item.summary}}</text>
+        <button class="toggle-button" data-id="{{item.id}}" bindtap="onToggleCopyExpand">
+          <text wx:if="{{expandedCopyId === item.id}}">▲</text>
+          <text wx:else>...▼</text>
+        </button>
+      </view>
+      <view class="row-actions">
+        <button class="row-button" data-id="{{item.id}}" bindtap="onCopyCopy">复制</button>
+        <button class="row-button ai" data-id="{{item.id}}" bindtap="onToggleCopyAi">✨AI</button>
+        <button class="row-button" bindtap="onLocalAction">修改</button>
+        <button class="row-button danger" bindtap="onLocalAction">删除</button>
+      </view>
+
+      <view wx:if="{{expandedCopyId === item.id}}" class="copy-detail-box">
+        <text wx:for="{{item.lines}}" wx:key="*this" class="copy-line">{{item}}</text>
+      </view>
+
+      <view wx:if="{{activeCopyAiId === item.id}}" class="inline-ai-panel">
+        <view class="ai-panel-head">
+          <text class="ai-title">AI 文案助手</text>
+          <text class="local-badge">本地示例</text>
+        </view>
+        <view class="chip-row">
+          <button
+            wx:for="{{copyAiModes}}"
+            wx:key="id"
+            class="chip {{activeCopyAiMode === item.id ? 'active' : ''}}"
+            data-mode="{{item.id}}"
+            bindtap="onSetCopyAiMode"
+          >
+            {{item.label}}
+          </button>
+        </view>
+        <view wx:for="{{copyAiResults}}" wx:key="*this" class="ai-result-row">
+          <text class="ai-result-index">{{index + 1}}</text>
+          <text class="ai-result-text">{{item}}</text>
+          <button class="ai-mini-button" data-index="{{index}}" bindtap="onCopyCopyAiResult">复制</button>
+          <button wx:if="{{activeCopyAiMode === 'extract'}}" class="ai-mini-button add" bindtap="onAddCopyAiTitle">加入标题库</button>
+        </view>
+        <view class="ai-footer">
+          <button class="secondary-action small" bindtap="onRefreshCopyAi">换一批</button>
+          <button class="secondary-action small" bindtap="onCloseCopyAi">关闭</button>
+        </view>
+      </view>
+    </view>
   </view>
 </view>

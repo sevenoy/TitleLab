@@ -652,7 +652,7 @@ Phase 6 在独立 worktree `phase6-miniprogram-ai-title-mock-only-full` 中实�
 - 新增 AI repository：默认 mock；真实 gate 未满足时 fail-fast。
 - 新增 AI API 映射：只预留 `/api/v1/workspaces/{workspace_id}/ai/title-suggestions`。
 - 首页新增“AI 标题生成”入口，不改内容库主流程。
-- `realApiGateEnabled=false`、`authRealApiGateEnabled=false`、`aiRealApiGateEnabled=false` 仍为默认关闭。
+- 真实 API、auth 和 AI 请求开关仍为默认关闭。
 - 新增 Phase 6 preflight：`python3 scripts/titlelab_phase6_miniprogram_ai_mock_check.py`。
 
 边界确认：
@@ -846,6 +846,53 @@ Phase 6E 在独立 worktree `phase6e-direct-original-ui-ai-inline-fix` 中停止
 下一步最小建议：
 
 在本地浏览器/PWA 预览真实 `title.html` 和 `content.html`，按 Phase 6E 验收项确认标题 AI 行内面板、文案展开、文案 AI 面板和分类下拉均保持原 UI；仍不部署、不接真实 AI、不打开真实 gate。
+
+## 31. Phase 6F Mini Program original UI inline AI sync
+
+Phase 6F 在独立 worktree `phase6f-miniprogram-original-ui-ai-inline-sync` 中，将 Phase 6E 的原 UI 行内 AI 结构同步到当前主仓库小程序源码 `miniprogram/`。本阶段没有修改微信开发者工具缓存，没有修改旧 Phase 3 worktree，没有真实请求后端，没有连接真实数据库，没有新增 migration，没有新增依赖，没有部署、上传体验版或提交审核。
+
+新增 / 更新文件：
+
+- `miniprogram/app.json`
+- `miniprogram/config/env.js`
+- `miniprogram/pages/index/index.js`
+- `miniprogram/pages/index/index.wxml`
+- `miniprogram/pages/index/index.wxss`
+- `miniprogram/services/aiRepository.js`
+- `scripts/titlelab_phase6f_miniprogram_original_ui_sync_check.py`
+- `docs/26_PHASE6F_MINIPROGRAM_ORIGINAL_UI_AI_INLINE_SYNC.md`
+- `miniprogram/README.md`
+- `docs/08_HANDOFF.md`
+- `docs/07_ACCEPTANCE_CHECKLIST.md`
+
+实现结果：
+
+- 小程序首页从旧绿色只读列表替换为蓝白工具风格的标题/文案库。
+- 顶部包含 `THE`、标题 / 文案双 Tab、S 用户按钮和退出按钮。
+- 分类管理卡片保留全部、亲子、氛围、情侣、闺蜜、单人、街拍、口碑推荐、节日及计数，并保留上移、下移、改。
+- 标题 Tab 包含搜索标题关键词、账号分类、操作按钮和标题列表。
+- 标题列表每行包含 `⭐ 序号`、标题正文、复制、`✨AI`、修改、删除。
+- 标题 `✨AI` 使用 `activeAiTitleId` 在当前标题下方展开 `AI 标题灵感` 本地示例面板。
+- 文案 Tab 包含搜索文案关键词、账号分类、操作按钮和文案列表。
+- 文案列表使用 `expandedCopyId` 展开完整多行文案，使用 `activeCopyAiId` 展开 `AI 文案助手` 本地示例面板。
+- AI 入口不插入分类列表内部。
+- `project.config.json` 确认为 `projectname=TitleLab`、`compileType=miniprogram`、`urlCheck=true`、`appid=wx5d7766982eebe9fc`。
+- 新增 Phase 6F preflight：`python3 scripts/titlelab_phase6f_miniprogram_original_ui_sync_check.py`。
+
+边界确认：
+
+- 未修改 `/Users/lorenmac/Library/Application Support/微信开发者工具/**`。
+- 未修改 `/Users/lorenmac/Claude/Projects/TitleLab-worktrees/phase3-miniprogram-readonly-mvp/**`。
+- `realApiGateEnabled=false`、`authRealApiGateEnabled=false`、`aiRealApiGateEnabled=false` 仍为默认关闭。
+- 页面不直接调用 `wx.request` 或 `wx.login`。
+- 复制仍通过 `adapters/wechat.js` 封装。
+- 未修改 `backend/alembic/**`、`backend/app/db/**`、`backend/app/models/**`。
+- 未新增业务内容写接口。
+- 未提交 `miniprogram/project.private.config.json`。
+
+下一步最小建议：
+
+在微信开发者工具中重新导入当前主仓库 `miniprogram/`，按 `docs/26_PHASE6F_MINIPROGRAM_ORIGINAL_UI_AI_INLINE_SYNC.md` 手动验收标题/文案 Tab、标题 AI 行内面板、文案展开和文案 AI 面板；仍不上传体验版、不提交审核、不打开真实请求。
 
 ## 6. 风险与注意
 

@@ -22,7 +22,7 @@ function toDisplayError(error) {
     REAL_GATE_NOT_READY: "真实请求条件未就绪",
     REAL_AUTH_SESSION_REQUIRED: "真实请求需要有效登录会话",
     UNAUTHORIZED: "请先登录后再试",
-    NETWORK_ERROR: "网络异常，请稍后重试",
+    NETWORK_ERROR: "连接暂不可用，请稍后重试",
     AI_PROVIDER_TIMEOUT: "生成超时，请稍后重试"
   };
   return {

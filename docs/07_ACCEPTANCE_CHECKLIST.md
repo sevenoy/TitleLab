@@ -147,7 +147,7 @@
 - [x] DevTools 导入路径明确为 `miniprogram/`。
 - [x] `project.config.json` 保持 `compileType=miniprogram` 和 `urlCheck=true`。
 - [x] AI 页面仍默认 mock-only。
-- [x] `realApiGateEnabled=false`、`authRealApiGateEnabled=false`、`aiRealApiGateEnabled=false`。
+- [x] 真实 API、auth 和 AI 请求开关保持默认关闭。
 - [x] 手动测试用例覆盖首页入口、空输入、短输入、正常输入、示例输入、选项组合、复制、清空、重试、过长输入、疑似敏感输入、不登录和网络关闭 mock 可用性。
 - [x] 截图清单覆盖首页入口、AI 初始态、示例输入、loading、结果列表、warning、空输入错误、复制成功 toast、清空和重试状态。
 - [x] bug report template 覆盖设备/模拟器、微信开发者工具版本、基础库版本、复现步骤、预期结果、实际结果、截图路径、控制台错误、是否阻塞和建议优先级。
@@ -184,6 +184,36 @@
 - [x] 不新增 migration。
 - [x] 不新增依赖。
 - [x] Phase 6E preflight 已新增：`python3 scripts/titlelab_phase6e_original_ui_ai_inline_check.py`。
+
+## Phase 6F Mini Program Original UI Inline AI Sync
+
+- [x] Phase 6F 独立 worktree 已创建并从 Phase 6E 后的 main 开始。
+- [x] 未修改微信开发者工具缓存目录。
+- [x] 未修改旧 Phase 3 worktree。
+- [x] 小程序首页已替换为蓝白标题/文案库结构。
+- [x] 旧绿色小程序首页文案已从当前首页移除。
+- [x] 顶部包含 `THE`、标题 / 文案、S 用户按钮、退出按钮。
+- [x] 分类管理区包含全部、亲子、氛围、情侣、闺蜜、单人、街拍、口碑推荐、节日及计数。
+- [x] 分类管理区保留上移、下移、改，未插入 AI 入口。
+- [x] 标题 Tab 包含搜索标题关键词、账号分类、操作按钮和标题列表。
+- [x] 标题列表包含 `⭐ 序号`、标题正文、复制、`✨AI`、修改、删除。
+- [x] 标题 `✨AI` 使用 `activeAiTitleId` 行内展开 `AI 标题灵感` 本地示例。
+- [x] 文案 Tab 包含搜索文案关键词、账号分类、操作按钮和文案列表。
+- [x] 文案使用 `expandedCopyId` 在当前卡片展开完整内容。
+- [x] 文案 `✨AI` 使用 `activeCopyAiId` 展开 `AI 文案助手` 本地示例。
+- [x] `project.config.json` 保持 `projectname=TitleLab`、`compileType=miniprogram`、`urlCheck=true`。
+- [x] `realApiGateEnabled=false`、`authRealApiGateEnabled=false`、`aiRealApiGateEnabled=false`。
+- [x] 页面不直接调用 `wx.request`。
+- [x] 页面不直接调用 `wx.login`。
+- [x] 未修改 `backend/alembic/**`。
+- [x] 未修改 `backend/app/db/**`。
+- [x] 未修改 `backend/app/models/**`。
+- [x] 未新增 migration。
+- [x] 未新增依赖。
+- [x] 未部署。
+- [x] 未上传体验版。
+- [x] 未提交审核。
+- [x] Phase 6F preflight 已新增：`python3 scripts/titlelab_phase6f_miniprogram_original_ui_sync_check.py`。
 
 ## 本轮禁止项确认
 
