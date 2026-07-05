@@ -30,6 +30,11 @@ Page({
     });
   },
 
+  onSettingsTool(event) {
+    const action = event.currentTarget.dataset.action || "操作";
+    wechat.showToast({ title: `${action}已记录` });
+  },
+
   onLogout() {
     localAuth.clearLocalSession();
     wechat.reLaunch("/pages/login/index");

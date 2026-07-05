@@ -1016,6 +1016,58 @@ Phase 6H 在独立 worktree `phase6h-miniprogram-local-login-accounts` 中完成
 
 在微信开发者工具中只做本地手工验证：未勾选协议拦截、`olina` 首次设置密码、`olina` 后续密码校验、`test / test` 登录、设置页重置本机账号密码和退出登录；仍不上传体验版、不提交审核、不打开真实请求。
 
+## 34. Phase 6I Mini Program mature product UI redesign
+
+Phase 6I 在独立 worktree `phase6i-miniprogram-mature-product-ui-redesign` 中完成小程序成熟产品 UI 重构。本阶段没有修改微信开发者工具缓存，没有修改旧 Phase worktree，没有真实请求后端，没有连接真实数据库，没有新增 migration，没有新增依赖，没有部署、上传体验版或提交审核。
+
+新增 / 更新文件：
+
+- `miniprogram/app.json`
+- `miniprogram/pages/index/index.js`
+- `miniprogram/pages/index/index.wxml`
+- `miniprogram/pages/index/index.wxss`
+- `miniprogram/pages/categories/index.js`
+- `miniprogram/pages/categories/index.json`
+- `miniprogram/pages/categories/index.wxml`
+- `miniprogram/pages/categories/index.wxss`
+- `miniprogram/pages/settings/index.js`
+- `miniprogram/pages/settings/index.wxml`
+- `miniprogram/pages/settings/index.wxss`
+- `miniprogram/pages/login/index.wxss`
+- `scripts/titlelab_phase6g_miniprogram_compliance_check.py`
+- `scripts/titlelab_phase6i_miniprogram_ui_check.py`
+- `docs/29_PHASE6I_MINIPROGRAM_MATURE_PRODUCT_UI_REDESIGN.md`
+- `miniprogram/README.md`
+- `docs/07_ACCEPTANCE_CHECKLIST.md`
+- `docs/08_HANDOFF.md`
+
+实现结果：
+
+- 首页信息架构改为品牌账号行、标题/文案 segmented control、搜索与新增、账号筛选、分类 chips 和列表卡片。
+- 首页分类管理不再默认展开，上移、下移、改名移入 `pages/categories/index`。
+- 首页分类筛选改为横向 chips，当前选中使用蓝底白字。
+- 新增标题 / 新增文案放在搜索区右侧，不使用底部固定栏。
+- 标题/文案卡片改为紧凑布局，操作按钮改为小型胶囊按钮。
+- 设置页保留协议、隐私政策、重置本机账号密码和退出登录，并承接批量导入、主题设置、页面配置等低频入口。
+- 登录页仅轻微统一视觉，未修改登录业务逻辑。
+- 页面底部使用 `env(safe-area-inset-bottom)`，降低 home indicator 遮挡风险。
+- 新增 Phase 6I UI preflight：`python3 scripts/titlelab_phase6i_miniprogram_ui_check.py`。
+
+边界确认：
+
+- `test / test` 审核检查账号保持不变。
+- `olina` 首次本机设置密码与复登校验保持不变。
+- 协议默认未勾选和未勾选拦截保持不变。
+- 未恢复用户可见 AI、智能、生成式、mock、本地示例等高风险词。
+- 未使用 `getPhoneNumber`、`wx.getUserProfile`、`wx.getUserInfo` 或 `getClipboardData`。
+- 页面不直接调用 `wx.request` 或 `wx.login`。
+- 未修改 `backend/alembic/**`、`backend/app/db/**`、`backend/app/models/**`。
+- 未提交 `miniprogram/project.private.config.json`。
+
+下一步最小建议：
+
+在微信开发者工具中只做本地视觉验收：登录后首页首屏是否优先展示搜索、分类 chips、列表和新增按钮；分类管理页是否可进入；标题/文案卡片和按钮是否不溢出；设置页低频入口是否收纳合理。仍不上传体验版、不提交审核、不打开真实请求。
+
 ## 6. 风险与注意
 
 - 现有登录形态是静态网页时代的实现，重建时必须迁移到服务端认证。

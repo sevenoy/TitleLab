@@ -1,4 +1,5 @@
 const wechat = require("../../adapters/wechat");
+const localAuth = require("../../services/localAuth");
 
 const LOGIN_FLAG_KEY = "titlelab.localAccountSignedIn";
 
@@ -98,11 +99,12 @@ Page({
     selectedCategoryId: "all",
     titleItems: TITLE_ITEMS,
     copyItems: COPY_ITEMS,
-    expandedCopyId: null
+    expandedCopyId: null,
+    currentAccountLabel: "产品账号"
   },
 
   onShow() {
-    if (!wechat.getStorage(LOGIN_FLAG_KEY)) {
+    if (!localAuth.hasLocalSession() && !wechat.getStorage(LOGIN_FLAG_KEY)) {
       wechat.reLaunch("/pages/login/index");
     }
   },
@@ -136,7 +138,7 @@ Page({
   },
 
   onCategoryTool() {
-    wechat.showToast({ title: "当前版本仅保存页面操作" });
+    wechat.navigateTo("/pages/categories/index");
   },
 
   onLocalAction(event) {
@@ -146,6 +148,10 @@ Page({
 
   onOpenSettings() {
     wechat.navigateTo("/pages/settings/index");
+  },
+
+  onOpenCategories() {
+    wechat.navigateTo("/pages/categories/index");
   },
 
   onCopyTitle(event) {

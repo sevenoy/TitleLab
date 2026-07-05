@@ -287,6 +287,36 @@
 - [x] 未提交审核。
 - [x] Phase 6H preflight 已新增：`python3 scripts/titlelab_phase6h_miniprogram_login_accounts_check.py`。
 
+## Phase 6I Mini Program Mature Product UI Redesign
+
+- [x] Phase 6I 独立 worktree 已从 `ae164aa` 创建。
+- [x] 首页首屏优先展示品牌、账号状态、标题/文案切换、搜索、分类筛选、新增和列表。
+- [x] 首页分类筛选已改为横向 chips。
+- [x] 首页不再默认展开上移、下移、改名分类管理。
+- [x] 分类管理已移入 `pages/categories/index`。
+- [x] 分类管理页每个分类一行，包含分类名、数量、上移、下移、改名。
+- [x] 顶部导航已拆分为品牌账号行和标题/文案 segmented control。
+- [x] 新增标题 / 新增文案放入搜索区右侧，不使用底部固定栏。
+- [x] 标题/文案列表卡片已瘦身，操作按钮小型化。
+- [x] 页面底部使用 `safe-area-inset-bottom`，避免 home indicator 遮挡。
+- [x] 设置页保留协议、隐私政策、重置本机账号密码和退出登录。
+- [x] 设置页承接批量导入、主题设置、页面配置等低频入口。
+- [x] 登录/协议逻辑保持不变。
+- [x] `test / test` 审核检查账号保持不变。
+- [x] `olina` 本机密码逻辑保持不变。
+- [x] 未恢复用户可见 AI、智能、生成式、mock、本地示例等高风险词。
+- [x] 未使用 `getPhoneNumber`。
+- [x] 未使用 `wx.getUserProfile` 或 `wx.getUserInfo`。
+- [x] 未使用 `getClipboardData`。
+- [x] 页面不直接调用 `wx.request` 或 `wx.login`。
+- [x] 未修改 `backend/alembic/**`。
+- [x] 未修改 `backend/app/db/**`。
+- [x] 未修改 `backend/app/models/**`。
+- [x] 未新增依赖。
+- [x] 未上传体验版。
+- [x] 未提交审核。
+- [x] Phase 6I UI preflight 已新增：`python3 scripts/titlelab_phase6i_miniprogram_ui_check.py`。
+
 ## 历史规划轮次禁止项确认
 
 - [x] 未修改业务代码。

@@ -1,76 +1,81 @@
 <view class="page-shell">
-  <view class="topbar">
-    <view class="brand-block">
-      <view class="logo-mark">THE</view>
-      <view class="tab-switch" aria-label="内容类型">
-        <button class="tab-button {{activeTab === 'title' ? 'active' : ''}}" data-tab="title" bindtap="onSwitchTab">标题</button>
-        <button class="tab-button {{activeTab === 'copy' ? 'active' : ''}}" data-tab="copy" bindtap="onSwitchTab">文案</button>
+  <view class="hero-bar">
+    <view class="brand-line">
+      <view class="brand-left">
+        <view class="logo-mark">THE</view>
+        <view class="brand-copy">
+          <text class="app-title">TitleLab</text>
+          <text class="account-state">{{currentAccountLabel}}</text>
+        </view>
       </view>
+      <button class="settings-button" bindtap="onOpenSettings">设置</button>
     </view>
-    <button class="settings-button" bindtap="onOpenSettings">设置</button>
-  </view>
 
-  <view class="category-panel">
-    <view class="section-head">
-      <text class="section-title">分类管理</text>
-      <text class="section-note">可维护分类顺序与名称</text>
-    </view>
-    <view class="category-list">
-      <view
-        wx:for="{{categoryRows}}"
-        wx:key="id"
-        class="category-row {{selectedCategoryId === item.id ? 'active' : ''}}"
-        data-id="{{item.id}}"
-        bindtap="onSelectCategory"
-      >
-        <view class="category-name">
-          <text class="category-label">{{item.name}}</text>
-          <text class="category-count">{{item.count}}条</text>
-        </view>
-        <view wx:if="{{!item.locked}}" class="category-tools" catchtap="onCategoryTool">
-          <button class="tool-button">上移</button>
-          <button class="tool-button">下移</button>
-          <button class="tool-button">改名</button>
-        </view>
-      </view>
+    <view class="tab-switch" aria-label="内容类型">
+      <button class="tab-button {{activeTab === 'title' ? 'active' : ''}}" data-tab="title" bindtap="onSwitchTab">标题</button>
+      <button class="tab-button {{activeTab === 'copy' ? 'active' : ''}}" data-tab="copy" bindtap="onSwitchTab">文案</button>
     </view>
   </view>
 
-  <view class="toolbar-panel">
-    <input
-      class="search-input"
-      value="{{keyword}}"
-      placeholder="{{activeTab === 'title' ? '搜索标题关键词' : '搜索文案关键词'}}"
-      placeholder-class="search-placeholder"
-      confirm-type="search"
-      bindinput="onSearchInput"
-    />
-    <picker range="{{accountOptions}}" value="{{accountIndex}}" bindchange="onAccountChange">
-      <view class="account-picker">
-        <text class="account-label">账号分类</text>
-        <text class="account-value">{{accountOptions[accountIndex]}}</text>
-      </view>
-    </picker>
-    <view class="action-grid">
+  <view class="workspace-panel">
+    <view class="search-row">
+      <input
+        class="search-input"
+        value="{{keyword}}"
+        placeholder="{{activeTab === 'title' ? '搜索标题关键词' : '搜索文案关键词'}}"
+        placeholder-class="search-placeholder"
+        confirm-type="search"
+        bindinput="onSearchInput"
+      />
       <button wx:if="{{activeTab === 'title'}}" class="primary-action" data-action="新增标题" bindtap="onLocalAction">新增标题</button>
       <button wx:if="{{activeTab === 'copy'}}" class="primary-action" data-action="新增文案" bindtap="onLocalAction">新增文案</button>
-      <button class="secondary-action" data-action="修改分类" bindtap="onLocalAction">修改分类</button>
-      <button class="secondary-action" data-action="整理标签" bindtap="onLocalAction">整理标签</button>
-      <button class="secondary-action" data-action="页面设置" bindtap="onOpenSettings">页面设置</button>
     </view>
+
+    <view class="filter-head">
+      <picker range="{{accountOptions}}" value="{{accountIndex}}" bindchange="onAccountChange">
+        <view class="account-filter">
+          <text class="account-label">账号</text>
+          <text class="account-value">{{accountOptions[accountIndex]}}</text>
+        </view>
+      </picker>
+      <button class="manage-link" bindtap="onOpenCategories">管理</button>
+    </view>
+
+    <scroll-view class="chip-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="chip-track">
+        <button
+          wx:for="{{categoryRows}}"
+          wx:key="id"
+          class="filter-chip {{selectedCategoryId === item.id ? 'active' : ''}}"
+          data-id="{{item.id}}"
+          bindtap="onSelectCategory"
+        >
+          <text>{{item.name}}</text>
+          <text class="chip-count">{{item.count}}条</text>
+        </button>
+      </view>
+    </scroll-view>
+  </view>
+
+  <view class="list-header">
+    <view>
+      <text class="section-title">{{activeTab === 'title' ? '标题列表' : '文案列表'}}</text>
+      <text class="section-note">{{activeTab === 'title' ? titleItems.length : copyItems.length}} 条内容</text>
+    </view>
+    <button class="subtle-button" data-action="{{activeTab === 'title' ? '整理标题' : '整理文案'}}" bindtap="onLocalAction">整理</button>
   </view>
 
   <view wx:if="{{activeTab === 'title'}}" class="content-section">
-    <view class="section-head compact">
-      <text class="section-title">标题列表</text>
-      <text class="section-note">{{titleItems.length}} 条</text>
+    <view wx:if="{{titleItems.length === 0}}" class="empty-state">
+      <text class="empty-title">暂无标题</text>
+      <text class="empty-copy">新增一条标题开始整理</text>
     </view>
     <view wx:for="{{titleItems}}" wx:key="id" class="library-row">
       <view class="row-main">
-        <text class="star-index">{{index + 1}}</text>
+        <text class="star-index">★ {{index + 1}}</text>
         <view class="row-copy">
           <text class="row-title">{{item.text}}</text>
-          <text class="row-meta">{{item.category}}</text>
+          <text class="row-meta">{{item.category}} · {{accountOptions[accountIndex]}}</text>
         </view>
       </view>
       <view class="row-actions">
@@ -82,16 +87,16 @@
   </view>
 
   <view wx:if="{{activeTab === 'copy'}}" class="content-section">
-    <view class="section-head compact">
-      <text class="section-title">文案列表</text>
-      <text class="section-note">{{copyItems.length}} 条</text>
+    <view wx:if="{{copyItems.length === 0}}" class="empty-state">
+      <text class="empty-title">暂无文案</text>
+      <text class="empty-copy">新增一条文案开始整理</text>
     </view>
     <view wx:for="{{copyItems}}" wx:key="id" class="library-row">
       <view class="row-main">
-        <text class="star-index">{{index + 1}}</text>
+        <text class="star-index">★ {{index + 1}}</text>
         <view class="row-copy">
           <text class="row-title">{{item.summary}}</text>
-          <text class="row-meta">{{item.category}}</text>
+          <text class="row-meta">{{item.category}} · {{accountOptions[accountIndex]}}</text>
         </view>
       </view>
       <view class="row-actions">

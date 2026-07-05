@@ -117,8 +117,11 @@ def assert_contains(text: str, snippet: str, label: str) -> None:
 def main() -> None:
     app_json = assert_json("miniprogram/app.json")
     pages = app_json.get("pages", [])
-    if pages[: len(REQUIRED_ROUTES)] != REQUIRED_ROUTES:
-        fail(f"app.json pages should start with {REQUIRED_ROUTES}, got {pages[:len(REQUIRED_ROUTES)]}")
+    if not pages or pages[0] != "pages/login/index":
+        fail("app.json must keep pages/login/index as the default entry")
+    missing_routes = [route for route in REQUIRED_ROUTES if route not in pages]
+    if missing_routes:
+        fail(f"app.json missing required Phase 6G routes: {missing_routes}")
 
     if "pages/ai/index" in pages:
         fail("pages/ai/index must not be routed in Phase 6G")

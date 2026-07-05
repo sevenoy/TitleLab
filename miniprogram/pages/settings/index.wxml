@@ -1,4 +1,9 @@
 <view class="settings-page">
+  <view class="settings-header">
+    <text class="settings-title">设置</text>
+    <text class="settings-subtitle">账号、合规与低频操作</text>
+  </view>
+
   <view class="panel">
     <text class="panel-title">账号与合规</text>
     <text class="panel-copy">你可以在这里查看协议、隐私政策和账号退出入口。</text>
@@ -16,6 +21,13 @@
   <view class="panel">
     <text class="panel-title">版本信息</text>
     <text class="panel-copy">{{version}}</text>
+  </view>
+
+  <view class="panel">
+    <text class="panel-title">更多工具</text>
+    <button class="link-row" data-action="批量导入" bindtap="onSettingsTool">批量导入</button>
+    <button class="link-row" data-action="主题设置" bindtap="onSettingsTool">主题设置</button>
+    <button class="link-row" data-action="页面配置" bindtap="onSettingsTool">页面配置</button>
   </view>
 
   <button class="logout-button" bindtap="onLogout">退出登录</button>

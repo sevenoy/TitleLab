@@ -2,6 +2,7 @@
   "pages": [
     "pages/login/index",
     "pages/index/index",
+    "pages/categories/index",
     "pages/settings/index",
     "pages/legal/privacy",
     "pages/legal/terms",

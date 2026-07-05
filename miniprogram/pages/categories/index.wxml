@@ -1,0 +1,21 @@
+<view class="categories-page">
+  <view class="page-header">
+    <text class="page-title">分类管理</text>
+    <text class="page-subtitle">维护分类顺序与名称，首页仅保留筛选入口。</text>
+  </view>
+
+  <view class="category-list">
+    <view wx:for="{{categoryRows}}" wx:key="id" class="category-card">
+      <view class="category-info">
+        <text class="category-name">{{item.name}}</text>
+        <text class="category-count">{{item.count}} 条内容</text>
+      </view>
+      <view wx:if="{{!item.locked}}" class="category-actions">
+        <button class="action-button" data-action="上移" bindtap="onCategoryAction">上移</button>
+        <button class="action-button" data-action="下移" bindtap="onCategoryAction">下移</button>
+        <button class="action-button primary" data-action="改名" bindtap="onCategoryAction">改名</button>
+      </view>
+      <view wx:else class="locked-tag">默认</view>
+    </view>
+  </view>
+</view>

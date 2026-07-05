@@ -1,17 +1,39 @@
 .settings-page {
   box-sizing: border-box;
   min-height: 100vh;
-  padding: 24rpx;
+  padding: 28rpx 24rpx calc(env(safe-area-inset-bottom) + 28rpx);
   overflow-x: hidden;
-  background: #f4f7fb;
+  background: #f6f8fb;
   color: #111827;
+}
+
+.settings-header {
+  margin-bottom: 18rpx;
+  padding: 4rpx 4rpx 0;
+}
+
+.settings-title,
+.settings-subtitle {
+  display: block;
+}
+
+.settings-title {
+  color: #111827;
+  font-size: 40rpx;
+  font-weight: 800;
+}
+
+.settings-subtitle {
+  margin-top: 8rpx;
+  color: #6b7280;
+  font-size: 24rpx;
 }
 
 .panel {
   margin-bottom: 18rpx;
-  padding: 22rpx;
-  border: 1rpx solid #e1e7f0;
-  border-radius: 8rpx;
+  padding: 24rpx;
+  border: 1rpx solid #e5eaf2;
+  border-radius: 22rpx;
   background: #ffffff;
 }
 
@@ -29,7 +51,7 @@
 
 .panel-copy {
   margin-top: 12rpx;
-  color: #4b5563;
+  color: #6b7280;
   font-size: 25rpx;
   line-height: 1.55;
   word-break: break-all;
@@ -37,7 +59,7 @@
 
 .contact-line {
   margin-top: 14rpx;
-  color: #1e64d8;
+  color: #1677ff;
   font-size: 24rpx;
   line-height: 1.5;
   word-break: break-all;
@@ -47,10 +69,10 @@
   width: 100%;
   min-height: 66rpx;
   margin: 16rpx 0 0;
-  border: 1rpx solid #d7e6ff;
-  border-radius: 8rpx;
-  background: #eef3ff;
-  color: #0f6fdc;
+  border: 1rpx solid #dbe8ff;
+  border-radius: 18rpx;
+  background: #f5f8ff;
+  color: #1677ff;
   font-size: 26rpx;
   line-height: 66rpx;
   text-align: left;
@@ -60,7 +82,7 @@
   width: 100%;
   min-height: 78rpx;
   margin-top: 24rpx;
-  border-radius: 8rpx;
+  border-radius: 20rpx;
   background: #d94c4c;
   color: #ffffff;
   font-size: 28rpx;

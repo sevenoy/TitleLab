@@ -1,13 +1,14 @@
 # TitleLab Mini Program
 
-当前目录是 TitleLab Phase 6H 小程序本地登录账号配置源码。请在微信开发者工具中导入本目录，而不是仓库根目录或旧 Phase worktree。
+当前目录是 TitleLab Phase 6I 小程序成熟产品 UI 源码。请在微信开发者工具中导入本目录，而不是仓库根目录或旧 Phase worktree。
 
 ## 当前范围
 
 - 默认入口为产品账号登录页。
 - 登录页包含用户服务协议、隐私政策和默认未勾选的协议复选框。
-- 首页为标题/文案库，支持搜索、分类筛选、复制、新增、修改、删除入口。
-- 设置页提供协议、隐私政策、账号注销与数据删除说明、版本信息和退出登录。
+- 首页为标题/文案库，支持搜索、横向分类筛选、复制、新增、修改、删除入口。
+- 分类管理进入单独页面，首页不默认展开上移、下移、改名操作。
+- 设置页提供协议、隐私政策、账号注销与数据删除说明、低频工具、版本信息和退出登录。
 - 设置页提供重置本机账号密码入口，仅清除本机保存的 `olina` 密码。
 - 隐私政策说明信息处理、授权同意、账号注销、对外提供、微信用户信息、设备能力和剪贴板规则。
 - 用户服务协议说明用户责任、禁止行为、内容来源授权、账号停用和注销联系路径。
@@ -48,11 +49,12 @@
 - `compileType=miniprogram`
 - `urlCheck=true`
 
-## Phase 6H 本地检查
+## Phase 6I 本地检查
 
 ```bash
 python3 scripts/titlelab_phase6g_miniprogram_compliance_check.py
 python3 scripts/titlelab_phase6h_miniprogram_login_accounts_check.py
+python3 scripts/titlelab_phase6i_miniprogram_ui_check.py
 find miniprogram -maxdepth 6 -name "*.js" -print -exec node --check {} \;
 git diff --check
 ```
