@@ -160,6 +160,31 @@
 - [x] 不新增 migration。
 - [x] 不新增依赖。
 
+## Phase 6E Direct Original Web/PWA UI AI Inline Fix
+
+- [x] 真实 UI 文件已定位为 Web/PWA：`index.html`、`title.html`、`content.html`、`assets/app-title.js`、`assets/app-content.js`、`assets/styles.css`。
+- [x] 保留 `THE` logo、标题/文案双 Tab、S 用户按钮、退出按钮。
+- [x] 保留分类管理、搜索区、账号分类、设为本机默认、主题设置、管理页面入口。
+- [x] 标题列表仍保留复制 / `✨AI` / 修改 / 删除。
+- [x] 标题 AI 使用 `activeAiTitleId` 行内展开，不跳转独立页面。
+- [x] 标题 AI 面板显示 `AI 标题灵感`、`本地示例`、模式 chips 和 3 条港迪旅拍标题示例。
+- [x] 文案列表仍保留折叠/展开、复制 / `✨AI` / 修改 / 删除。
+- [x] 文案展开使用 `expandedCopyId`，展开内容留在当前行/卡片。
+- [x] 文案 AI 使用 `activeCopyAiId` 行内展开，显示 `AI 文案助手` 与本地示例。
+- [x] 分类列表没有插入 AI 入口，排序/改名结构不被 Phase 6E 改写。
+- [x] 不使用 Stitch 代码。
+- [x] 不新增底部 Tab。
+- [x] 不新增浮动 +。
+- [x] 不新增外部图片、Google Fonts、Material Symbols 或 Tailwind CDN。
+- [x] 不真实调用 OpenAI。
+- [x] 不读取或写入真实 AI key。
+- [x] 不真实请求后端 AI。
+- [x] 不连接真实数据库。
+- [x] 不执行真实数据库 migration。
+- [x] 不新增 migration。
+- [x] 不新增依赖。
+- [x] Phase 6E preflight 已新增：`python3 scripts/titlelab_phase6e_original_ui_ai_inline_check.py`。
+
 ## 本轮禁止项确认
 
 - [x] 未修改业务代码。

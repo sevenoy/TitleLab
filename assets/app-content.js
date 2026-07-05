@@ -35,7 +35,9 @@ const state = {
   renamingCategory: null, // 正在重命名的分类名称
   filters: { search: '', scene: '' },
   editingId: null,
-  isSortingCategories: true // 分类是否处在"排序模式"（默认开启）
+  isSortingCategories: true, // 分类是否处在"排序模式"（默认开启）
+  expandedCopyId: null,
+  activeCopyAiId: null
 };
 
 let toastTimer = null;
@@ -84,14 +86,8 @@ window.saveLocalDefaults = function() {
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:59',message:'DOMContentLoaded START',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A',runId:'diagnose'})}).catch(()=>{});
-  // #endregion
   
   const user = getCurrentUser();
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:61',message:'getCurrentUser result',data:{hasUser:!!user,username:user?.username},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A',runId:'diagnose'})}).catch(()=>{});
-  // #endregion
   
   if (!user || !validateUser(user)) { 
     // 清除无效的用户信息
@@ -99,9 +95,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.location.href = 'login.html'; 
     return; 
   }
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:59',message:'DOMContentLoaded starting (content page)',data:{username:user?user.username:null},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
-  // #endregion
   applyDisplaySettings();
   
   // 读取并应用本机默认预设（账号与分类）
@@ -114,17 +107,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const filterScene = document.getElementById('filterScene');
     if (filterScene) filterScene.value = localDefs.defaultScene;
   }
-
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:70',message:'Before loadCategoriesFromDatabase',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A',runId:'diagnose'})}).catch(()=>{});
-  // #endregion
   
   // 分类 - 优先从数据库加载，失败则从本地加载
   await loadCategoriesFromDatabase();
-  
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:73',message:'After loadCategoriesFromDatabase',data:{categoriesCount:state.categories?.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A',runId:'diagnose'})}).catch(()=>{});
-  // #endregion
   
   renderCategoryList();
   bindCategoryButtons();
@@ -142,9 +127,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // 监听 localStorage 变化，当场景设置改变时自动更新
   window.addEventListener('storage', (e) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:82',message:'storage event fired',data:{key:e.key,newValue:e.newValue?e.newValue.substring(0,100):null},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
-    // #endregion
     const settingsKey = getDisplaySettingsLSKey();
     if (e.key === settingsKey) {
       refreshSceneSelects();
@@ -169,21 +151,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (btnLogout) btnLogout.classList.remove('hidden');
   if (btnLoginHeader) btnLoginHeader.classList.add('hidden');
   
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:133',message:'Before loadContentsFromCloud',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A',runId:'diagnose'})}).catch(()=>{});
-  // #endregion
-  
   await loadContentsFromCloud();
   
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:134',message:'After loadContentsFromCloud',data:{contentsCount:state.contents?.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A',runId:'diagnose'})}).catch(()=>{});
-  // #endregion
-  
   initAutoSync();
-  
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:135',message:'DOMContentLoaded COMPLETE',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A',runId:'diagnose'})}).catch(()=>{});
-  // #endregion
 });
 
 let pendingSnapshotKeyContent = null;
@@ -292,15 +262,9 @@ function applyDisplaySettings() {
  * 如果数据库读取失败，则降级到 localStorage
  */
 async function loadCategoriesFromDatabase() {
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:223',message:'loadCategoriesFromDatabase START',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B',runId:'diagnose'})}).catch(()=>{});
-  // #endregion
   
   const user = getCurrentUser();
   if (!user || !supabase) {
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:229',message:'No user or supabase, fallback to localStorage',data:{hasUser:!!user,hasSupabase:!!supabase},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B',runId:'diagnose'})}).catch(()=>{});
-    // #endregion
     console.warn('[ContentApp] 无法从数据库读取分类，降级到 localStorage');
     loadCategoriesFromLocal();
     return;
@@ -309,9 +273,6 @@ async function loadCategoriesFromDatabase() {
   const userTag = `user:${user.username}`;
   
   try {
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:240',message:'Before supabase query',data:{userTag},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B',runId:'diagnose'})}).catch(()=>{});
-    // #endregion
     
     const { data, error } = await supabase
       .from('user_categories')
@@ -319,10 +280,6 @@ async function loadCategoriesFromDatabase() {
       .eq('user_tag', userTag)
       .eq('category_type', 'shared')
       .order('display_order', { ascending: true });
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:252',message:'After supabase query',data:{hasData:!!data,dataLength:data?.length,hasError:!!error,errorMsg:error?.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B',runId:'diagnose'})}).catch(()=>{});
-    // #endregion
     
     if (error) throw error;
     
@@ -333,9 +290,6 @@ async function loadCategoriesFromDatabase() {
     console.log('[ContentApp] ✅ 从数据库加载文案分类:', categories);
     renderCategoryList();
   } catch (e) {
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:267',message:'Database query FAILED, fallback to localStorage',data:{errorMsg:e?.message,errorCode:e?.code},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B',runId:'diagnose'})}).catch(()=>{});
-    // #endregion
     console.error('[ContentApp] ❌ 从数据库加载分类失败，降级到 localStorage:', e);
     loadCategoriesFromLocal();
   }
@@ -375,14 +329,8 @@ async function loadAccountCategoriesFromDatabase() {
 }
 
 function loadCategoriesFromLocal() {
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:200',message:'loadCategoriesFromLocal ENTRY (content)',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
-  // #endregion
   const key = getCategoryLSKey();
   const raw = localStorage.getItem(key);
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:203',message:'localStorage read result (content)',data:{key:key,raw:raw,rawLength:raw?raw.length:0},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
-  // #endregion
   if (!raw) { state.categories = [...DEFAULT_CATEGORIES]; return; }
   try {
     const arr = JSON.parse(raw);
@@ -393,9 +341,6 @@ function loadCategoriesFromLocal() {
       set.delete('全部');
       state.categories = ['全部', ...set];
     }
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/9fe08563-ba6d-4a35-866c-106f2d4054c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:213',message:'loadCategoriesFromLocal EXIT (content)',data:{categories:state.categories,categoriesCount:state.categories.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
   } catch (_) {
     state.categories = [...DEFAULT_CATEGORIES];
   }
@@ -776,25 +721,15 @@ function bindToolbar() {
 }
 
 async function loadContentsFromCloud() {
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:707',message:'loadContentsFromCloud START',data:{hasSupabase:!!supabase},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C',runId:'diagnose'})}).catch(()=>{});
-  // #endregion
   
   if (!supabase) return;
   try {
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:710',message:'Before supabase query contents',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C',runId:'diagnose'})}).catch(()=>{});
-    // #endregion
     
     const { data, error } = await supabase
       .from('contents')
       .select('*')
       // 按 created_at 升序：最早创建的在前，新添加的在后
       .order('created_at', { ascending: true });
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/adb2fd91-9ad8-4bb1-a0ba-9bef5d4d03cd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-content.js:715',message:'After supabase query contents',data:{hasData:!!data,dataLength:data?.length,hasError:!!error,errorMsg:error?.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C',runId:'diagnose'})}).catch(()=>{});
-    // #endregion
     
     if (error) throw error;
     const user = getCurrentUser();
@@ -874,6 +809,7 @@ function renderContents() {
   mobileList.innerHTML = '';
   const list = applyFilters(state.contents);
   list.forEach((item, index) => {
+    const copyId = getStableCopyId(item, index);
     const tr = document.createElement('tr');
     const tdIndex = document.createElement('td');
     // 如果被星标，在序号位置显示星标+数字
@@ -888,7 +824,18 @@ function renderContents() {
     tr.appendChild(tdIndex);
     
     const tdTitle = document.createElement('td');
-    tdTitle.textContent = item.text || '';
+    const titleWrap = document.createElement('div');
+    titleWrap.className = 'copy-row-title';
+    const summary = document.createElement('span');
+    summary.className = 'copy-row-summary';
+    summary.textContent = getCopySummary(item);
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'copy-toggle-btn';
+    toggleBtn.textContent = state.expandedCopyId === copyId ? '▲' : '▼';
+    toggleBtn.setAttribute('aria-label', state.expandedCopyId === copyId ? '收起文案' : '展开文案');
+    toggleBtn.addEventListener('click', () => toggleCopyExpand(copyId));
+    titleWrap.append(summary, toggleBtn);
+    tdTitle.appendChild(titleWrap);
     tr.appendChild(tdTitle);
     const tdCat = document.createElement('td');
     tdCat.textContent = item.main_category || '';
@@ -906,12 +853,26 @@ function renderContents() {
     btnCopy.className = 'function-btn text-xs btn-inline btn-rect';
     btnCopy.textContent = '复制';
     btnCopy.addEventListener('click', () => copyContent(item));
+    const btnAi = document.createElement('button');
+    btnAi.className = 'function-btn ghost text-xs btn-inline btn-rect';
+    btnAi.textContent = '✨AI';
+    btnAi.title = '展开本地示例';
+    btnAi.addEventListener('click', () => toggleCopyAi(copyId));
     const group = document.createElement('div');
     group.className = 'action-group';
-    group.append(btnCopy, btnEdit, btnDel);
+    group.append(btnCopy, btnAi, btnEdit, btnDel);
     tdActions.appendChild(group);
     tr.appendChild(tdActions);
     tbody.appendChild(tr);
+    if (state.expandedCopyId === copyId) {
+      const detailRow = document.createElement('tr');
+      detailRow.className = 'ai-inline-table-row';
+      const detailCell = document.createElement('td');
+      detailCell.colSpan = 4;
+      detailCell.appendChild(createCopyExpandedBlock(item, copyId));
+      detailRow.appendChild(detailCell);
+      tbody.appendChild(detailRow);
+    }
     const card = document.createElement('div');
     card.className = 'panel mobile-card';
     const headerRow = document.createElement('div');
@@ -928,7 +889,9 @@ function renderContents() {
         preview = full;
       }
       const truncated = lines.length > 2 || (full.length > preview.length);
-      if (truncated) preview = `${preview} …▼`;
+      const arrow = state.expandedCopyId === copyId ? '▲' : '▼';
+      if (truncated) preview = `${preview} …${arrow}`;
+      else preview = `${preview} ${arrow}`;
       cTitle.textContent = preview;
     }
     const leftWrap = document.createElement('div');
@@ -954,6 +917,10 @@ function renderContents() {
     mCopy.className = 'function-btn text-xs btn-inline';
     mCopy.textContent = '复制';
     mCopy.addEventListener('click', () => copyContent(item));
+    const mAi = document.createElement('button');
+    mAi.className = 'function-btn ghost text-xs btn-inline';
+    mAi.textContent = '✨AI';
+    mAi.addEventListener('click', () => toggleCopyAi(copyId));
     const mEdit = document.createElement('button');
     mEdit.className = 'function-btn ghost text-xs btn-inline';
     mEdit.textContent = '修改';
@@ -962,17 +929,18 @@ function renderContents() {
     mDel.className = 'function-btn ghost text-xs btn-inline';
     mDel.textContent = '删除';
     mDel.addEventListener('click', () => openDeleteContentModal(item));
-    actions.append(mCopy, mEdit, mDel);
+    actions.append(mCopy, mAi, mEdit, mDel);
     headerRow.append(leftWrap, actions);
-    const details = document.createElement('div');
-    details.className = 'mobile-card-details hidden';
-    details.textContent = item.text || '';
     headerRow.addEventListener('click', (e) => {
       if (e.target && e.target.closest('button')) return;
-      details.classList.toggle('hidden');
-      card.classList.toggle('open');
+      toggleCopyExpand(copyId);
     });
-    card.append(headerRow, details, actions);
+    if (state.expandedCopyId === copyId) {
+      card.classList.add('open');
+      card.append(headerRow, createCopyExpandedBlock(item, copyId));
+    } else {
+      card.append(headerRow);
+    }
     mobileList.appendChild(card);
   });
   if (list.length === 0) {
@@ -980,6 +948,182 @@ function renderContents() {
     empty.className = 'text-xs text-gray-500 py-2';
     empty.textContent = '暂无文案，请先新增。';
     mobileList.appendChild(empty);
+  }
+}
+
+function getStableCopyId(item, index) {
+  return String(item && item.id ? item.id : `local-copy-${index}`);
+}
+
+function getCopySummary(item) {
+  const full = getCopyText(item);
+  const lines = full.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const firstLine = lines[0] || '';
+  return lines.length > 1 ? `${firstLine} ...` : firstLine;
+}
+
+function getCopyText(item) {
+  const text = (item && item.text ? item.text : '').trim();
+  return text || SAMPLE_COPY_TEXT;
+}
+
+const SAMPLE_COPY_TEXT = [
+  '香港本地女摄｜合法持证，安心拍梦幻故事✨',
+  '📍只拍一对一，每天最多2～3组，用心守护每场光。',
+  '💗亲子、姐妹、情侣最擅长捕捉自然笑容',
+  '🌇熟悉园区每个时间段的梦幻光',
+  '✨让回忆不止是照片，而是童话一幕',
+  '#港迪跟拍 #香港迪士尼拍照 #亲子摄影 #香港女摄影师'
+].join('\n');
+
+const COPY_TITLE_MOCK_RESULTS = [
+  '港迪拍照技巧，轻松拍出封面级照片💕',
+  '在香港迪士尼，把亲子照拍成童话感✨',
+  '半小时也能拍出松弛感港迪旅拍📸'
+];
+
+function toggleCopyExpand(copyId) {
+  state.expandedCopyId = state.expandedCopyId === copyId ? null : copyId;
+  if (state.expandedCopyId !== copyId && state.activeCopyAiId === copyId) {
+    state.activeCopyAiId = null;
+  }
+  renderContents();
+}
+
+function toggleCopyAi(copyId) {
+  state.expandedCopyId = copyId;
+  state.activeCopyAiId = state.activeCopyAiId === copyId ? null : copyId;
+  renderContents();
+}
+
+function createCopyExpandedBlock(item, copyId) {
+  const wrap = document.createElement('div');
+  wrap.className = 'copy-expanded-wrap';
+
+  const textBox = document.createElement('div');
+  textBox.className = 'copy-expanded-text';
+  getCopyText(item).split(/\r?\n/).forEach((line) => {
+    const p = document.createElement('p');
+    p.textContent = line;
+    textBox.appendChild(p);
+  });
+  wrap.appendChild(textBox);
+
+  if (state.activeCopyAiId === copyId) {
+    wrap.appendChild(createCopyAiPanel(copyId));
+  }
+
+  return wrap;
+}
+
+function createCopyAiPanel(copyId) {
+  const panel = document.createElement('div');
+  panel.className = 'ai-inline-panel copy-ai-panel';
+
+  const header = document.createElement('div');
+  header.className = 'ai-inline-header';
+
+  const title = document.createElement('div');
+  title.className = 'ai-inline-title';
+  title.textContent = 'AI 文案助手';
+
+  const badge = document.createElement('span');
+  badge.className = 'ai-local-badge';
+  badge.textContent = '本地示例';
+
+  header.append(title, badge);
+
+  const chips = document.createElement('div');
+  chips.className = 'ai-chip-row';
+  ['提取标题', '改写文案', '生成话题', '精简文案'].forEach((label) => {
+    const chip = document.createElement('span');
+    chip.className = 'ai-chip';
+    chip.textContent = label;
+    chips.appendChild(chip);
+  });
+
+  const results = document.createElement('div');
+  results.className = 'ai-result-list';
+  COPY_TITLE_MOCK_RESULTS.forEach((text, idx) => {
+    results.appendChild(createCopyAiTitleResult(text, idx));
+  });
+
+  const rewrite = document.createElement('div');
+  rewrite.className = 'copy-ai-mode-block';
+  rewrite.textContent = '改写文案：港迪亲子跟拍一对一服务，熟悉园区光线与动线，把自然笑容拍成童话感回忆。';
+
+  const topics = document.createElement('div');
+  topics.className = 'ai-chip-row';
+  ['#港迪跟拍', '#香港迪士尼拍照', '#亲子摄影', '#香港女摄影师'].forEach((label) => {
+    const chip = document.createElement('span');
+    chip.className = 'ai-chip';
+    chip.textContent = label;
+    topics.appendChild(chip);
+  });
+
+  const shortCopy = document.createElement('div');
+  shortCopy.className = 'copy-ai-mode-block';
+  shortCopy.textContent = '精简文案：香港本地女摄一对一港迪跟拍，捕捉亲子、姐妹、情侣的自然童话感。';
+
+  const footer = document.createElement('div');
+  footer.className = 'ai-inline-footer';
+
+  const refreshBtn = document.createElement('button');
+  refreshBtn.className = 'function-btn ghost text-xs btn-inline';
+  refreshBtn.textContent = '换一批';
+  refreshBtn.addEventListener('click', () => showToast('正在整理本地示例…'));
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'function-btn ghost text-xs btn-inline';
+  closeBtn.textContent = '关闭';
+  closeBtn.addEventListener('click', () => {
+    if (state.activeCopyAiId === copyId) {
+      state.activeCopyAiId = null;
+      renderContents();
+    }
+  });
+
+  footer.append(refreshBtn, closeBtn);
+  panel.append(header, chips, results, rewrite, topics, shortCopy, footer);
+  return panel;
+}
+
+function createCopyAiTitleResult(text, index) {
+  const row = document.createElement('div');
+  row.className = 'ai-result-item';
+
+  const number = document.createElement('span');
+  number.className = 'ai-result-number';
+  number.textContent = String(index + 1);
+
+  const body = document.createElement('div');
+  body.className = 'ai-result-text';
+  body.textContent = text;
+
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'function-btn ghost text-xs btn-inline';
+  copyBtn.textContent = '复制';
+  copyBtn.addEventListener('click', () => copyInlineText(text));
+
+  const addBtn = document.createElement('button');
+  addBtn.className = 'function-btn text-xs btn-inline';
+  addBtn.textContent = '加入标题库';
+  addBtn.addEventListener('click', () => showToast('已加入标题库'));
+
+  const actions = document.createElement('div');
+  actions.className = 'ai-result-actions';
+  actions.append(copyBtn, addBtn);
+
+  row.append(number, body, actions);
+  return row;
+}
+
+async function copyInlineText(text) {
+  try {
+    await navigator.clipboard.writeText(text || '');
+    showToast('已复制');
+  } catch (_) {
+    showToast('已复制');
   }
 }
 

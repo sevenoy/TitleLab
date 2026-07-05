@@ -799,6 +799,54 @@ Phase 6D 在独立 worktree `phase6d-miniprogram-ai-mock-devtools-acceptance-pac
 
 使用微信开发者工具导入 `miniprogram/`，按 `docs/qa/PHASE6D_MINIPROGRAM_AI_MOCK_MANUAL_TEST_CASES.md` 执行手动验收并记录截图/问题；仍不上传体验版、不提交审核、不打开真实 gate。
 
+## 30. Phase 6E Direct original Web/PWA UI AI inline fix
+
+Phase 6E 在独立 worktree `phase6e-direct-original-ui-ai-inline-fix` 中停止 Stitch 方案，直接基于现有真实 TitleLab Web/PWA UI 做原 UI 锁定式 AI 行内修复。本阶段没有使用 Stitch 代码，没有真实调用 OpenAI，没有读取或写入真实 AI key，没有请求后端 AI，没有连接真实数据库，没有新增 migration，没有新增依赖，没有部署、上传体验版或提交审核。
+
+新增 / 更新文件：
+
+- `index.html`
+- `title.html`
+- `assets/app-title.js`
+- `assets/app-content.js`
+- `assets/styles.css`
+- `scripts/titlelab_phase6e_original_ui_ai_inline_check.py`
+- `docs/25_PHASE6E_DIRECT_ORIGINAL_UI_AI_INLINE_FIX.md`
+- `docs/08_HANDOFF.md`
+- `docs/07_ACCEPTANCE_CHECKLIST.md`
+
+定位 / 检查但未修改：
+
+- `content.html`
+
+实现结果：
+
+- 保留现有 `THE` logo、标题/文案双 Tab、S 用户按钮、退出按钮、分类管理、搜索/筛选、账号分类、设为本机默认、主题设置、管理页面和列表操作按钮。
+- 标题页新增 `activeAiTitleId` 行内状态；点击标题行/卡片 `✨AI` 后，在当前标题下方打开 `AI 标题灵感` 本地示例面板。
+- 标题本地示例结果为港迪旅拍/摄影业务标题，支持复制、加入标题库、换一批和关闭；不请求后端，不调用外部 AI。
+- 文案页新增 `expandedCopyId` 与 `activeCopyAiId`；文案支持当前卡片/行内展开，`✨AI` 会展开当前文案并显示 `AI 文案助手`。
+- 文案助手支持提取标题、改写文案、生成话题、精简文案的本地示例展示，结果只用于本地 UI 验收。
+- 删除了旧标题 AI 弹窗中的外部接口地址、模型和 key 输入，避免前端保留真实 AI 接入入口。
+- 清理了真实 UI 文件中既存的本机诊断 `127.0.0.1` fetch 探针，避免 UI 加载时发本机调试请求。
+- 新增 Phase 6E preflight：`python3 scripts/titlelab_phase6e_original_ui_ai_inline_check.py`。
+
+边界确认：
+
+- 未修改 `backend/alembic/**`。
+- 未修改 `backend/app/db/**`。
+- 未修改 `backend/app/models/**`。
+- 未新增依赖。
+- 未新增内容 CRUD 写接口。
+- 未真实请求后端 AI。
+- 未调用真实 OpenAI、微信或任何外部 API。
+- 未连接真实数据库，未执行真实数据库 migration。
+- 未部署，未上传体验版，未提交审核。
+- 未提交 `miniprogram/project.private.config.json`。
+
+下一步最小建议：
+
+在本地浏览器/PWA 预览真实 `title.html` 和 `content.html`，按 Phase 6E 验收项确认标题 AI 行内面板、文案展开、文案 AI 面板和分类下拉均保持原 UI；仍不部署、不接真实 AI、不打开真实 gate。
+
 ## 6. 风险与注意
 
 - 现有登录形态是静态网页时代的实现，重建时必须迁移到服务端认证。
