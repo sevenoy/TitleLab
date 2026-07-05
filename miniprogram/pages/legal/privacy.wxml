@@ -1,0 +1,46 @@
+<view class="legal-page">
+  <view class="legal-card">
+    <text class="legal-title">TitleLab 隐私政策</text>
+    <text class="legal-date">生效日期：2026-07-05</text>
+
+    <view class="section">
+      <text class="section-title">一、信息处理原则</text>
+      <text class="section-copy">我们仅在实现标题与文案管理、账号登录、复制操作和基础安全所必需的范围内处理信息，并遵循最小必要、明示目的、用户知情和安全保护原则。</text>
+    </view>
+
+    <view class="section">
+      <text class="section-title">二、可能处理的信息类型</text>
+      <text class="section-copy">可能处理的信息包括产品账号、登录状态、用户在页面内输入的搜索关键词、选择的分类、主动维护的标题与文案内容、点击复制时写入剪贴板的文本，以及设备运行所需的基础日志摘要。</text>
+    </view>
+
+    <view class="section">
+      <text class="section-title">三、授权与同意</text>
+      <text class="section-copy">登录前需要先阅读并勾选用户服务协议和隐私政策。未勾选时，系统不会继续登录流程。</text>
+    </view>
+
+    <view class="section">
+      <text class="section-title">四、微信用户信息与设备能力</text>
+      <text class="section-copy">当前小程序不主动获取或展示微信头像、昵称、手机号、通讯录、位置、相册、相机、麦克风等信息或设备能力。如后续新增相关能力，会在使用前更新说明并请求你的授权。</text>
+    </view>
+
+    <view class="section">
+      <text class="section-title">五、剪贴板</text>
+      <text class="section-copy">仅在你点击复制按钮后，系统才会把对应标题或文案写入剪贴板。当前小程序默认不会读取剪贴板内容。</text>
+    </view>
+
+    <view class="section">
+      <text class="section-title">六、对外提供</text>
+      <text class="section-copy">我们不会出售你的个人信息。除法律法规要求、取得你的单独同意或为完成你主动请求的服务所必需外，不会向外部提供你的个人信息。</text>
+    </view>
+
+    <view class="section">
+      <text class="section-title">七、账号注销与数据删除</text>
+      <text class="section-copy">你可以通过设置页说明的联系邮箱申请注销账号或删除账号相关数据。我们会在核验身份后处理，并向你反馈结果。</text>
+    </view>
+
+    <view class="section">
+      <text class="section-title">八、联系我们</text>
+      <text class="section-copy">联系邮箱：example@example.com（发布前需替换为真实联系邮箱）。</text>
+    </view>
+  </view>
+</view>

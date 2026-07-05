@@ -1,0 +1,21 @@
+<view class="settings-page">
+  <view class="panel">
+    <text class="panel-title">账号与合规</text>
+    <text class="panel-copy">你可以在这里查看协议、隐私政策和账号退出入口。</text>
+    <button class="link-row" bindtap="onOpenTerms">用户服务协议</button>
+    <button class="link-row" bindtap="onOpenPrivacy">隐私政策</button>
+  </view>
+
+  <view class="panel">
+    <text class="panel-title">账号注销与数据删除</text>
+    <text class="panel-copy">如需注销产品账号或删除账号相关数据，请通过联系邮箱提交申请。我们会核验身份和处理范围，并在合理期限内完成处理。</text>
+    <text class="contact-line">联系邮箱：example@example.com（发布前需替换为真实联系邮箱）</text>
+  </view>
+
+  <view class="panel">
+    <text class="panel-title">版本信息</text>
+    <text class="panel-copy">{{version}}</text>
+  </view>
+
+  <button class="logout-button" bindtap="onLogout">退出登录</button>
+</view>

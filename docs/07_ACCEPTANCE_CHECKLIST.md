@@ -215,12 +215,53 @@
 - [x] 未提交审核。
 - [x] Phase 6F preflight 已新增：`python3 scripts/titlelab_phase6f_miniprogram_original_ui_sync_check.py`。
 
-## 本轮禁止项确认
+## Phase 6G Mini Program Compliance UI Login Privacy Fix
+
+- [x] Phase 6G 独立 worktree 已创建并从 `17a4927` 开始。
+- [x] `project.config.json` AppID 为 `wx2f9db77f2383b42e`。
+- [x] `pages/login/index` 已作为默认入口。
+- [x] 登录页展示 `TitleLab` 和 `本产品账号登录`。
+- [x] 登录页说明不要求微信账号、微信密码或微信验证码。
+- [x] 协议复选框默认未勾选。
+- [x] 未勾选协议点击登录会提示 `请先阅读并勾选《用户服务协议》《隐私政策》后再继续。`
+- [x] 登录页包含《用户服务协议》《隐私政策》入口。
+- [x] 小程序不使用 `getPhoneNumber`。
+- [x] 小程序不使用 `wx.getUserProfile` 或 `wx.getUserInfo`。
+- [x] 小程序不使用 `getClipboardData`。
+- [x] 首页用户可见高风险词已从当前路由页面移除。
+- [x] 未路由历史 AI 页面 `miniprogram/pages/ai/**` 已删除。
+- [x] 未引用 AI service 已删除。
+- [x] AI 写请求白名单已从小程序 request 封装中移除。
+- [x] 当前个人主体安全版不保留用户可见 AI 能力。
+- [x] 首页分类名保持横向显示，不做竖排布局。
+- [x] 首页按钮使用可换行网格，避免横向溢出。
+- [x] 标题/文案列表操作区完整显示复制、展开、修改、删除。
+- [x] 文案展开内容留在当前卡片内，不遮挡后续内容。
+- [x] 顶部 Tab 使用弹性宽度，不挤压变形。
+- [x] 隐私政策覆盖信息处理、信息类型、授权同意、账号注销、数据删除、对外提供、微信用户信息、设备能力和剪贴板。
+- [x] 用户服务协议覆盖用户责任、禁止行为、个人信息保护、来源合法、必要授权、停用和注销。
+- [x] 设置页包含协议、隐私政策、账号注销与数据删除说明、版本信息和退出登录。
+- [x] 复制只在用户点击复制时调用 `setClipboardData`。
+- [x] 页面不直接调用 `wx.request` 或 `wx.login`。
+- [x] `wx.request` 只保留在 `services/request.js`。
+- [x] `wx.login` 只保留在 `adapters/wechat.js`。
+- [x] 未修改微信开发者工具缓存目录。
+- [x] 未修改旧 Phase 3 worktree。
+- [x] 未连接真实数据库。
+- [x] 未执行 migration。
+- [x] 未真实请求后端。
+- [x] 未真实调用外部模型服务。
+- [x] 未部署。
+- [x] 未上传体验版。
+- [x] 未提交审核。
+- [x] Phase 6G preflight 已新增：`python3 scripts/titlelab_phase6g_miniprogram_compliance_check.py`。
+
+## 历史规划轮次禁止项确认
 
 - [x] 未修改业务代码。
 - [x] 未新增依赖。
 - [x] 未连接服务器。
 - [x] 未连接数据库。
 - [x] 未部署。
-- [x] 未 push。
-- [x] 未 commit。
+- [x] 当轮未 push。
+- [x] 当轮未 commit。

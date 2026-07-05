@@ -1,8 +1,11 @@
 {
   "pages": [
+    "pages/login/index",
     "pages/index/index",
-    "pages/detail/detail",
-    "pages/ai/index"
+    "pages/settings/index",
+    "pages/legal/privacy",
+    "pages/legal/terms",
+    "pages/detail/detail"
   ],
   "window": {
     "navigationBarTitleText": "TitleLab",

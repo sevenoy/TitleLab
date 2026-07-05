@@ -1,0 +1,52 @@
+.legal-page {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 24rpx;
+  overflow-x: hidden;
+  background: #f4f7fb;
+  color: #111827;
+}
+
+.legal-card {
+  padding: 24rpx;
+  border: 1rpx solid #e1e7f0;
+  border-radius: 8rpx;
+  background: #ffffff;
+}
+
+.legal-title,
+.legal-date,
+.section-title,
+.section-copy {
+  display: block;
+}
+
+.legal-title {
+  color: #111827;
+  font-size: 36rpx;
+  font-weight: 800;
+}
+
+.legal-date {
+  margin-top: 10rpx;
+  color: #4b5563;
+  font-size: 23rpx;
+}
+
+.section {
+  margin-top: 24rpx;
+}
+
+.section-title {
+  color: #1e64d8;
+  font-size: 28rpx;
+  font-weight: 800;
+}
+
+.section-copy {
+  margin-top: 10rpx;
+  color: #111827;
+  font-size: 25rpx;
+  line-height: 1.62;
+  word-break: break-all;
+}

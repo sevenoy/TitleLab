@@ -890,9 +890,83 @@ Phase 6F 在独立 worktree `phase6f-miniprogram-original-ui-ai-inline-sync` 中
 - 未新增业务内容写接口。
 - 未提交 `miniprogram/project.private.config.json`。
 
+## 32. Phase 6G Mini Program compliance UI login privacy fix
+
+Phase 6G 在独立 worktree `phase6g-miniprogram-compliance-ui-login-privacy-fix` 中完成微信小程序合规前端整改。本阶段从 `17a4927` 开始，AppID 配置已固化为 `wx2f9db77f2383b42e`。本阶段没有修改微信开发者工具缓存，没有修改旧 Phase 3 worktree，没有真实请求后端，没有连接真实数据库，没有新增 migration，没有新增依赖，没有部署、上传体验版或提交审核。
+
+新增 / 更新文件：
+
+- `miniprogram/app.json`
+- `miniprogram/app.js`
+- `miniprogram/adapters/wechat.js`
+- `miniprogram/config/env.js`
+- `miniprogram/services/request.js`
+- `miniprogram/pages/index/index.js`
+- `miniprogram/pages/index/index.wxml`
+- `miniprogram/pages/index/index.wxss`
+- `miniprogram/pages/login/index.js`
+- `miniprogram/pages/login/index.json`
+- `miniprogram/pages/login/index.wxml`
+- `miniprogram/pages/login/index.wxss`
+- `miniprogram/pages/settings/index.js`
+- `miniprogram/pages/settings/index.json`
+- `miniprogram/pages/settings/index.wxml`
+- `miniprogram/pages/settings/index.wxss`
+- `miniprogram/pages/legal/privacy.js`
+- `miniprogram/pages/legal/privacy.json`
+- `miniprogram/pages/legal/privacy.wxml`
+- `miniprogram/pages/legal/privacy.wxss`
+- `miniprogram/pages/legal/terms.js`
+- `miniprogram/pages/legal/terms.json`
+- `miniprogram/pages/legal/terms.wxml`
+- `miniprogram/pages/legal/terms.wxss`
+- `scripts/titlelab_phase6g_miniprogram_compliance_check.py`
+- `docs/27_PHASE6G_MINIPROGRAM_COMPLIANCE_UI_LOGIN_PRIVACY_FIX.md`
+- `miniprogram/README.md`
+- `docs/08_HANDOFF.md`
+- `docs/07_ACCEPTANCE_CHECKLIST.md`
+
+删除文件：
+
+- `miniprogram/pages/ai/index.js`
+- `miniprogram/pages/ai/index.json`
+- `miniprogram/pages/ai/index.wxml`
+- `miniprogram/pages/ai/index.wxss`
+- `miniprogram/services/aiApi.js`
+- `miniprogram/services/aiMock.js`
+- `miniprogram/services/aiRepository.js`
+- `miniprogram/services/aiResultNormalizer.js`
+
+实现结果：
+
+- `app.json` 默认入口改为 `pages/login/index`，并纳入首页、设置页、隐私政策和用户服务协议。
+- 登录页展示 `TitleLab` 与 `本产品账号登录`，说明不要求微信账号、微信密码或微信验证码。
+- 协议复选框默认未勾选；未勾选登录会拦截并提示 `请先阅读并勾选《用户服务协议》《隐私政策》后再继续。`
+- 当前仅使用本地产品账号态，不调用微信登录能力，不使用手机号、头像、昵称等微信用户信息能力。
+- 首页保留标题/文案库、搜索、分类、复制、新增、修改、删除入口，并移除当前路由页面的用户可见高风险词。
+- 首页使用弹性 Tab、分类横向名称、按钮两列网格、列表操作两列网格和块级展开文案，避免分类竖排、按钮横向溢出、顶部 Tab 变形和展开遮挡。
+- 已删除未路由历史 AI 页面和未引用 AI service，并从 request 封装移除 AI 写请求白名单。
+- 隐私政策覆盖信息处理、信息类型、授权同意、账号注销、数据删除、对外提供、微信用户信息、设备能力和剪贴板。
+- 用户服务协议覆盖用户责任、禁止行为、不得收集/出售/转让/泄露他人个人信息、来源合法、必要授权、停用和注销。
+- 设置页提供协议、隐私政策、账号注销与数据删除说明、版本信息和退出登录。
+- 新增 Phase 6G preflight：`python3 scripts/titlelab_phase6g_miniprogram_compliance_check.py`。
+
+边界确认：
+
+- 页面不直接调用 `wx.request` 或 `wx.login`。
+- `wx.request` 只保留在 `services/request.js`。
+- `wx.login` 只保留在 `adapters/wechat.js`。
+- 未使用 `getPhoneNumber`、`wx.getUserProfile`、`wx.getUserInfo` 或 `getClipboardData`。
+- 复制仍通过 `adapters/wechat.js` 封装，只在用户点击复制时写入剪贴板。
+- `realApiGateEnabled=false`、`authRealApiGateEnabled=false` 仍为默认关闭。
+- 当前个人主体安全版不保留用户可见 AI 能力；未来恢复 AI 必须另起独立 Phase。
+- 未修改 `backend/alembic/**`、`backend/app/db/**`、`backend/app/models/**`。
+- 未新增业务内容写接口。
+- 未提交 `miniprogram/project.private.config.json`。
+
 下一步最小建议：
 
-在微信开发者工具中重新导入当前主仓库 `miniprogram/`，按 `docs/26_PHASE6F_MINIPROGRAM_ORIGINAL_UI_AI_INLINE_SYNC.md` 手动验收标题/文案 Tab、标题 AI 行内面板、文案展开和文案 AI 面板；仍不上传体验版、不提交审核、不打开真实请求。
+在微信开发者工具中重新导入当前主仓库 `miniprogram/`，只做本地视觉和协议链路验收：登录协议拦截、登录后首页、分类横向、按钮不溢出、文案展开、设置页、协议页、隐私页和退出登录；仍不上传体验版、不提交审核、不打开真实请求。
 
 ## 6. 风险与注意
 

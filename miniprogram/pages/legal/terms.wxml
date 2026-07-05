@@ -1,0 +1,36 @@
+<view class="legal-page">
+  <view class="legal-card">
+    <text class="legal-title">TitleLab 用户服务协议</text>
+    <text class="legal-date">生效日期：2026-07-05</text>
+
+    <view class="section">
+      <text class="section-title">一、服务内容</text>
+      <text class="section-copy">TitleLab 提供标题库、文案库、搜索、分类、复制、新增、修改和删除等内容管理能力。用户应根据自身业务需要合法使用本服务。</text>
+    </view>
+
+    <view class="section">
+      <text class="section-title">二、用户责任</text>
+      <text class="section-copy">你应保证录入、维护和复制使用的内容来源合法，已经取得必要授权，并自行承担对外发布、展示和使用内容的责任。</text>
+    </view>
+
+    <view class="section">
+      <text class="section-title">三、禁止行为</text>
+      <text class="section-copy">不得利用本服务从事违法违规、侵害他人权益、扰乱服务秩序、传播虚假或不当内容等行为；不得收集、出售、转让、泄露他人个人信息；不得上传或维护来源不明、未获授权或违反平台规则的内容。</text>
+    </view>
+
+    <view class="section">
+      <text class="section-title">四、账号管理</text>
+      <text class="section-copy">用户应妥善保管产品账号与密码。若发现账号异常，应及时通过联系邮箱反馈。我们可根据违规情况限制、停用或注销账号。</text>
+    </view>
+
+    <view class="section">
+      <text class="section-title">五、账号注销</text>
+      <text class="section-copy">如需注销账号或删除账号相关数据，可通过设置页列出的联系邮箱申请。我们会核验身份和处理范围后完成处理。</text>
+    </view>
+
+    <view class="section">
+      <text class="section-title">六、联系我们</text>
+      <text class="section-copy">联系邮箱：example@example.com（发布前需替换为真实联系邮箱）。</text>
+    </view>
+  </view>
+</view>

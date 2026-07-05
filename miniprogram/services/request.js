@@ -5,7 +5,6 @@ const sessionStore = require("./sessionStore");
 const OK_CODE = "OK";
 const AUTH_PATH_PREFIX = "/auth/";
 const ALLOWED_AUTH_WRITE_PATHS = ["/auth/wechat-login", "/auth/logout"];
-const AI_TITLE_SUGGESTIONS_RE = /^\/workspaces\/[^/]+\/ai\/title-suggestions$/;
 
 function createRequestId() {
   return `tl-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
@@ -53,10 +52,7 @@ function assertRequestAllowed(method, path, options = {}) {
     return normalizedPath;
   }
 
-  if (
-    normalizedMethod === "post" &&
-    (ALLOWED_AUTH_WRITE_PATHS.includes(normalizedPath) || AI_TITLE_SUGGESTIONS_RE.test(normalizedPath))
-  ) {
+  if (normalizedMethod === "post" && ALLOWED_AUTH_WRITE_PATHS.includes(normalizedPath)) {
     return normalizedPath;
   }
 

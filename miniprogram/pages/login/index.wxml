@@ -1,0 +1,29 @@
+<view class="login-page">
+  <view class="login-card">
+    <view class="brand-mark">THE</view>
+    <text class="brand-title">TitleLab</text>
+    <text class="brand-subtitle">本产品账号登录</text>
+    <text class="safe-note">本页使用产品账号进入，不要求填写微信账号、微信密码或微信验证码。</text>
+
+    <view class="form-field">
+      <text class="field-label">产品账号</text>
+      <input class="field-input" value="{{account}}" placeholder="请输入产品账号" bindinput="onAccountInput" />
+    </view>
+
+    <view class="form-field">
+      <text class="field-label">产品密码</text>
+      <input class="field-input" value="{{password}}" password placeholder="请输入产品密码" bindinput="onPasswordInput" />
+    </view>
+
+    <checkbox-group class="agreement-row" bindchange="onAgreementChange">
+      <label class="agreement-label">
+        <checkbox value="agree" checked="{{agreed}}" />
+        <text>我已阅读并同意</text>
+      </label>
+      <button class="link-button" bindtap="onOpenTerms">《用户服务协议》</button>
+      <button class="link-button" bindtap="onOpenPrivacy">《隐私政策》</button>
+    </checkbox-group>
+
+    <button class="login-button" bindtap="onLogin">登录</button>
+  </view>
+</view>

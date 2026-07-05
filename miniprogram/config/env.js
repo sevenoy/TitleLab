@@ -1,5 +1,5 @@
 const API_MODES = {
-  MOCK: "mock",
+  MOCK: "local",
   REAL: "real"
 };
 
@@ -12,19 +12,18 @@ const runtimeEnv = {
   apiMode: API_MODES.MOCK,
   realApiGateEnabled: false,
   authRealApiGateEnabled: false,
-  aiRealApiGateEnabled: false,
-  environmentLabel: "local-mock",
+  environmentLabel: "local-data",
   apiBaseUrl: API_BASE_URL,
   allowedApiBaseUrl: ALLOWED_API_BASE_URL,
   workspaceId: DEFAULT_WORKSPACE_ID,
-  appVersion: "phase6f-miniprogram-original-ui-ai-inline-sync"
+  appVersion: "phase6g-miniprogram-compliance-ui-login-privacy-fix"
 };
 
 function getRuntimeEnv() {
   return { ...runtimeEnv };
 }
 
-function isMockMode() {
+function isLocalMode() {
   return runtimeEnv.apiMode === API_MODES.MOCK;
 }
 
@@ -34,10 +33,6 @@ function isRealApiEnabled() {
 
 function isAuthRealApiEnabled() {
   return isRealApiEnabled() && runtimeEnv.authRealApiGateEnabled;
-}
-
-function isAiRealApiEnabled() {
-  return isRealApiEnabled() && runtimeEnv.aiRealApiGateEnabled;
 }
 
 function assertAllowedApiBaseUrl(apiBaseUrl) {
@@ -72,10 +67,9 @@ module.exports = {
   API_BASE_URL,
   ALLOWED_API_BASE_URL,
   getRuntimeEnv,
-  isMockMode,
+  isLocalMode,
   isRealApiEnabled,
   isAuthRealApiEnabled,
-  isAiRealApiEnabled,
   assertRealApiEnabled,
   assertAuthRealApiEnabled,
   getWorkspaceId

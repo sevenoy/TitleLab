@@ -3,7 +3,7 @@ const authRepository = require("./services/authRepository");
 App({
   globalData: {
     appName: "TitleLab",
-    apiMode: "local-mock",
+    apiMode: "local-data",
     authSession: null
   },
 

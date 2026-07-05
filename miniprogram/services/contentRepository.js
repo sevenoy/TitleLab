@@ -53,7 +53,7 @@ function assertContentReadiness(workspaceId) {
 }
 
 function getContentItems(filters = {}, workspaceId) {
-  if (env.isMockMode()) {
+  if (env.isLocalMode()) {
     return asPromise({
       items: contentMock.getContentItems(filters),
       limit: filters.limit || 20,
@@ -67,7 +67,7 @@ function getContentItems(filters = {}, workspaceId) {
 }
 
 function getContentItemById(id, workspaceId) {
-  if (env.isMockMode()) {
+  if (env.isLocalMode()) {
     return asPromise(contentMock.getContentItemById(id));
   }
 
@@ -76,7 +76,7 @@ function getContentItemById(id, workspaceId) {
 }
 
 function getTypeOptions() {
-  if (env.isMockMode()) {
+  if (env.isLocalMode()) {
     return asPromise(contentMock.getTypeOptions());
   }
 
@@ -84,7 +84,7 @@ function getTypeOptions() {
 }
 
 function getCategoryOptions(workspaceId) {
-  if (env.isMockMode()) {
+  if (env.isLocalMode()) {
     return asPromise(contentMock.getCategoryOptions());
   }
 
@@ -96,7 +96,7 @@ function getCategoryOptions(workspaceId) {
 }
 
 function getTagOptions(workspaceId) {
-  if (env.isMockMode()) {
+  if (env.isLocalMode()) {
     return asPromise(contentMock.getTagOptions());
   }
 

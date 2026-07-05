@@ -8,6 +8,26 @@ function navigateTo(url) {
   });
 }
 
+function redirectTo(url) {
+  return new Promise((resolve, reject) => {
+    wx.redirectTo({
+      url,
+      success: resolve,
+      fail: reject
+    });
+  });
+}
+
+function reLaunch(url) {
+  return new Promise((resolve, reject) => {
+    wx.reLaunch({
+      url,
+      success: resolve,
+      fail: reject
+    });
+  });
+}
+
 function setClipboardData(data) {
   return new Promise((resolve, reject) => {
     wx.setClipboardData({
@@ -86,6 +106,8 @@ function removeStorage(key) {
 
 module.exports = {
   navigateTo,
+  redirectTo,
+  reLaunch,
   setClipboardData,
   showToast,
   getNetworkType,

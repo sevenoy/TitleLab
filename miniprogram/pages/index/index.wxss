@@ -1,6 +1,8 @@
 .page-shell {
+  box-sizing: border-box;
   min-height: 100vh;
   padding: 24rpx;
+  overflow-x: hidden;
   background: #f4f7fb;
   color: #111827;
 }
@@ -9,8 +11,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20rpx;
-  padding: 22rpx;
+  gap: 16rpx;
+  padding: 20rpx;
   border: 1rpx solid #e1e7f0;
   border-radius: 8rpx;
   background: #ffffff;
@@ -21,23 +23,26 @@
   min-width: 0;
   flex: 1;
   align-items: center;
-  gap: 18rpx;
+  gap: 16rpx;
 }
 
 .logo-mark {
-  width: 96rpx;
-  height: 64rpx;
+  width: 88rpx;
+  height: 58rpx;
+  flex-shrink: 0;
   border-radius: 8rpx;
-  background: #1890ff;
+  background: #0f6fdc;
   color: #ffffff;
-  font-size: 26rpx;
+  font-size: 24rpx;
   font-weight: 800;
-  line-height: 64rpx;
+  line-height: 58rpx;
   text-align: center;
 }
 
 .tab-switch {
   display: flex;
+  min-width: 0;
+  flex: 1;
   padding: 6rpx;
   border: 1rpx solid #d7e6ff;
   border-radius: 8rpx;
@@ -45,54 +50,43 @@
 }
 
 .tab-button {
-  min-width: 104rpx;
-  min-height: 56rpx;
+  min-width: 0;
+  min-height: 54rpx;
+  flex: 1;
   margin: 0;
+  padding: 0 8rpx;
   border-radius: 8rpx;
   color: #4b5563;
   font-size: 25rpx;
-  line-height: 56rpx;
+  line-height: 54rpx;
 }
 
 .tab-button.active {
-  background: #1890ff;
+  background: #0f6fdc;
   color: #ffffff;
   font-weight: 700;
 }
 
-.user-actions {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-}
-
-.user-badge {
-  width: 56rpx;
-  height: 56rpx;
-  border-radius: 50%;
-  background: #111827;
-  color: #ffffff;
-  font-size: 25rpx;
-  font-weight: 800;
-  line-height: 56rpx;
-  text-align: center;
-}
-
-.exit-button {
-  min-width: 76rpx;
-  min-height: 52rpx;
+.settings-button {
+  width: 96rpx;
+  min-height: 56rpx;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
   border: 1rpx solid #d7e6ff;
   border-radius: 8rpx;
-  color: #4b5563;
-  font-size: 23rpx;
-  line-height: 52rpx;
+  background: #ffffff;
+  color: #1e64d8;
+  font-size: 24rpx;
+  line-height: 56rpx;
 }
 
 .category-panel,
 .toolbar-panel,
 .content-section {
+  box-sizing: border-box;
   margin-top: 20rpx;
-  padding: 22rpx;
+  padding: 20rpx;
   border: 1rpx solid #e1e7f0;
   border-radius: 8rpx;
   background: #ffffff;
@@ -102,7 +96,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18rpx;
+  gap: 16rpx;
   margin-bottom: 18rpx;
 }
 
@@ -111,14 +105,16 @@
 }
 
 .section-title {
+  min-width: 0;
   color: #111827;
   font-size: 29rpx;
   font-weight: 800;
 }
 
 .section-note {
+  flex-shrink: 0;
   color: #4b5563;
-  font-size: 23rpx;
+  font-size: 22rpx;
 }
 
 .category-list {
@@ -129,6 +125,7 @@
 
 .category-row {
   display: flex;
+  min-width: 0;
   align-items: center;
   justify-content: space-between;
   gap: 12rpx;
@@ -140,8 +137,8 @@
 }
 
 .category-row.active {
-  border-color: #1890ff;
-  background: #e5f3ff;
+  border-color: #0f6fdc;
+  background: #eaf4ff;
 }
 
 .category-name {
@@ -149,37 +146,49 @@
   min-width: 0;
   flex: 1;
   align-items: center;
-  justify-content: space-between;
   gap: 12rpx;
   color: #111827;
   font-size: 25rpx;
   font-weight: 700;
 }
 
+.category-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .category-count {
+  flex-shrink: 0;
   color: #4b5563;
-  font-size: 23rpx;
+  font-size: 22rpx;
   font-weight: 500;
 }
 
 .category-tools {
   display: flex;
   flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8rpx;
+  max-width: 250rpx;
 }
 
 .tool-button {
   min-width: 62rpx;
   min-height: 44rpx;
+  margin: 0;
   padding: 0 10rpx;
   border-radius: 8rpx;
   background: #eef3ff;
-  color: #1890ff;
+  color: #0f6fdc;
   font-size: 21rpx;
   line-height: 44rpx;
 }
 
 .search-input {
+  box-sizing: border-box;
   width: 100%;
   min-height: 76rpx;
   padding: 0 22rpx;
@@ -195,6 +204,7 @@
 
 .account-picker {
   display: flex;
+  min-width: 0;
   align-items: center;
   justify-content: space-between;
   gap: 16rpx;
@@ -208,10 +218,16 @@
   font-size: 25rpx;
 }
 
+.account-label {
+  flex-shrink: 0;
+}
+
 .account-value {
+  min-width: 0;
   overflow: hidden;
   color: #111827;
   font-weight: 700;
+  text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -225,14 +241,17 @@
 
 .primary-action,
 .secondary-action {
+  min-width: 0;
   min-height: 60rpx;
+  margin: 0;
+  padding: 0 8rpx;
   border-radius: 8rpx;
   font-size: 24rpx;
   line-height: 60rpx;
 }
 
 .primary-action {
-  background: #1890ff;
+  background: #0f6fdc;
   color: #ffffff;
   font-weight: 700;
 }
@@ -241,13 +260,6 @@
   border: 1rpx solid #d7e6ff;
   background: #eef3ff;
   color: #1e64d8;
-}
-
-.secondary-action.small {
-  min-width: 128rpx;
-  min-height: 52rpx;
-  font-size: 23rpx;
-  line-height: 52rpx;
 }
 
 .library-row {
@@ -263,48 +275,57 @@
 
 .row-main {
   display: flex;
+  min-width: 0;
   align-items: flex-start;
   gap: 14rpx;
 }
 
 .star-index {
+  width: 48rpx;
+  height: 48rpx;
   flex-shrink: 0;
-  min-width: 82rpx;
-  color: #1890ff;
+  border-radius: 8rpx;
+  background: #eaf4ff;
+  color: #0f6fdc;
   font-size: 24rpx;
   font-weight: 800;
-  line-height: 1.45;
+  line-height: 48rpx;
+  text-align: center;
+}
+
+.row-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 8rpx;
 }
 
 .row-title {
-  flex: 1;
   color: #111827;
   font-size: 28rpx;
   font-weight: 700;
   line-height: 1.45;
+  word-break: break-all;
 }
 
-.toggle-button {
-  flex-shrink: 0;
-  min-width: 70rpx;
-  min-height: 46rpx;
-  border-radius: 8rpx;
-  background: #eef3ff;
-  color: #1890ff;
+.row-meta {
+  color: #4b5563;
   font-size: 22rpx;
-  line-height: 46rpx;
 }
 
 .row-actions {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10rpx;
   margin-top: 14rpx;
 }
 
 .row-button {
+  min-width: 0;
   min-height: 52rpx;
-  padding: 0 8rpx;
+  margin: 0;
+  padding: 0 6rpx;
   border: 1rpx solid #d7e6ff;
   border-radius: 8rpx;
   background: #f6f8fc;
@@ -313,123 +334,13 @@
   line-height: 52rpx;
 }
 
-.row-button.ai {
-  background: #dff0ff;
-  color: #1890ff;
-  font-weight: 700;
-}
-
 .row-button.danger {
-  color: #e85b5b;
-}
-
-.inline-ai-panel {
-  margin-top: 16rpx;
-  padding: 18rpx;
-  border: 1rpx solid #cfe5ff;
-  border-radius: 8rpx;
-  background: #f6fbff;
-}
-
-.ai-panel-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16rpx;
-}
-
-.ai-title {
-  color: #111827;
-  font-size: 27rpx;
-  font-weight: 800;
-}
-
-.local-badge {
-  padding: 5rpx 12rpx;
-  border-radius: 8rpx;
-  background: #e5f3ff;
-  color: #1890ff;
-  font-size: 22rpx;
-}
-
-.ai-source {
-  display: block;
-  margin-top: 12rpx;
-  color: #4b5563;
-  font-size: 24rpx;
-  line-height: 1.45;
-}
-
-.chip-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10rpx;
-  margin-top: 14rpx;
-}
-
-.chip {
-  min-height: 48rpx;
-  padding: 0 14rpx;
-  border: 1rpx solid #d7e6ff;
-  border-radius: 8rpx;
-  background: #ffffff;
-  color: #4b5563;
-  font-size: 22rpx;
-  line-height: 48rpx;
-}
-
-.chip.active {
-  background: #1890ff;
-  color: #ffffff;
-}
-
-.ai-result-row {
-  display: grid;
-  grid-template-columns: 42rpx minmax(0, 1fr) 88rpx 142rpx;
-  gap: 10rpx;
-  align-items: center;
-  margin-top: 12rpx;
-  padding: 12rpx;
-  border-radius: 8rpx;
-  background: #ffffff;
-}
-
-.ai-result-index {
-  color: #1890ff;
-  font-size: 24rpx;
-  font-weight: 800;
-}
-
-.ai-result-text {
-  color: #111827;
-  font-size: 24rpx;
-  line-height: 1.45;
-}
-
-.ai-mini-button {
-  min-height: 46rpx;
-  padding: 0 8rpx;
-  border-radius: 8rpx;
-  background: #eef3ff;
-  color: #1e64d8;
-  font-size: 21rpx;
-  line-height: 46rpx;
-}
-
-.ai-mini-button.add {
-  background: #e5f3ff;
-  color: #1890ff;
-}
-
-.ai-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12rpx;
-  margin-top: 14rpx;
+  color: #d94c4c;
 }
 
 .copy-detail-box {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   gap: 8rpx;
   margin-top: 14rpx;
@@ -442,4 +353,5 @@
   color: #111827;
   font-size: 25rpx;
   line-height: 1.55;
+  word-break: break-all;
 }
