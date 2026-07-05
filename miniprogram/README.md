@@ -139,6 +139,29 @@ Phase 6B 继续保持 mock-only，只打磨 AI 标题生成页面体验：
 python3 scripts/titlelab_phase6b_miniprogram_ai_mock_ux_check.py
 ```
 
+## Phase 6C AI mock acceptance QA
+
+Phase 6C 继续保持 mock-only，只做 AI 标题生成页面验收收口和 DevTools 导入前检查：
+
+- `realApiGateEnabled=false`
+- `authRealApiGateEnabled=false`
+- `aiRealApiGateEnabled=false`
+
+验收覆盖：
+
+- AI 页面四件套、首页入口、AI service/repository/mock/api 文件存在。
+- sourceText 字符计数、输入过短提示、输入上限提示和生成按钮禁用态。
+- loading、error、empty、暂无结果、warnings 和 result cards。
+- 复制单个标题、复制全部、清空后状态复位、重新生成沿用上一次输入。
+- DevTools 导入路径应为 `miniprogram/`，`project.private.config.json` 不进入 git。
+- 页面不直接调用 `wx.request` 或 `wx.login`。
+
+本地检查：
+
+```bash
+python3 scripts/titlelab_phase6c_miniprogram_ai_acceptance_check.py
+```
+
 ## 后续接入规则
 
 后续接入真实只读接口必须单独开启 gate，并继续限制在 Phase 2 已验收的只读内容接口和公开 meta 接口内。

@@ -29,7 +29,7 @@
       placeholder-class="source-placeholder"
       bindinput="onSourceInput"
     />
-    <view class="input-meta">
+    <view class="input-meta {{sourceLimitReached ? 'limit-reached' : ''}}">
       <text>{{helperText}}</text>
       <text>{{sourceLength}}/{{sourceLimit}}</text>
     </view>
@@ -65,7 +65,7 @@
     </view>
 
     <view class="action-row">
-      <button class="action-button secondary" bindtap="onClear">清空</button>
+      <button class="action-button secondary" disabled="{{loading && !sourceText}}" bindtap="onClear">清空</button>
       <button class="action-button primary" loading="{{loading}}" disabled="{{loading || !canGenerate}}" bindtap="onGenerate">生成标题</button>
     </view>
   </view>
@@ -94,7 +94,7 @@
   <view wx:if="{{suggestions.length}}" class="result-list">
     <view class="result-meta">
       <text>{{result.provider}} · {{result.model}}</text>
-      <text>{{result.usageEstimate.returnedCount}} 条 · 0 成本</text>
+      <text>{{result.usageEstimate.returnedCount}} 条 · 0 成本 · {{lastGeneratedAt}}</text>
     </view>
 
     <view wx:if="{{warnings.length}}" class="warning-list">

@@ -90,6 +90,11 @@
   line-height: 1.4;
 }
 
+.input-meta.limit-reached {
+  color: #8a3c2f;
+  font-weight: 600;
+}
+
 .option-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

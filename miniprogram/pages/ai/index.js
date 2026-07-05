@@ -25,6 +25,7 @@ Page({
     sourceLimit: MAX_SOURCE_LENGTH,
     minSourceLength: MIN_SOURCE_LENGTH,
     helperText: "输入 6-1200 字素材，mock 会本地生成标题建议。",
+    sourceLimitReached: false,
     mockExamples: MOCK_EXAMPLES,
     selectedExampleIndex: -1,
     contentTypeIndex: 0,
@@ -62,7 +63,8 @@ Page({
     warnings: [],
     hasGenerated: false,
     canGenerate: false,
-    canCopyAll: false
+    canCopyAll: false,
+    lastGeneratedAt: ""
   },
 
   onSourceInput(event) {
@@ -117,9 +119,22 @@ Page({
     }
 
     const payload = this.buildPayload();
+    this.generateWithPayload(payload);
+  },
+
+  generateWithPayload(payload) {
     const requestToken = Date.now();
     this.aiRequestToken = requestToken;
-    this.setData({ loading: true, error: null });
+    this.lastPayload = { ...payload };
+    this.setData({
+      loading: true,
+      error: null,
+      result: null,
+      suggestions: [],
+      warnings: [],
+      hasGenerated: false,
+      canCopyAll: false
+    });
 
     aiRepository
       .generateTitleSuggestions(payload)
@@ -135,7 +150,8 @@ Page({
           loading: false,
           error: null,
           hasGenerated: true,
-          canCopyAll: suggestions.length > 0
+          canCopyAll: suggestions.length > 0,
+          lastGeneratedAt: "刚刚生成"
         });
       })
       .catch((error) => {
@@ -157,6 +173,17 @@ Page({
   },
 
   onRetry() {
+    if (this.data.loading) {
+      return;
+    }
+
+    if (this.lastPayload) {
+      this.updateSourceText(this.lastPayload.sourceText || "", -1, () => {
+        this.generateWithPayload({ ...this.lastPayload });
+      });
+      return;
+    }
+
     this.onGenerate();
   },
 
@@ -184,10 +211,13 @@ Page({
   },
 
   onClear() {
+    this.aiRequestToken = 0;
+    this.lastPayload = null;
     this.setData({
       sourceText: "",
       sourceLength: 0,
       helperText: "输入 6-1200 字素材，mock 会本地生成标题建议。",
+      sourceLimitReached: false,
       selectedExampleIndex: -1,
       contentTypeIndex: 0,
       toneIndex: 1,
@@ -200,26 +230,35 @@ Page({
       warnings: [],
       hasGenerated: false,
       canGenerate: false,
-      canCopyAll: false
+      canCopyAll: false,
+      lastGeneratedAt: ""
     });
   },
 
-  updateSourceText(value, selectedExampleIndex) {
-    const sourceText = String(value || "").slice(0, MAX_SOURCE_LENGTH);
+  updateSourceText(value, selectedExampleIndex, callback) {
+    const rawText = String(value || "");
+    const sourceText = rawText.slice(0, MAX_SOURCE_LENGTH);
     const sourceLength = sourceText.trim().length;
     const canGenerate = sourceLength >= MIN_SOURCE_LENGTH && sourceLength <= MAX_SOURCE_LENGTH;
-    const helperText = sourceLength
-      ? `${sourceLength}/${MAX_SOURCE_LENGTH} 字，当前为本地 mock，不上传内容。`
-      : "输入 6-1200 字素材，mock 会本地生成标题建议。";
+    const sourceLimitReached = rawText.length > MAX_SOURCE_LENGTH || sourceText.length >= MAX_SOURCE_LENGTH;
+    let helperText = "输入 6-1200 字素材，mock 会本地生成标题建议。";
+    if (sourceLength > 0 && sourceLength < MIN_SOURCE_LENGTH) {
+      helperText = `还差 ${MIN_SOURCE_LENGTH - sourceLength} 个字，素材更完整时 mock 更稳。`;
+    } else if (sourceLimitReached) {
+      helperText = `${sourceLength}/${MAX_SOURCE_LENGTH} 字，已到本地输入上限，不上传内容。`;
+    } else if (sourceLength) {
+      helperText = `${sourceLength}/${MAX_SOURCE_LENGTH} 字，当前为本地 mock，不上传内容。`;
+    }
 
     this.setData({
       sourceText,
       sourceLength,
       helperText,
+      sourceLimitReached,
       selectedExampleIndex,
       canGenerate,
       error: null
-    });
+    }, callback);
   },
 
   validateSourceText() {

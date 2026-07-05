@@ -716,6 +716,47 @@ Phase 6B 在独立 worktree `phase6b-miniprogram-ai-mock-ux-qa-hardening` 中完
 
 如需真实 AI smoke，另起 Phase 5E RELEASE_GATE；如需小程序接后端 AI mock/test API，另起 Phase 6C，并继续保持小程序不直连 OpenAI、不保存 API key、不默认打开真实 gate。
 
+## 28. Phase 6C Mini Program AI mock acceptance QA
+
+Phase 6C 在独立 worktree `phase6c-miniprogram-ai-mock-acceptance-qa` 中完成小程序 AI 标题生成 mock-only 页面验收 QA、DevTools 导入前检查和静态 preflight。本阶段没有进入 Phase 5E，没有真实调用 OpenAI，没有请求真实后端 AI，没有连接真实数据库，没有新增 migration，没有新增依赖，没有部署、上传体验版或提交审核。
+
+新增 / 更新文件：
+
+- `miniprogram/pages/ai/index.js`
+- `miniprogram/pages/ai/index.wxml`
+- `miniprogram/pages/ai/index.wxss`
+- `scripts/titlelab_phase6c_miniprogram_ai_acceptance_check.py`
+- `docs/23_PHASE6C_MINIPROGRAM_AI_MOCK_ACCEPTANCE_QA.md`
+- `miniprogram/README.md`
+- `docs/08_HANDOFF.md`
+
+实现结果：
+
+- AI 页面生成时先清理旧结果，避免 loading 中显示陈旧结果。
+- 清空会重置 source、选项、结果、warnings、复制状态和上一次 payload。
+- 重新生成沿用上一次 payload，保持 retry 行为可验收。
+- sourceText 输入上限状态有明确提示，生成按钮继续在 loading 或输入不足时禁用。
+- DevTools 导入前检查固化到 Phase 6C preflight，导入路径仍为 `miniprogram/`，`project.private.config.json` 不进入 git。
+- `realApiGateEnabled=false`、`authRealApiGateEnabled=false`、`aiRealApiGateEnabled=false` 仍为默认关闭。
+- 新增 Phase 6C preflight：`python3 scripts/titlelab_phase6c_miniprogram_ai_acceptance_check.py`。
+
+边界确认：
+
+- 未修改 `backend/alembic/**`。
+- 未修改 `backend/app/db/**`。
+- 未修改 `backend/app/models/**`。
+- 未新增依赖。
+- 未新增内容 CRUD 写接口。
+- 未真实请求后端 AI。
+- 未调用真实 OpenAI、微信或任何外部 API。
+- 未连接真实数据库，未执行真实数据库 migration。
+- 未部署，未上传体验版，未提交审核。
+- 未提交 `miniprogram/project.private.config.json`。
+
+下一步最小建议：
+
+如需真实 AI smoke，另起 Phase 5E RELEASE_GATE；如需真机视觉验收，先只做 DevTools 手工验收记录，不上传体验版、不提交审核、不打开真实 gate。
+
 ## 6. 风险与注意
 
 - 现有登录形态是静态网页时代的实现，重建时必须迁移到服务端认证。
