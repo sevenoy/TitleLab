@@ -162,6 +162,29 @@ Phase 6C 继续保持 mock-only，只做 AI 标题生成页面验收收口和 De
 python3 scripts/titlelab_phase6c_miniprogram_ai_acceptance_check.py
 ```
 
+## Phase 6D DevTools/manual acceptance pack
+
+Phase 6D 继续保持 mock-only，只为微信开发者工具人工验收准备 QA 包，不上传体验版、不提交审核、不打开真实 gate：
+
+- `realApiGateEnabled=false`
+- `authRealApiGateEnabled=false`
+- `aiRealApiGateEnabled=false`
+
+本轮新增：
+
+- DevTools 导入步骤：导入目录必须是 `miniprogram/`。
+- AI mock 页面手动测试用例。
+- 首页入口验收路线。
+- 复制单条、复制全部、清空、重试、loading、error、empty、warning、result 状态验收说明。
+- 截图清单和 bug report template。
+- Phase 6D preflight。
+
+本地检查：
+
+```bash
+python3 scripts/titlelab_phase6d_miniprogram_devtools_acceptance_check.py
+```
+
 ## 后续接入规则
 
 后续接入真实只读接口必须单独开启 gate，并继续限制在 Phase 2 已验收的只读内容接口和公开 meta 接口内。

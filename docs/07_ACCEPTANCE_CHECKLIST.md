@@ -142,6 +142,24 @@
 - [ ] 导出、快照、恢复有权限控制和审计。
 - [ ] AI 生成通过后端代理，生成记录可追踪。
 
+## Phase 6D Mini Program AI Mock DevTools/manual Acceptance
+
+- [x] DevTools 导入路径明确为 `miniprogram/`。
+- [x] `project.config.json` 保持 `compileType=miniprogram` 和 `urlCheck=true`。
+- [x] AI 页面仍默认 mock-only。
+- [x] `realApiGateEnabled=false`、`authRealApiGateEnabled=false`、`aiRealApiGateEnabled=false`。
+- [x] 手动测试用例覆盖首页入口、空输入、短输入、正常输入、示例输入、选项组合、复制、清空、重试、过长输入、疑似敏感输入、不登录和网络关闭 mock 可用性。
+- [x] 截图清单覆盖首页入口、AI 初始态、示例输入、loading、结果列表、warning、空输入错误、复制成功 toast、清空和重试状态。
+- [x] bug report template 覆盖设备/模拟器、微信开发者工具版本、基础库版本、复现步骤、预期结果、实际结果、截图路径、控制台错误、是否阻塞和建议优先级。
+- [x] Phase 6D preflight 已新增：`python3 scripts/titlelab_phase6d_miniprogram_devtools_acceptance_check.py`。
+- [x] 不上传体验版。
+- [x] 不提交审核。
+- [x] 不真实调用 OpenAI。
+- [x] 不真实请求后端 AI。
+- [x] 不连接真实数据库。
+- [x] 不新增 migration。
+- [x] 不新增依赖。
+
 ## 本轮禁止项确认
 
 - [x] 未修改业务代码。

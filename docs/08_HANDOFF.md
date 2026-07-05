@@ -757,6 +757,48 @@ Phase 6C 在独立 worktree `phase6c-miniprogram-ai-mock-acceptance-qa` 中完�
 
 如需真实 AI smoke，另起 Phase 5E RELEASE_GATE；如需真机视觉验收，先只做 DevTools 手工验收记录，不上传体验版、不提交审核、不打开真实 gate。
 
+## 29. Phase 6D Mini Program AI mock DevTools/manual acceptance pack
+
+Phase 6D 在独立 worktree `phase6d-miniprogram-ai-mock-devtools-acceptance-pack` 中完成小程序 AI 标题生成 mock-only DevTools/manual acceptance pack。本阶段没有进入 Phase 5E，没有真实调用 OpenAI，没有请求真实后端 AI，没有连接真实数据库，没有新增 migration，没有新增依赖，没有部署、上传体验版或提交审核。
+
+新增 / 更新文件：
+
+- `scripts/titlelab_phase6d_miniprogram_devtools_acceptance_check.py`
+- `docs/24_PHASE6D_MINIPROGRAM_AI_MOCK_DEVTOOLS_ACCEPTANCE_PACK.md`
+- `docs/qa/PHASE6D_MINIPROGRAM_AI_MOCK_MANUAL_TEST_CASES.md`
+- `docs/qa/PHASE6D_MINIPROGRAM_AI_MOCK_SCREENSHOT_CHECKLIST.md`
+- `docs/qa/PHASE6D_MINIPROGRAM_AI_MOCK_BUG_REPORT_TEMPLATE.md`
+- `miniprogram/README.md`
+- `docs/08_HANDOFF.md`
+- `docs/07_ACCEPTANCE_CHECKLIST.md`
+
+实现结果：
+
+- 固化 DevTools 导入路径：只导入 `miniprogram/`，不导入仓库根目录。
+- 新增 manual acceptance 用例，覆盖首页入口、空输入、短输入、正常输入、示例输入、选项组合、复制单条、复制全部、清空、重试、过长输入、疑似敏感输入、不登录和网络关闭 mock 可用性。
+- 新增截图清单，覆盖首页入口、AI 初始态、示例输入、loading、结果列表、warning、空输入错误、复制成功 toast、清空和重试状态。
+- 新增 bug report template，覆盖设备/模拟器、微信开发者工具版本、基础库版本、复现步骤、预期结果、实际结果、截图路径、控制台错误、是否阻塞和建议优先级。
+- 新增 Phase 6D preflight：`python3 scripts/titlelab_phase6d_miniprogram_devtools_acceptance_check.py`。
+
+边界确认：
+
+- `realApiGateEnabled=false`、`authRealApiGateEnabled=false`、`aiRealApiGateEnabled=false` 仍为默认关闭。
+- 未修改小程序页面逻辑。
+- 未修改 `backend/alembic/**`。
+- 未修改 `backend/app/db/**`。
+- 未修改 `backend/app/models/**`。
+- 未新增依赖。
+- 未新增内容 CRUD 写接口。
+- 未真实请求后端 AI。
+- 未调用真实 OpenAI、微信或任何外部 API。
+- 未连接真实数据库，未执行真实数据库 migration。
+- 未部署，未上传体验版，未提交审核。
+- 未提交 `miniprogram/project.private.config.json`。
+
+下一步最小建议：
+
+使用微信开发者工具导入 `miniprogram/`，按 `docs/qa/PHASE6D_MINIPROGRAM_AI_MOCK_MANUAL_TEST_CASES.md` 执行手动验收并记录截图/问题；仍不上传体验版、不提交审核、不打开真实 gate。
+
 ## 6. 风险与注意
 
 - 现有登录形态是静态网页时代的实现，重建时必须迁移到服务端认证。
